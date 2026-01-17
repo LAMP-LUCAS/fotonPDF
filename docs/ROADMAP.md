@@ -2,14 +2,6 @@
 
 Este documento define a visão de **macro-gerenciamento** do projeto, dividida em fases estratégicas. Para detalhes de execução semanais, consulte o documento de **[[SPRINTS|🏃 Gerenciamento de Sprints]]**.
 
-## 🏃 Status da Sprint Atual
-
-### Sprint 1: Core Engine & CLI Basics [x]
-
-### Sprint 2: Integração & Expansão [x]
-
-### Sprint 3: Visualizador & Renderização [x]
-
 ## 🏁 Fase 1: Fundação & MVP (Semanas 1-4)
 
 **Objetivo:** Estabelecer o motor base e as funcionalidades essenciais de manipulação de arquivos únicos e múltiplos via CLI e Menu de Contexto.
@@ -30,6 +22,19 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 - **Foco:** Sistema de Plugins, Automação em Lote e Integração com LLMs.
 - **Entregável:** Marketplace de plugins e suporte a automações baseadas em YAML.
+
+
+## 🏃 Status da Sprint Atual
+
+As Sprints estão detalhadas em [Sprints](SPRINTS.MD)
+
+### Sprint 0: Kickoff [x]
+
+### Sprint 1: Core Engine & CLI Basics [x]
+
+### Sprint 2: Integração & Expansão [x]
+
+### Sprint 3: Visualizador & Renderização [x]
 
 ---
 
