@@ -1,17 +1,36 @@
-# 📥 Guia de Instalação
+# 📦 Instalação do fotonPDF
 
-Bem-vindo ao **fotonPDF**! Siga os passos abaixo para preparar sua ferramenta de PDF ultra-rápida.
+Este guia irá ajudá-lo a instalar o fotonPDF no seu computador Windows.
 
-## 🪟 Windows (Recomendado)
+## 📥 Download
 
-O fotonPDF é distribuído como um executável "portátil", o que significa que você não precisa de um instalador complexo para começar a usar.
+1. Acesse a página de [Releases do GitHub](https://github.com/LAMP-LUCAS/fotonPDF/releases)
+2. Baixe o arquivo `foton.exe` da versão mais recente
+3. Salve em uma pasta de sua preferência (ex: `C:\Programas\fotonPDF\`)
 
-1. **Download:** Baixe a versão mais recente (`foton.exe`) na aba de [Releases](https://github.com/LAMP-LUCAS/fotonPDF/releases).
-2. **Localização:** Mova o arquivo para uma pasta segura em seu computador (ex: `C:\Program Files\fotonPDF` ou uma pasta em seus Documentos).
-3. **Ativação do Menu de Contexto:**
-   - Abra o terminal (PowerShell ou CMD) na pasta do executável.
-   - Digite: `./foton.exe install`
-   - Uma notificação aparecerá confirmando que o fotonPDF agora está integrado ao seu Explorador de Arquivos.
+## 🚀 Configuração (Setup)
+
+Após o download, abra o terminal (PowerShell ou CMD) na pasta onde salvou o `foton.exe` e execute:
+
+```powershell
+./foton.exe setup
+```
+
+O assistente irá guiá-lo pelo processo de configuração, exibindo cada etapa:
+
+- Verificação de permissões
+- Registro no Menu de Contexto do Windows
+- Verificação de integridade
+
+## ✅ Verificar Instalação
+
+Para confirmar que tudo está funcionando:
+
+```powershell
+./foton.exe status
+```
+
+Se aparecer "Menu de Contexto: ✅ Instalado", você está pronto para usar!
 
 ---
 
@@ -21,11 +40,10 @@ Se você preferir rodar via Python:
 
 1. Clone o repositório.
 2. Instale as dependências: `pip install -r requirements.txt`
-3. Instale o comando global: `pip install -e .`
-4. Use o comando `foton install` para integrar ao Windows.
+3. Execute: `python -m src.interfaces.cli.main setup`
 
 ---
 
-## ✅ Verificação
+## 🎉 Pronto
 
-Após a instalação, clique com o botão direito em qualquer arquivo `.pdf` no seu computador. Você deverá ver a opção **"Abrir com fotonPDF"**.
+Agora você pode clicar com o botão direito em qualquer arquivo PDF e escolher **"Abrir com fotonPDF"**.
