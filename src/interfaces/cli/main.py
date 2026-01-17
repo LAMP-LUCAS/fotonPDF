@@ -102,14 +102,21 @@ def view(path: Path | None):
 def install():
     """Registra o fotonPDF no Menu de Contexto (Windows)."""
     try:
-        from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
         from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+        import sys
         
+        # Detectar caminho do executável ou script
+        if getattr(sys, 'frozen', False):
+            app_path = Path(sys.executable)
+            command = f'"{app_path}" view "%1"'
+        else:
+            app_path = Path(sys.argv[0]).absolute()
+            command = f'python "{app_path}" view "%1"'
+            
         adapter = WindowsRegistryAdapter()
-        use_case = RegisterOSIntegrationUseCase(adapter)
+        click.echo(f"🪟 Registrando no Windows Explorer: {app_path.name}")
         
-        click.echo("🪟 Registrando no Windows Explorer...")
-        if use_case.execute():
+        if adapter.register_context_menu("Abrir com fotonPDF", command):
             notify_success("Instalação Concluída", "fotonPDF registrado no Menu de Contexto!")
         else:
             notify_error("Falha ao registrar no Windows. Tente como Admin.")

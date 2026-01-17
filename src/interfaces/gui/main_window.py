@@ -5,6 +5,8 @@ from PyQt6.QtCore import Qt, QSize
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.widgets.thumbnail_panel import ThumbnailPanel
 
+from src.infrastructure.services.update_service import UpdateService
+
 class MainWindow(QMainWindow):
     """Janela Principal do fotonPDF com Design Premium."""
 
@@ -12,6 +14,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("fotonPDF")
         self.resize(1200, 900)
+        self.current_file = None
+        
+        # Iniciar Verificador de Update
+        self.update_service = UpdateService()
+        self.update_service.check_for_updates(self._on_update_found)
         
         # Apply Premium Dark Theme
         self.setStyleSheet("""
@@ -157,6 +164,20 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Exportação concluída em: {target_dir}")
         except Exception as e:
             self.statusBar().showMessage(f"Erro na exportação: {str(e)}")
+
+    def _on_update_found(self, version, url):
+        """Notifica o usuário sobre a nova versão."""
+        from PyQt6.QtWidgets import QMessageBox
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Atualização Disponível")
+        msg.setText(f"Uma nova versão do fotonPDF (v{version}) está disponível!")
+        msg.setInformativeText("Deseja baixar a atualização agora?")
+        msg.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        msg.setDefaultButton(QMessageBox.StandardButton.Yes)
+        
+        if msg.exec() == QMessageBox.StandardButton.Yes:
+            import webbrowser
+            webbrowser.open(url)
 
     def open_file(self, file_path: Path):
         """Abre um novo arquivo PDF no visualizador e atualiza as miniaturas."""

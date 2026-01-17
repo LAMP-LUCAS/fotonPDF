@@ -2,23 +2,22 @@
 
 Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 5 - Distribuição & Sistema de Atualização 🟡
+## 🏁 Sprint Atual: Fase 2 - Interface & Funcionalidade 🚀
 
-**Objetivo:** Gerar o entregável final (MVP) e garantir que ele seja autossustentável.
-
-### Backlog da Sprint
-
-- **📦 Distribuição (O Entregável MVP):**
-  - [ ] **Geração do Binário (foton.exe):** Configurar `PyInstaller` para empacotar Python, PyQt6 e PyMuPDF em um único executável.
-  - [ ] **Scripts de Instalação Final:** Integrar o registro no Menu de Contexto do Windows diretamente no binário para setup automático.
-- **🔄 Ciclo de Vida do Produto:**
-  - [ ] **Sistema de Auto-Update:** Implementar verificador de versão e notificação/download automático para novas versões.
-- **📘 Documentação de Saída:**
-  - [ ] **Manual do Usuário:** Documentar instalação e operação (Explorer e Visualizador) para o usuário final.
+**Objetivo:** Evoluir para uma interface gráfica robusta e adicionar inteligência ao processamento.
 
 ---
 
 ## 📅 Histórico de Sprints
+
+### Sprint 5: Distribuição & Sistema de Atualização ✅
+
+**Objetivo:** Gerar o entregável final (MVP) e garantir que ele seja autossustentável.
+
+- [x] **Geração do Binário (foton.exe):** Configurado `PyInstaller` para empacotamento completo.
+- [x] **Scripts de Instalação Final:** Registro inteligente no Menu de Contexto (Portable/Binary).
+- [x] **Sistema de Auto-Update:** Implementado `UpdateService` com GitHub API e notificações.
+- [x] **Manual do Usuário:** Documentação básica de instalação incluída no README.
 
 ### Sprint 4: Lógica de Interface & UX Premium ✅
 
@@ -46,7 +45,6 @@ Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser d
 - [x] Integração com Registro do Windows (Menu de Contexto).
 - [x] Sistema de Notificações Nativas (Plyer).
 - [x] Refatoração CLI para múltiplas operações e arquivos.
-- [x] Implementação de testes unitários e integração para novas operações.
 
 ### Sprint 1: Core Engine & CLI Basics ✅
 
@@ -56,7 +54,6 @@ Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser d
 - [x] Implementação do `Domain` e `Application` (RotateUseCase).
 - [x] Implementação de Adapter para PyMuPDF.
 - [x] CLI simples para invocar a rotação.
-- [x] Testes unitários e de integração básicos.
 
 ### Sprint 0: Kickoff ✅
 
