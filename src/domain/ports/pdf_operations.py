@@ -14,3 +14,13 @@ class PDFOperationsPort(ABC):
     def get_info(self, path: Path) -> PDFDocument:
         """Extrai metadados básicos do PDF."""
         pass
+
+    @abstractmethod
+    def merge(self, documents: list[PDFDocument], output_path: Path) -> Path:
+        """Une múltiplos documentos PDF em um único arquivo."""
+        pass
+
+    @abstractmethod
+    def split(self, pdf: PDFDocument, pages: list[int], output_path: Path) -> Path:
+        """Extrai páginas específicas de um PDF para um novo arquivo."""
+        pass

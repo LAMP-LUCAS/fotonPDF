@@ -33,3 +33,25 @@ class PyMuPDFAdapter(PDFOperationsPort):
             name=path.name,
             page_count=page_count
         )
+
+    def merge(self, documents: list[PDFDocument], output_path: Path) -> Path:
+        """Une múltiplos documentos PDF usando PyMuPDF."""
+        result = fitz.open()
+        
+        for pdf in documents:
+            with fitz.open(str(pdf.path)) as src:
+                result.insert_pdf(src)
+                
+        result.save(str(output_path))
+        result.close()
+        return output_path
+
+    def split(self, pdf: PDFDocument, pages: list[int], output_path: Path) -> Path:
+        """Extrai páginas específicas usando PyMuPDF."""
+        with fitz.open(str(pdf.path)) as src:
+            # O método select() modifica o documento in-place (na memória)
+            # para conter apenas as páginas especificadas
+            src.select(pages)
+            src.save(str(output_path))
+            
+        return output_path
