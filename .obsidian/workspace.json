@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "LLM_CONTEXT.md",
-                "mode": "source",
+                "file": "docs/SPRINTS.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "LLM_CONTEXT"
+              "title": "SPRINTS"
             }
           }
         ]
@@ -95,7 +95,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "LLM_CONTEXT.md",
+                "file": "docs/SPRINTS.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -105,7 +105,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para LLM_CONTEXT"
+              "title": "Links inversos para SPRINTS"
             }
           },
           {
@@ -114,12 +114,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "LLM_CONTEXT.md",
+                "file": "docs/SPRINTS.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para LLM_CONTEXT"
+              "title": "Links de saída para SPRINTS"
             }
           },
           {
@@ -157,13 +157,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "LLM_CONTEXT.md",
+                "file": "docs/SPRINTS.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de LLM_CONTEXT"
+              "title": "Sumário de SPRINTS"
             }
           }
         ]
@@ -189,8 +189,9 @@
   },
   "active": "0de5068e11cf9b71",
   "lastOpenFiles": [
-    "src/application/use_cases/split_pdf.py",
     "docs/DASHBOARD.md",
+    "LLM_CONTEXT.md",
+    "src/application/use_cases/split_pdf.py",
     "src/application/use_cases/__pycache__/split_pdf.cpython-312.pyc",
     "src/application/use_cases/__pycache__/merge_pdf.cpython-312.pyc",
     "tests/unit/application/__pycache__/test_merge_split.cpython-312-pytest-8.4.1.pyc",
@@ -200,7 +201,6 @@
     "src/infrastructure/adapters/notification_adapter.py",
     "src/domain/ports/notification.py",
     "src/application/use_cases/register_os.py",
-    "src/infrastructure/adapters/windows_registry_adapter.py",
     "docs/SPRINTS.md",
     "docs/DEVELOPMENT.md",
     "docs/MAP.md",
@@ -212,7 +212,6 @@
     "CONTRIBUTING.md",
     "docs/GRAPH.md",
     "docs/ARCHITECTURE.md",
-    "LLM_CONTEXT.md",
     "CodeAssistant.llm-context.md",
     "Automation.llm-context.md",
     "llm-context.md",
