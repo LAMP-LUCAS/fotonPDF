@@ -15,7 +15,7 @@ pie title Cobertura da Documentação
 ## 🚦 Semáforo de Progresso
 
 | Fase | Status | Progresso | Deadline |
-|------|--------|-----------|----------|
+| --- | --- | --- | --- |
 | **Sprint 0 - Kickoff** | 🟢 Completo | ████████████ 100% | 17/01/2026 ✅ |
 | **Sprint 1 - Core MVP** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
 | **Sprint 2 - Integração** | 🟡 Iniciando | ░░░░░░░░░░░░ 0% | 14/02/2026 |
@@ -85,7 +85,7 @@ gantt
 ## 📈 Métricas de Código (Previsto)
 
 | Métrica | Meta Sprint 1 | Meta MVP |
-|---------|---------------|----------|
+| --- | --- | --- |
 | Cobertura de Testes | 70% | 80% |
 | Type Hints | 100% | 100% |
 | Linhas de Código | ~1.500 | ~5.000 |
@@ -116,7 +116,7 @@ graph LR
 
 ## 🐛 Issues Abertas (GitHub)
 
-*Seção para tracking - será atualizada manualmente*
+> **Tracking Central**: Seção para acompanhamento manual de débitos técnicos e melhorias.
 
 - [ ] #001: Setup inicial do repositório
 - [ ] #002: Implementar rotação de PDF

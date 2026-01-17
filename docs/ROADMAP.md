@@ -2,6 +2,8 @@
 
 Este documento define a visão de **macro-gerenciamento** do projeto, dividida em fases estratégicas. Para detalhes de execução semanais, consulte o documento de **[[SPRINTS|🏃 Gerenciamento de Sprints]]**.
 
+## 🏃 Status da Sprint Atual
+
 ### Sprint 1: Core Engine & CLI Basics [x]
 
 ## 🏁 Fase 1: Fundação & MVP (Semanas 1-4)
