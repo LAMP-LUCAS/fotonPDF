@@ -25,13 +25,18 @@
             "id": "12f14b7531537af7",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Visualização em gráfico"
+              "type": "markdown",
+              "state": {
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+                "mode": "preview",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "TROUBLESHOOTING_AND_UNINSTALL"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -88,7 +93,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 272.5
+    "width": 272.5,
+    "collapsed": true
   },
   "right": {
     "id": "8fc06a44d44a4fe0",
@@ -104,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -114,7 +120,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para INSTALLATION"
+              "title": "Links inversos para TROUBLESHOOTING_AND_UNINSTALL"
             }
           },
           {
@@ -123,12 +129,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para INSTALLATION"
+              "title": "Links de saída para TROUBLESHOOTING_AND_UNINSTALL"
             }
           },
           {
@@ -166,13 +172,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de INSTALLATION"
+              "title": "Sumário de TROUBLESHOOTING_AND_UNINSTALL"
             }
           }
         ]
@@ -196,23 +202,23 @@
       "markdown-importer:Abrir importador Markdown": false
     }
   },
-  "active": "75e1e8f56e7a193b",
+  "active": "12f14b7531537af7",
   "lastOpenFiles": [
+    "src/application/use_cases/__pycache__/unregister_os.cpython-312.pyc",
+    "src/infrastructure/adapters/__pycache__/windows_registry_adapter.cpython-312.pyc",
+    "src/domain/ports/__pycache__/os_integration.cpython-312.pyc",
+    "src/application/use_cases/__pycache__/register_os.cpython-312.pyc",
+    "src/domain/ports/__pycache__/notification.cpython-312.pyc",
+    "src/infrastructure/adapters/__pycache__/notification_adapter.cpython-312.pyc",
+    "src/application/use_cases/unregister_os.py",
+    "docs/user/INSTALLATION.md",
     "build/foton/EXE-00.toc",
     "dist/foton.exe",
     "build/foton/PKG-00.toc",
     "build/foton/foton.pkg",
-    "build/foton/PYZ-00.toc",
-    "build/foton/PYZ-00.pyz",
-    "build/foton/localpycs/pyimod04_pywin32.pyc",
-    "build/foton/localpycs/pyimod03_ctypes.pyc",
-    "build/foton/localpycs/pyimod02_importers.pyc",
-    "build/foton/localpycs/pyimod01_archive.pyc",
-    "build/foton/localpycs/struct.pyc",
     "README.md",
     "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
     "docs/user/USAGE.md",
-    "docs/user/INSTALLATION.md",
     "docs/guides/OS_INTEGRATION.md",
     "docs/guides/PLUGIN_SYSTEM.md",
     "docs/guides/NEW_OPERATION.md",

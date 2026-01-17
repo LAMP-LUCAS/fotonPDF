@@ -1,5 +1,10 @@
+import click
+from pathlib import Path
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
 from src.infrastructure.adapters.notification_adapter import PlyerNotificationAdapter
+from src.application.use_cases.rotate_pdf import RotatePDFUseCase
+from src.application.use_cases.merge_pdf import MergePDFUseCase
+from src.application.use_cases.split_pdf import SplitPDFUseCase
 
 def notify_success(title: str, msg: str):
     click.secho(f"✅ {msg}", fg='green')
@@ -101,6 +106,7 @@ def view(path: Path | None):
 @cli.command()
 def install():
     """Registra o fotonPDF no Menu de Contexto (Windows)."""
+    try:
         from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
         from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
         import sys
@@ -122,6 +128,25 @@ def install():
             notify_success("Instalação Concluída", "fotonPDF registrado no Menu de Contexto!")
         else:
             notify_error("Falha ao registrar no Windows. Tente como Admin.")
+            
+    except Exception as e:
+        notify_error(str(e))
+
+@cli.command()
+def remove():
+    """Remove o fotonPDF do Menu de Contexto (Windows)."""
+    try:
+        from src.application.use_cases.unregister_os import UnregisterOSIntegrationUseCase
+        from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+        
+        adapter = WindowsRegistryAdapter()
+        use_case = UnregisterOSIntegrationUseCase(adapter)
+        
+        click.echo("🧹 Removendo do Windows Explorer...")
+        if use_case.execute():
+            notify_success("Remoção Concluída", "fotonPDF removido do Menu de Contexto!")
+        else:
+            notify_error("Falha ao remover do Windows. Tente como Admin.")
             
     except Exception as e:
         notify_error(str(e))

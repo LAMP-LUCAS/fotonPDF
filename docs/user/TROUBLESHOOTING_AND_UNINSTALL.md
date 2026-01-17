@@ -28,7 +28,7 @@ Para remover o fotonPDF completamente do seu sistema:
 ### Passo 1: Remover do Menu de Contexto
 
 Antes de deletar o arquivo, abra o terminal na pasta do app e digite:
-`foton remove` (em implementação) ou use o utilitário de limpeza de registro.
+`foton remove` ou use o utilitário de limpeza de registro.
 
 ### Passo 2: Deletar Arquivos
 

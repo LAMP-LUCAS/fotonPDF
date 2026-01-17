@@ -29,9 +29,38 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             return False
 
     def unregister_context_menu(self) -> bool:
-        """Remove as entradas do registro."""
-        # Implementação de limpeza omitida para brevidade no MVP, mas necessária no futuro
-        return True
+        """Remove as entradas do registro que pertencem ao fotonPDF."""
+        try:
+            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
+            shell_path = fr"Software\Classes\{prog_id}\shell"
+            
+            # Precisamos iterar pelas chaves e remover as que começam com 'foton_'
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, shell_path, 0, winreg.KEY_ALL_ACCESS) as key:
+                i = 0
+                keys_to_delete = []
+                while True:
+                    try:
+                        subkey_name = winreg.EnumKey(key, i)
+                        if subkey_name.startswith("foton_"):
+                            keys_to_delete.append(subkey_name)
+                        i += 1
+                    except OSError:
+                        break
+                
+                for k in keys_to_delete:
+                    # winreg.DeleteKey não remove recursivamente chaves com subchaves (como 'command')
+                    # Precisamos remover o 'command' primeiro
+                    cmd_path = fr"{shell_path}\{k}\command"
+                    try:
+                        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, cmd_path)
+                    except OSError:
+                        pass
+                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, fr"{shell_path}\{k}")
+                    
+            return True
+        except Exception as e:
+            print(f"Erro ao remover do Windows: {e}")
+            return False
 
     def _get_prog_id(self, extension: str) -> str | None:
         try:
