@@ -35,7 +35,8 @@
               "title": "TROUBLESHOOTING_AND_UNINSTALL"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -109,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -119,7 +120,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para INSTALLATION"
+              "title": "Links inversos para TROUBLESHOOTING_AND_UNINSTALL"
             }
           },
           {
@@ -128,12 +129,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para INSTALLATION"
+              "title": "Links de saída para TROUBLESHOOTING_AND_UNINSTALL"
             }
           },
           {
@@ -171,13 +172,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/user/INSTALLATION.md",
+                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de INSTALLATION"
+              "title": "Sumário de TROUBLESHOOTING_AND_UNINSTALL"
             }
           }
         ]
@@ -201,7 +202,7 @@
       "markdown-importer:Abrir importador Markdown": false
     }
   },
-  "active": "0de5068e11cf9b71",
+  "active": "12f14b7531537af7",
   "lastOpenFiles": [
     "build/foton/EXE-00.toc",
     "dist/foton.exe",
@@ -214,8 +215,8 @@
     "build/foton/localpycs/pyimod02_importers.pyc",
     "build/foton/localpycs/struct.pyc",
     "build/foton/localpycs/pyimod01_archive.pyc",
-    "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
     "docs/user/INSTALLATION.md",
+    "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
     "README.md",
     "docs/user/USAGE.md",
     "docs/guides/OS_INTEGRATION.md",

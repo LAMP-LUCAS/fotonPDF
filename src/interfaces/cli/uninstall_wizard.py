@@ -3,6 +3,7 @@ Uninstall Wizard - Assistente de Desinstalação do fotonPDF
 Fornece feedback visual passo a passo durante o processo de offboarding.
 """
 import click
+from src.infrastructure.services.logger import log_info, log_error, log_warning, log_debug
 
 
 def print_header():
@@ -13,26 +14,31 @@ def print_header():
     click.secho(f"║     fotonPDF v{__version__} - Assistente de Desinstalação      ║", fg='yellow')
     click.secho("╚═══════════════════════════════════════════════════════════╝", fg='yellow')
     click.echo()
+    log_info(f"Uninstall Wizard iniciado (v{__version__})")
 
 
 def print_step(step: int, total: int, message: str):
     """Exibe uma etapa do wizard."""
     click.echo(f"[{step}/{total}] {message}")
+    log_debug(f"Etapa {step}/{total}: {message}")
 
 
 def print_success(message: str):
     """Exibe mensagem de sucesso."""
     click.secho(f"      ✅ {message}", fg='green')
+    log_info(f"✓ {message}")
 
 
 def print_error(message: str):
     """Exibe mensagem de erro."""
     click.secho(f"      ❌ {message}", fg='red')
+    log_error(f"✗ {message}")
 
 
 def print_warning(message: str):
     """Exibe mensagem de aviso."""
     click.secho(f"      ⚠️  {message}", fg='yellow')
+    log_warning(f"⚠ {message}")
 
 
 def print_footer_success():
@@ -43,6 +49,7 @@ def print_footer_success():
     click.secho("   Obrigado por usar o fotonPDF. Até a próxima! 👋", fg='cyan')
     click.secho("════════════════════════════════════════════════════════════", fg='green')
     click.echo()
+    log_info("Desinstalação concluída com sucesso")
 
 
 def print_footer_error():
@@ -53,6 +60,13 @@ def print_footer_error():
     click.secho("   Dica: Tente executar como Administrador.", fg='yellow')
     click.secho("════════════════════════════════════════════════════════════", fg='red')
     click.echo()
+    log_error("Desinstalação falhou")
+
+
+def wait_for_keypress():
+    """Aguarda o usuário pressionar uma tecla antes de fechar."""
+    click.echo()
+    click.pause("Pressione qualquer tecla para sair...")
 
 
 def confirm_removal() -> bool:
@@ -66,6 +80,7 @@ def unregister_context_menu() -> bool:
     from src.application.use_cases.unregister_os import UnregisterOSIntegrationUseCase
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     
+    log_debug("Removendo entradas do registro...")
     adapter = WindowsRegistryAdapter()
     use_case = UnregisterOSIntegrationUseCase(adapter)
     return use_case.execute()
@@ -75,41 +90,55 @@ def verify_removal() -> bool:
     """Verifica se o fotonPDF foi removido corretamente."""
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     adapter = WindowsRegistryAdapter()
-    # Se não estiver instalado, a remoção foi bem-sucedida
-    return not adapter.check_installation_status()
+    result = not adapter.check_installation_status()
+    log_debug(f"Verificação de remoção: {'OK' if result else 'Ainda instalado'}")
+    return result
 
 
 def run_uninstall(skip_confirmation: bool = False) -> bool:
     """Executa o wizard de desinstalação completo."""
-    print_header()
-    
-    # Confirmação
-    if not skip_confirmation:
-        if not confirm_removal():
-            click.echo()
-            click.secho("   Operação cancelada pelo usuário.", fg='yellow')
-            click.echo()
+    try:
+        print_header()
+        
+        # Confirmação
+        if not skip_confirmation:
+            if not confirm_removal():
+                click.echo()
+                click.secho("   Operação cancelada pelo usuário.", fg='yellow')
+                log_info("Desinstalação cancelada pelo usuário")
+                click.echo()
+                wait_for_keypress()
+                return False
+        
+        click.echo()
+        total_steps = 2
+        
+        # Etapa 1: Remover Menu de Contexto
+        print_step(1, total_steps, "Removendo do Menu de Contexto do Windows...")
+        
+        if unregister_context_menu():
+            print_success("Entradas do registro removidas")
+        else:
+            print_error("Falha ao remover do registro")
+            print_footer_error()
+            wait_for_keypress()
             return False
-    
-    click.echo()
-    total_steps = 2
-    
-    # Etapa 1: Remover Menu de Contexto
-    print_step(1, total_steps, "Removendo do Menu de Contexto do Windows...")
-    
-    if unregister_context_menu():
-        print_success("Entradas do registro removidas")
-    else:
-        print_error("Falha ao remover do registro")
+        
+        # Etapa 2: Verificar Remoção
+        print_step(2, total_steps, "Verificando remoção...")
+        if verify_removal():
+            print_success("Remoção verificada com sucesso")
+        else:
+            print_warning("Pode ser necessário reiniciar o Windows Explorer")
+        
+        print_footer_success()
+        wait_for_keypress()
+        return True
+        
+    except Exception as e:
+        from src.infrastructure.services.logger import log_exception
+        log_exception(f"Erro inesperado no uninstall: {e}")
+        print_error(f"Erro inesperado: {e}")
         print_footer_error()
+        wait_for_keypress()
         return False
-    
-    # Etapa 2: Verificar Remoção
-    print_step(2, total_steps, "Verificando remoção...")
-    if verify_removal():
-        print_success("Remoção verificada com sucesso")
-    else:
-        print_warning("Pode ser necessário reiniciar o Windows Explorer")
-    
-    print_footer_success()
-    return True
