@@ -28,6 +28,8 @@ def build():
         f"--workpath={project_root / 'build'}",
         f"--specpath={project_root}",
         f"--add-data={project_root / 'src'};src", # Incluir todo o código fonte
+        "--hidden-import=plyer.platforms.win.notification",
+        "--hidden-import=plyer.platforms.linux.notification", # Para compatibilidade futura
         "--hidden-import=PyQt6",
         "--hidden-import=fitz",
         "--hidden-import=requests",
