@@ -14,12 +14,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/SPRINTS.md",
+                "file": "QUICKSTART.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SPRINTS"
+              "title": "QUICKSTART"
             }
           }
         ]
@@ -96,8 +96,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 272.5,
-    "collapsed": true
+    "width": 272.5
   },
   "right": {
     "id": "8fc06a44d44a4fe0",
@@ -113,6 +112,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "QUICKSTART.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +122,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks"
+              "title": "Links inversos para QUICKSTART"
             }
           },
           {
@@ -131,11 +131,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "QUICKSTART.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída"
+              "title": "Links de saída para QUICKSTART"
             }
           },
           {
@@ -173,12 +174,13 @@
             "state": {
               "type": "outline",
               "state": {
+                "file": "QUICKSTART.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário"
+              "title": "Sumário de QUICKSTART"
             }
           }
         ]
@@ -202,12 +204,23 @@
       "markdown-importer:Abrir importador Markdown": false
     }
   },
-  "active": "88743dffe8841c08",
+  "active": "0de5068e11cf9b71",
   "lastOpenFiles": [
-    "docs/REPORT.md",
-    "QUICKSTART.md",
-    "docs/INDEX.md",
+    "manual_test_rotated.pdf",
+    "src/interfaces/cli/__pycache__/__init__.cpython-312.pyc",
+    "src/interfaces/cli/__pycache__/main.cpython-312.pyc",
+    "src/interfaces/cli/__pycache__",
+    "src/interfaces/__pycache__/__init__.cpython-312.pyc",
+    "src/interfaces/__pycache__",
+    "manual_test.pdf",
+    "tests/__pycache__/__init__.cpython-312.pyc",
+    "tests/__pycache__",
+    "src/application/use_cases/__pycache__/rotate_pdf.cpython-312.pyc",
+    "src/application/use_cases/__pycache__/__init__.cpython-312.pyc",
     "docs/SPRINTS.md",
+    "QUICKSTART.md",
+    "docs/REPORT.md",
+    "docs/INDEX.md",
     "docs/ROADMAP.md",
     "docs/MAP.md",
     "CONTRIBUTING.md",
@@ -223,7 +236,6 @@
     "docs/DASHBOARD.md",
     "docs/guides/OS_INTEGRATION.md",
     "docs/guides/PLUGIN_SYSTEM.md",
-    "docs/guides/NEW_OPERATION.md",
-    "docs/guides"
+    "docs/guides/NEW_OPERATION.md"
   ]
 }

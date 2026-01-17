@@ -2,17 +2,17 @@
 
 Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 1 - Core Engine & CLI Basics [/]
+## 🏁 Sprint Atual: Sprint 1 - Core Engine & CLI Basics ✅
 
 **Objetivo:** Configurar o ambiente de desenvolvimento, estrutura `src/` e implementar Rotação básica.
 
 ### Backlog da Sprint
 
-- [ ] Setup do motor PyMuPDF e estrutura de diretórios seguindo Hexagonal.
-- [ ] Implementação do `Domain` (Entidades/Portas) e `Application` (RotateUseCase).
-- [ ] Implementação de Adapter para PyMuPDF.
-- [ ] CLI simples para invocar a rotação.
-- [ ] Testes unitários e de integração básicos.
+- [x] Setup do motor PyMuPDF e estrutura de diretórios seguindo Hexagonal.
+- [x] Implementação do `Domain` (Entidades/Portas) e `Application` (RotateUseCase).
+- [x] Implementação de Adapter para PyMuPDF.
+- [x] CLI simples para invocar a rotação.
+- [x] Testes unitários e de integração básicos.
 
 ---
 
