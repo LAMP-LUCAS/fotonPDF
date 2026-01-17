@@ -3,6 +3,12 @@ import os
 from pathlib import Path
 
 def build():
+    import sys
+    # Adicionar raíz do projeto ao sys.path para permitir import de 'src'
+    project_root = Path(__file__).parent.parent
+    if str(project_root) not in sys.path:
+        sys.path.insert(0, str(project_root))
+        
     from src import __version__
     print(f"🚀 Iniciando build do fotonPDF v{__version__}...")
     
@@ -18,6 +24,9 @@ def build():
         "--onefile", # Binário único
         "--windowed", # Não abrir console
         "--clean",
+        f"--distpath={project_root / 'dist'}",
+        f"--workpath={project_root / 'build'}",
+        f"--specpath={project_root}",
         f"--add-data={project_root / 'src'};src", # Incluir todo o código fonte
         "--hidden-import=PyQt6",
         "--hidden-import=fitz",
