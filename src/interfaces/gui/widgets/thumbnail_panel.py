@@ -12,17 +12,26 @@ class ThumbnailPanel(QListWidget):
         self.setFixedWidth(200)
         self.setIconSize(QSize(150, 200))
         self.setGridSize(QSize(180, 220))
+        self.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         self.setFlow(QListWidget.Flow.TopToBottom)
         self.setMovement(QAbstractItemView.Movement.Static)
         self.setStyleSheet("""
             QListWidget {
-                background-color: #252525;
-                border: none;
+                background-color: #1e1e1e;
+                border-right: 1px solid #333;
                 color: white;
             }
+            QListWidget::item {
+                border-radius: 5px;
+                margin: 5px;
+                padding: 10px;
+            }
             QListWidget::item:selected {
-                background-color: #3d3d3d;
-                border-left: 3px solid #4CAF50;
+                background-color: #2e2e2e;
+                border: 2px solid #4CAF50;
+            }
+            QListWidget::item:hover {
+                background-color: #252525;
             }
         """)
         self.itemClicked.connect(self._on_item_clicked)
@@ -42,6 +51,9 @@ class ThumbnailPanel(QListWidget):
             item.setData(Qt.ItemDataRole.UserRole, i)
             self.addItem(item)
 
-    def _on_item_clicked(self, item):
-        page_num = item.data(Qt.ItemDataRole.UserRole)
-        self.pageSelected.emit(page_num)
+    def get_selected_pages(self) -> list[int]:
+        """Retorna os números das páginas selecionadas (1-based)."""
+        selected_items = self.selectedItems()
+        # UserRole armazena o 0-based index. Retornamos 1-based para o Caso de Uso.
+        pages = [item.data(Qt.ItemDataRole.UserRole) + 1 for item in selected_items]
+        return sorted(pages)
