@@ -38,33 +38,38 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 
 ---
 
-## 📅 Histórico de Sprints
+## 📅 Histórico de Sprints Concluídas
 
-### Sprint 5: Distribuição & Sistema de Atualização ✅
+### Fase 2: : Interface & Funcionalidade
+
+Aguardando...
+### Fase 1: Fundação & MVP
+
+#### Sprint 5: Distribuição & Sistema de Atualização ✅
 
 - [x] Auto-Update Engine e Notificações Mobile-style.
 - [x] Build automatizado via PyInstaller (`foton.exe`).
 - [x] Registro inteligente no Menu de Contexto.
 
-### Sprint 4: Lógica de Interface & UX Premium ✅
+#### Sprint 4: Lógica de Interface & UX Premium ✅
 
 - [x] Barra de ferramentas com Extração e Exportação.
 - [x] Design Premium e Feedbacks em tempo real.
 
-### Sprint 3: Visualizador & Renderização ✅
+#### Sprint 3: Visualizador & Renderização ✅
 
 - [x] Interface Gráfica base e Lazy Loading.
 - [x] Navegação por Miniaturas.
 
-### Sprint 2: OS Integration & Multi-file Ops ✅
+#### Sprint 2: OS Integration & Multi-file Ops ✅
 
 - [x] Merge/Split no motor e Menu de Contexto.
 
-### Sprint 1: Core Engine & CLI Basics ✅
+#### Sprint 1: Core Engine & CLI Basics ✅
 
 - [x] Fundação Hexagonal e PyMuPDF Adapter.
 
-### Sprint 0: Kickoff ✅
+#### Sprint 0: Kickoff ✅
 
 - [x] Estratégia de documentação e arquitetura.
 
