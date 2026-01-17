@@ -141,3 +141,35 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             winreg.SetValue(key, "", winreg.REG_SZ, label)
             with winreg.CreateKey(key, "command") as cmd_key:
                 winreg.SetValue(cmd_key, "", winreg.REG_SZ, command)
+
+    def register_all_context_menus(self) -> bool:
+        """
+        Registra todas as entradas do menu de contexto com submenus para cada função.
+        """
+        try:
+            # Detectar caminho do executável
+            if getattr(sys, 'frozen', False):
+                app_path = sys.executable
+            else:
+                # Modo desenvolvimento
+                cli_path = Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"
+                app_path = f'python "{cli_path}"'
+            
+            # Definir os menus a serem criados
+            menus = [
+                ("foton_01_Abrir", "📄 Abrir com fotonPDF", f'"{app_path}" view "%1"'),
+                ("foton_02_Girar90", "🔄 Girar 90°", f'"{app_path}" rotate "%1" -d 90'),
+                ("foton_03_Girar180", "🔄 Girar 180°", f'"{app_path}" rotate "%1" -d 180'),
+                ("foton_04_Separar", "✂️ Extrair Páginas...", f'"{app_path}" split "%1" --pages 1'),
+            ]
+            
+            for entry_name, label, command in menus:
+                log_debug(f"Registrando: {label}")
+                self._create_menu_entry(PDF_SHELL_PATH, entry_name, label, command)
+            
+            log_info(f"Registradas {len(menus)} entradas no menu de contexto")
+            return True
+            
+        except Exception as e:
+            log_error(f"Erro ao registrar menus: {e}")
+            return False

@@ -5,13 +5,16 @@ from src.infrastructure.adapters.notification_adapter import PlyerNotificationAd
 from src.application.use_cases.rotate_pdf import RotatePDFUseCase
 from src.application.use_cases.merge_pdf import MergePDFUseCase
 from src.application.use_cases.split_pdf import SplitPDFUseCase
+from src.infrastructure.services.logger import log_info, log_error, log_debug, log_exception
 
 def notify_success(title: str, msg: str):
     click.secho(f"✅ {msg}", fg='green')
+    log_info(f"Sucesso: {title} - {msg}")
     PlyerNotificationAdapter().notify(title, msg)
 
 def notify_error(msg: str):
     click.secho(f"❌ Erro: {msg}", fg='red', err=True)
+    log_error(f"Erro: {msg}")
     PlyerNotificationAdapter().notify("Erro no fotonPDF", msg)
 
 @click.group()
@@ -24,6 +27,7 @@ def cli():
 @click.option('--degrees', '-d', type=int, default=90, help='Angulo de rotação (90, 180, 270)')
 def rotate(path: Path, degrees: int):
     """Gira todas as páginas de um arquivo PDF."""
+    log_info(f"Comando: rotate | Arquivo: {path} | Graus: {degrees}")
     try:
         adapter = PyMuPDFAdapter()
         use_case = RotatePDFUseCase(adapter)
@@ -33,6 +37,7 @@ def rotate(path: Path, degrees: int):
         notify_success("Rotação Concluída", f"Arquivo salvo em: {output_path.name}")
         
     except Exception as e:
+        log_exception(f"Erro no comando rotate: {e}")
         notify_error(str(e))
 
 @cli.command()
@@ -40,6 +45,7 @@ def rotate(path: Path, degrees: int):
 @click.option('--output', '-o', type=click.Path(path_type=Path), help='Caminho de saída')
 def merge(paths: tuple[Path, ...], output: Path | None):
     """Une múltiplos arquivos PDF em um só."""
+    log_info(f"Comando: merge | Arquivos: {len(paths)}")
     try:
         if not output:
             output = paths[0].parent / "merged.pdf"
@@ -52,6 +58,7 @@ def merge(paths: tuple[Path, ...], output: Path | None):
         notify_success("União Concluída", f"Arquivo unido: {output_path.name}")
         
     except Exception as e:
+        log_exception(f"Erro no comando merge: {e}")
         notify_error(str(e))
 
 @cli.command()
@@ -60,6 +67,7 @@ def merge(paths: tuple[Path, ...], output: Path | None):
 @click.option('--output', '-o', type=click.Path(path_type=Path), help='Caminho de saída')
 def split(path: Path, pages: str, output: Path | None):
     """Extrai páginas específicas de um PDF."""
+    log_info(f"Comando: split | Arquivo: {path} | Páginas: {pages}")
     try:
         page_list = []
         for part in pages.split(','):
@@ -83,12 +91,14 @@ def split(path: Path, pages: str, output: Path | None):
         notify_success("Extração Concluída", f"Páginas extraídas em: {output_path.name}")
         
     except Exception as e:
+        log_exception(f"Erro no comando split: {e}")
         notify_error(str(e))
 
 @cli.command()
 @click.argument('path', type=click.Path(exists=True, path_type=Path), required=False)
 def view(path: Path | None):
     """Abre o visualizador GUI do fotonPDF."""
+    log_info(f"Comando: view | Arquivo: {path}")
     try:
         from src.interfaces.gui.app import main
         import sys
@@ -101,6 +111,7 @@ def view(path: Path | None):
         main()
         
     except Exception as e:
+        log_exception(f"Erro no comando view: {e}")
         notify_error(str(e))
 
 @cli.command()

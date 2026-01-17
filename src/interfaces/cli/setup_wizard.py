@@ -100,15 +100,12 @@ def get_app_command() -> tuple[Path, str]:
     return app_path, command
 
 
-def register_context_menu(command: str) -> bool:
-    """Registra o fotonPDF no menu de contexto."""
-    from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
+def register_context_menus() -> bool:
+    """Registra todos os menus de contexto do fotonPDF."""
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     
-    log_debug(f"Registrando comando: {command}")
     adapter = WindowsRegistryAdapter()
-    use_case = RegisterOSIntegrationUseCase(adapter)
-    return use_case.execute("Abrir com fotonPDF", command)
+    return adapter.register_all_context_menus()
 
 
 def verify_installation() -> bool:
@@ -138,12 +135,15 @@ def run_setup() -> bool:
             wait_for_keypress()
             return False
         
-        # Etapa 2: Registrar Menu de Contexto
-        print_step(2, total_steps, "Registrando no Menu de Contexto do Windows...")
-        app_path, command = get_app_command()
+        # Etapa 2: Registrar Menus de Contexto
+        print_step(2, total_steps, "Registrando menus no Menu de Contexto...")
         
-        if register_context_menu(command):
-            print_success('"Abrir com fotonPDF" adicionado com sucesso')
+        if register_context_menus():
+            print_success("Menus registrados com sucesso:")
+            print_success("  📄 Abrir com fotonPDF")
+            print_success("  🔄 Girar 90°")
+            print_success("  🔄 Girar 180°")
+            print_success("  ✂️ Extrair Páginas...")
         else:
             print_error("Falha ao registrar no Menu de Contexto")
             print_footer_error()
