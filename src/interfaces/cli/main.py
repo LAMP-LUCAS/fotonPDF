@@ -142,5 +142,12 @@ def status():
     click.echo()
 
 
+
 if __name__ == '__main__':
-    cli()
+    import sys
+    # Se executado sem argumentos (clique duplo), abrir menu interativo
+    if len(sys.argv) == 1:
+        from src.interfaces.cli.interactive_menu import run_interactive_menu
+        run_interactive_menu()
+    else:
+        cli()

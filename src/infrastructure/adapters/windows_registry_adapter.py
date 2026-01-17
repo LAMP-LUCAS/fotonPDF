@@ -2,6 +2,11 @@ import sys
 import winreg
 from pathlib import Path
 from src.domain.ports.os_integration import OSIntegrationPort
+from src.infrastructure.services.logger import log_info, log_error, log_debug
+
+# Caminho moderno para menu de contexto de PDFs (funciona independente do leitor instalado)
+PDF_SHELL_PATH = r"Software\Classes\SystemFileAssociations\.pdf\shell"
+
 
 class WindowsRegistryAdapter(OSIntegrationPort):
     """Adaptador para manipular o Registro do Windows e adicionar o Menu de Contexto."""
@@ -13,28 +18,50 @@ class WindowsRegistryAdapter(OSIntegrationPort):
     def register_context_menu(self, label: str, command: str) -> bool:
         """
         Adiciona uma entrada ao menu de contexto de PDFs no Windows.
+        Usa SystemFileAssociations que é o método moderno e mais confiável.
         """
         try:
-            # Descobrimos o ProgID associado a .pdf
-            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
-            shell_path = fr"Software\Classes\{prog_id}\shell"
-            
-            # Criar a entrada principal pedida (ex: "Abrir com fotonPDF")
+            # Criar a entrada usando o caminho moderno
             clean_name = "".join(x for x in label if x.isalnum())
-            self._create_menu_entry(shell_path, f"foton_{clean_name}", label, command)
+            entry_name = f"foton_{clean_name}"
             
+            log_debug(f"Registrando em: HKCU\\{PDF_SHELL_PATH}\\{entry_name}")
+            self._create_menu_entry(PDF_SHELL_PATH, entry_name, label, command)
+            
+            log_info(f"Menu de contexto registrado: {label}")
             return True
         except Exception as e:
-            print(f"Erro ao registrar no Windows: {e}")
+            log_error(f"Erro ao registrar no Windows: {e}")
             return False
 
     def unregister_context_menu(self) -> bool:
         """Remove as entradas do registro que pertencem ao fotonPDF."""
         try:
-            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
-            shell_path = fr"Software\Classes\{prog_id}\shell"
+            removed_count = 0
             
-            # Precisamos iterar pelas chaves e remover as que começam com 'foton_'
+            # Tentar remover do caminho moderno
+            removed_count += self._remove_foton_entries(PDF_SHELL_PATH)
+            
+            # Tentar remover do ProgID antigo também (limpeza)
+            prog_id = self._get_prog_id(".pdf")
+            if prog_id:
+                old_path = fr"Software\Classes\{prog_id}\shell"
+                removed_count += self._remove_foton_entries(old_path)
+            
+            # Fallback para AcroExch
+            acro_path = r"Software\Classes\AcroExch.Document.DC\shell"
+            removed_count += self._remove_foton_entries(acro_path)
+            
+            log_info(f"Entradas removidas: {removed_count}")
+            return True
+        except Exception as e:
+            log_error(f"Erro ao remover do Windows: {e}")
+            return False
+
+    def _remove_foton_entries(self, shell_path: str) -> int:
+        """Remove entradas foton_ de um caminho de shell específico."""
+        removed = 0
+        try:
             with winreg.OpenKey(winreg.HKEY_CURRENT_USER, shell_path, 0, winreg.KEY_ALL_ACCESS) as key:
                 i = 0
                 keys_to_delete = []
@@ -48,27 +75,26 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                         break
                 
                 for k in keys_to_delete:
-                    # winreg.DeleteKey não remove recursivamente chaves com subchaves (como 'command')
-                    # Precisamos remover o 'command' primeiro
                     cmd_path = fr"{shell_path}\{k}\command"
                     try:
                         winreg.DeleteKey(winreg.HKEY_CURRENT_USER, cmd_path)
                     except OSError:
                         pass
-                    winreg.DeleteKey(winreg.HKEY_CURRENT_USER, fr"{shell_path}\{k}")
-                    
-            return True
-        except Exception as e:
-            print(f"Erro ao remover do Windows: {e}")
-            return False
+                    try:
+                        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, fr"{shell_path}\{k}")
+                        removed += 1
+                        log_debug(f"Removido: {k}")
+                    except OSError:
+                        pass
+        except OSError:
+            pass
+        return removed
 
     def check_installation_status(self) -> bool:
         """Verifica se o fotonPDF está registrado no menu de contexto."""
         try:
-            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
-            shell_path = fr"Software\Classes\{prog_id}\shell"
-            
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, shell_path, 0, winreg.KEY_READ) as key:
+            # Verificar no caminho moderno
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, winreg.KEY_READ) as key:
                 i = 0
                 while True:
                     try:
@@ -82,10 +108,30 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         except Exception:
             return False
 
+    def get_registered_command(self) -> str | None:
+        """Retorna o comando registrado, se houver."""
+        try:
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, winreg.KEY_READ) as key:
+                i = 0
+                while True:
+                    try:
+                        subkey_name = winreg.EnumKey(key, i)
+                        if subkey_name.startswith("foton_"):
+                            cmd_path = fr"{PDF_SHELL_PATH}\{subkey_name}\command"
+                            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, cmd_path) as cmd_key:
+                                return winreg.QueryValue(cmd_key, None)
+                        i += 1
+                    except OSError:
+                        break
+        except Exception:
+            pass
+        return None
+
     def _get_prog_id(self, extension: str) -> str | None:
         try:
             with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, extension) as key:
-                return winreg.QueryValue(key, None)
+                value = winreg.QueryValue(key, None)
+                return value if value else None
         except WindowsError:
             return None
 
