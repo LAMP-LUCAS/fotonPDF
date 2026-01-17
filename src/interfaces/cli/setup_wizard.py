@@ -140,10 +140,10 @@ def run_setup() -> bool:
         
         if register_context_menus():
             print_success("Menus registrados com sucesso:")
-            print_success("  📄 Abrir com fotonPDF")
-            print_success("  🔄 Girar 90°")
-            print_success("  🔄 Girar 180°")
-            print_success("  ✂️ Extrair Páginas...")
+            print_success("  fotonPDF ▸ Abrir")
+            print_success("  fotonPDF ▸ Girar 90°")
+            print_success("  fotonPDF ▸ Girar 180°")
+            print_success("  fotonPDF ▸ Girar 270°")
         else:
             print_error("Falha ao registrar no Menu de Contexto")
             print_footer_error()

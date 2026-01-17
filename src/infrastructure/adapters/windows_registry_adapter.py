@@ -144,7 +144,8 @@ class WindowsRegistryAdapter(OSIntegrationPort):
 
     def register_all_context_menus(self) -> bool:
         """
-        Registra todas as entradas do menu de contexto com submenus para cada função.
+        Registra todas as entradas do menu de contexto para PDFs.
+        Usa prefixo 'fotonPDF' para agrupamento visual.
         """
         try:
             # Detectar caminho do executável
@@ -155,12 +156,12 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                 cli_path = Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"
                 app_path = f'python "{cli_path}"'
             
-            # Definir os menus a serem criados
+            # Menus organizados com prefixo para agrupamento visual
             menus = [
-                ("foton_01_Abrir", "📄 Abrir com fotonPDF", f'"{app_path}" view "%1"'),
-                ("foton_02_Girar90", "🔄 Girar 90°", f'"{app_path}" rotate "%1" -d 90'),
-                ("foton_03_Girar180", "🔄 Girar 180°", f'"{app_path}" rotate "%1" -d 180'),
-                ("foton_04_Separar", "✂️ Extrair Páginas...", f'"{app_path}" split "%1" --pages 1'),
+                ("foton_01_Abrir", "fotonPDF ▸ Abrir", f'"{app_path}" view "%1"'),
+                ("foton_02_Girar90", "fotonPDF ▸ Girar 90°", f'"{app_path}" rotate "%1" -d 90'),
+                ("foton_03_Girar180", "fotonPDF ▸ Girar 180°", f'"{app_path}" rotate "%1" -d 180'),
+                ("foton_04_Girar270", "fotonPDF ▸ Girar 270°", f'"{app_path}" rotate "%1" -d 270'),
             ]
             
             for entry_name, label, command in menus:

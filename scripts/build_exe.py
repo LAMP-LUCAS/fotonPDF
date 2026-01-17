@@ -21,35 +21,40 @@ def build():
     params = [
         str(entry_point),
         "--name=foton",
-        "--onefile", # Binário único
-        "--console", # Habilita console para wizards de setup/uninstall
+        "--onefile",
+        "--console",
         "--clean",
         f"--distpath={project_root / 'dist'}",
         f"--workpath={project_root / 'build'}",
         f"--specpath={project_root}",
-        f"--add-data={project_root / 'src'};src", # Incluir todo o código fonte
+        f"--add-data={project_root / 'src'};src",
+        # Notificações
         "--hidden-import=plyer.platforms.win.notification",
         "--hidden-import=plyer.platforms.linux.notification",
-        # PyQt6 - incluir submodulos principais
+        # PyQt6 - abordagem mais robusta
+        "--collect-submodules=PyQt6",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
-        "--hidden-import=PyQt6.QtGui",
+        "--hidden-import=PyQt6.QtGui", 
         "--hidden-import=PyQt6.QtWidgets",
         "--hidden-import=PyQt6.sip",
-        # Outras dependências
+        # PDF e outras dependências
+        "--collect-submodules=fitz",
         "--hidden-import=fitz",
+        "--hidden-import=fitz.fitz",
+        "--hidden-import=pymupdf",
         "--hidden-import=requests",
         "--hidden-import=plyer",
         "--hidden-import=click",
-        # Coletar todos os binários do PyQt6
-        "--collect-all=PyQt6",
-        # Excluir pacotes pesados do ambiente global
+        # Excluir pacotes pesados não utilizados
         "--exclude-module=torch",
         "--exclude-module=matplotlib",
         "--exclude-module=pandas",
         "--exclude-module=numpy",
         "--exclude-module=PIL",
         "--exclude-module=tkinter",
+        "--exclude-module=scipy",
+        "--exclude-module=cv2",
     ]
     
     # Executar build
