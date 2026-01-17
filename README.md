@@ -1,0 +1,45 @@
+# 📄 fotonPDF
+
+> **Gestão e Edição de PDFs Ultra-Rápida via Menu de Contexto.**
+
+O **fotonPDF** é uma ferramenta desktop multiplataforma (Windows/Linux) focada em produtividade extrema. Ele integra operações essenciais de PDF diretamente ao explorador de arquivos, eliminando a necessidade de abrir softwares pesados para tarefas simples.
+
+---
+
+## 🧭 Navegação Rápida (MOC - Map of Content)
+
+Para uma experiência completa no **Obsidian**, utilize o arquivo central de navegação:
+👉 **[[docs/MAP|🗺️ Mapa da Documentação]]**
+
+### 🏛️ Pilares do Projeto
+
+- **[[docs/ARCHITECTURE|🏗️ Arquitetura]]**: Entenda a estrutura Hexagonal + Monólito Modular.
+- **[[docs/BUSINESS|💰 Modelo de Sustentabilidade]]**: Como o projeto se mantém financeiramente.
+- **[[docs/DEVELOPMENT|🛠️ Guia de Desenvolvimento]]**: Setup, padrões e workflow.
+- **[[docs/ROADMAP|🚀 Roadmap e Sprints]]**: Onde estamos e para onde vamos.
+
+### 🤖 Para IAs e Assistentes
+
+- **[[LLM_CONTEXT|🧠 Contexto do Projeto]]**: Instruções vitais para LLMs e CodeAssistants.
+
+---
+
+## ✨ Funcionalidades Principais (MVP)
+
+- **Integração Nativa:** Menu de contexto no Windows (Registry) e Linux (.desktop).
+- **Operações Instantâneas:** Girar, Juntar, Separar e Extrair sem abrir interface.
+- **Visualizador Fóton:** Janela de pré-visualização que abre em < 1 segundo.
+- **Conversores:** PDF ↔ Imagem, PDF ↔ Markdown.
+
+---
+
+## 🛠️ Stack Tecnológica
+
+- **Linguagem:** Python 3.11+
+- **UI:** PyQt6 / QML
+- **Engine PDF:** PyMuPDF (fitz) & pdfium
+- **Arquitetura:** Híbrida (Hexagonal + Modular)
+
+---
+
+"Simplicidade é o último grau de sofisticação." - *Leonardo da Vinci*
