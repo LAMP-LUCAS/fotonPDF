@@ -50,6 +50,7 @@ coverage.xml
 cover/
 
 # IDEs and Editors
+.obsidian/
 .idea/
 .vscode/
 *.swp
