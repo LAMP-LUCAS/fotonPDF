@@ -27,8 +27,15 @@ Para remover o fotonPDF completamente do seu sistema:
 
 ### Passo 1: Remover do Menu de Contexto
 
-Antes de deletar o arquivo, abra o terminal na pasta do app e digite:
-`foton remove` ou use o utilitário de limpeza de registro.
+Antes de deletar o arquivo, abra o terminal na pasta do app e execute:
+
+```powershell
+./foton.exe uninstall
+```
+
+O assistente irá pedir confirmação e remover todas as entradas do registro.
+
+> **Dica:** Use `./foton.exe uninstall -y` para pular a confirmação.
 
 ### Passo 2: Deletar Arquivos
 

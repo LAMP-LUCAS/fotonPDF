@@ -22,7 +22,7 @@ def build():
         str(entry_point),
         "--name=foton",
         "--onefile", # Binário único
-        "--windowed", # Não abrir console
+        "--console", # Habilita console para wizards de setup/uninstall
         "--clean",
         f"--distpath={project_root / 'dist'}",
         f"--workpath={project_root / 'build'}",

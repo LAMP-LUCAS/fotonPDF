@@ -104,52 +104,43 @@ def view(path: Path | None):
         notify_error(str(e))
 
 @cli.command()
-def install():
-    """Registra o fotonPDF no Menu de Contexto (Windows)."""
-    try:
-        from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
-        from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
-        import sys
-        
-        # Detectar caminho do executável ou script
-        if getattr(sys, 'frozen', False):
-            app_path = Path(sys.executable)
-            command = f'"{app_path}" view "%1"'
-        else:
-            app_path = Path(sys.argv[0]).absolute()
-            command = f'python "{app_path}" view "%1"'
-            
-        adapter = WindowsRegistryAdapter()
-        use_case = RegisterOSIntegrationUseCase(adapter)
-        
-        click.echo(f"🪟 Registrando no Windows Explorer: {app_path.name}")
-        
-        if use_case.execute("Abrir com fotonPDF", command):
-            notify_success("Instalação Concluída", "fotonPDF registrado no Menu de Contexto!")
-        else:
-            notify_error("Falha ao registrar no Windows. Tente como Admin.")
-            
-    except Exception as e:
-        notify_error(str(e))
+def setup():
+    """🚀 Configura o fotonPDF no seu sistema (Menu de Contexto)."""
+    from src.interfaces.cli.setup_wizard import run_setup
+    run_setup()
+
 
 @cli.command()
-def remove():
-    """Remove o fotonPDF do Menu de Contexto (Windows)."""
-    try:
-        from src.application.use_cases.unregister_os import UnregisterOSIntegrationUseCase
-        from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
-        
-        adapter = WindowsRegistryAdapter()
-        use_case = UnregisterOSIntegrationUseCase(adapter)
-        
-        click.echo("🧹 Removendo do Windows Explorer...")
-        if use_case.execute():
-            notify_success("Remoção Concluída", "fotonPDF removido do Menu de Contexto!")
-        else:
-            notify_error("Falha ao remover do Windows. Tente como Admin.")
-            
-    except Exception as e:
-        notify_error(str(e))
+@click.option('--yes', '-y', is_flag=True, help='Pula a confirmação')
+def uninstall(yes: bool):
+    """🗑️ Remove o fotonPDF do sistema."""
+    from src.interfaces.cli.uninstall_wizard import run_uninstall
+    run_uninstall(skip_confirmation=yes)
+
+
+@cli.command()
+def status():
+    """📊 Verifica o status da instalação do fotonPDF."""
+    from src import __version__
+    from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+    
+    click.echo()
+    click.secho(f"fotonPDF v{__version__}", fg='cyan', bold=True)
+    click.echo("─" * 40)
+    
+    adapter = WindowsRegistryAdapter()
+    is_installed = adapter.check_installation_status()
+    
+    click.echo(f"Menu de Contexto: ", nl=False)
+    if is_installed:
+        click.secho("✅ Instalado", fg='green')
+    else:
+        click.secho("❌ Não instalado", fg='red')
+        click.echo()
+        click.secho("Dica: Execute 'foton setup' para configurar.", fg='yellow')
+    
+    click.echo()
+
 
 if __name__ == '__main__':
     cli()

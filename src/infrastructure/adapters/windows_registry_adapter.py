@@ -62,6 +62,26 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             print(f"Erro ao remover do Windows: {e}")
             return False
 
+    def check_installation_status(self) -> bool:
+        """Verifica se o fotonPDF está registrado no menu de contexto."""
+        try:
+            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
+            shell_path = fr"Software\Classes\{prog_id}\shell"
+            
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, shell_path, 0, winreg.KEY_READ) as key:
+                i = 0
+                while True:
+                    try:
+                        subkey_name = winreg.EnumKey(key, i)
+                        if subkey_name.startswith("foton_"):
+                            return True
+                        i += 1
+                    except OSError:
+                        break
+            return False
+        except Exception:
+            return False
+
     def _get_prog_id(self, extension: str) -> str | None:
         try:
             with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, extension) as key:
