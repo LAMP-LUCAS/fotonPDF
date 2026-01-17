@@ -2,6 +2,8 @@
 
 Este documento define a visão de **macro-gerenciamento** do projeto, dividida em fases estratégicas. Para detalhes de execução semanais, consulte o documento de **[[SPRINTS|🏃 Gerenciamento de Sprints]]**.
 
+### Sprint 1: Core Engine & CLI Basics [x]
+
 ## 🏁 Fase 1: Fundação & MVP (Semanas 1-4)
 
 **Objetivo:** Estabelecer o motor base e as funcionalidades essenciais de manipulação de arquivos únicos e múltiplos via CLI e Menu de Contexto.
