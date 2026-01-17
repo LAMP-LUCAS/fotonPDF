@@ -14,12 +14,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/MAP.md",
-                "mode": "source",
+                "file": "CONTRIBUTING.md",
+                "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "MAP"
+              "title": "CONTRIBUTING"
             }
           }
         ]
@@ -96,7 +96,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 272.5
+    "width": 272.5,
+    "collapsed": true
   },
   "right": {
     "id": "8fc06a44d44a4fe0",
@@ -112,7 +113,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/MAP.md",
+                "file": "CONTRIBUTING.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -122,7 +123,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para MAP"
+              "title": "Links inversos para CONTRIBUTING"
             }
           },
           {
@@ -131,12 +132,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/MAP.md",
+                "file": "CONTRIBUTING.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para MAP"
+              "title": "Links de saída para CONTRIBUTING"
             }
           },
           {
@@ -174,13 +175,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/MAP.md",
+                "file": "CONTRIBUTING.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de MAP"
+              "title": "Sumário de CONTRIBUTING"
             }
           }
         ]
@@ -206,8 +207,11 @@
   },
   "active": "0de5068e11cf9b71",
   "lastOpenFiles": [
-    "docs/GRAPH.md",
     "docs/MAP.md",
+    "docs/DEVELOPMENT.md",
+    "docs/ROADMAP.md",
+    "CONTRIBUTING.md",
+    "docs/GRAPH.md",
     "docs/ARCHITECTURE.md",
     "LLM_CONTEXT.md",
     "README.md",
@@ -219,11 +223,9 @@
     "docs/DASHBOARD.md",
     "docs/REPORT.md",
     "docs/INDEX.md",
-    "CONTRIBUTING.md",
     "docs/guides/OS_INTEGRATION.md",
     "docs/guides/PLUGIN_SYSTEM.md",
     "docs/guides/NEW_OPERATION.md",
-    "docs/guides",
-    "docs/DEVELOPMENT.md"
+    "docs/guides"
   ]
 }

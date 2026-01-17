@@ -4,10 +4,31 @@ Este documento detalha a jornada do **fotonPDF** do MVP ao produto final.
 
 ## 🏁 Fase 1: Fundação & MVP (Semanas 1-4)
 
-- [ ] Setup do motor PyMuPDF.
-- [ ] Integração básica com Registro do Windows (Girar 90/180).
+### Sprint 1: Core Engine & CLI Basics [/]
+
+- [ ] Setup do motor PyMuPDF e estrutura de diretórios `src/`.
+- [ ] Implementação do caso de uso de Rotação.
+- [ ] CLI inicial para operações de arquivo único.
+
+### Sprint 2: OS Integration & Multi-file Ops [ ]
+
+- [ ] Integração com Registro do Windows (Girar 90/180).
+- [ ] Casos de uso de Juntar (Merge) e Separar (Split) PDFs.
+- [ ] Suporte a múltiplos arquivos via Menu de Contexto.
+
+### Sprint 3: Visualizador & Performance [ ]
+
 - [ ] Protótipo do Visualizador Fóton (abertura < 1s).
-- [ ] Operações de Juntar e Separar via CLI.
+- [ ] Otimização de renderização (Lazy Loading).
+- [ ] Atalhos de teclado básicos.
+
+### Sprint 4: Polish & Extração [ ]
+
+- [ ] Extração de páginas específicas.
+- [ ] Conversores básicos (PDF -> IMG).
+- [ ] Finalização do MVP para distribuição.
+
+---
 
 ## 🏗️ Fase 2: Interface & Funcionalidade (Semanas 5-8)
 
