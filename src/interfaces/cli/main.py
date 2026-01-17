@@ -101,7 +101,7 @@ def view(path: Path | None):
 @cli.command()
 def install():
     """Registra o fotonPDF no Menu de Contexto (Windows)."""
-    try:
+        from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
         from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
         import sys
         
@@ -114,9 +114,11 @@ def install():
             command = f'python "{app_path}" view "%1"'
             
         adapter = WindowsRegistryAdapter()
+        use_case = RegisterOSIntegrationUseCase(adapter)
+        
         click.echo(f"🪟 Registrando no Windows Explorer: {app_path.name}")
         
-        if adapter.register_context_menu("Abrir com fotonPDF", command):
+        if use_case.execute("Abrir com fotonPDF", command):
             notify_success("Instalação Concluída", "fotonPDF registrado no Menu de Contexto!")
         else:
             notify_error("Falha ao registrar no Windows. Tente como Admin.")

@@ -13,12 +13,22 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/SPRINTS.md",
+                "file": "docs/user/INSTALLATION.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SPRINTS"
+              "title": "INSTALLATION"
+            }
+          },
+          {
+            "id": "12f14b7531537af7",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Visualização em gráfico"
             }
           }
         ]
@@ -78,8 +88,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 272.5,
-    "collapsed": true
+    "width": 272.5
   },
   "right": {
     "id": "8fc06a44d44a4fe0",
@@ -95,7 +104,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/SPRINTS.md",
+                "file": "docs/user/INSTALLATION.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -105,7 +114,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para SPRINTS"
+              "title": "Links inversos para INSTALLATION"
             }
           },
           {
@@ -114,12 +123,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/SPRINTS.md",
+                "file": "docs/user/INSTALLATION.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para SPRINTS"
+              "title": "Links de saída para INSTALLATION"
             }
           },
           {
@@ -157,13 +166,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/SPRINTS.md",
+                "file": "docs/user/INSTALLATION.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de SPRINTS"
+              "title": "Sumário de INSTALLATION"
             }
           }
         ]
@@ -187,37 +196,41 @@
       "markdown-importer:Abrir importador Markdown": false
     }
   },
-  "active": "0de5068e11cf9b71",
+  "active": "75e1e8f56e7a193b",
   "lastOpenFiles": [
-    "docs/DASHBOARD.md",
-    "LLM_CONTEXT.md",
-    "src/application/use_cases/split_pdf.py",
-    "src/application/use_cases/__pycache__/split_pdf.cpython-312.pyc",
-    "src/application/use_cases/__pycache__/merge_pdf.cpython-312.pyc",
-    "tests/unit/application/__pycache__/test_merge_split.cpython-312-pytest-8.4.1.pyc",
-    "tests/integration/infrastructure/__pycache__/test_pymupdf_merge_split.cpython-312-pytest-8.4.1.pyc",
-    "tests/integration/infrastructure/test_pymupdf_merge_split.py",
-    "tests/unit/application/test_merge_split.py",
-    "src/infrastructure/adapters/notification_adapter.py",
-    "src/domain/ports/notification.py",
-    "src/application/use_cases/register_os.py",
-    "docs/SPRINTS.md",
-    "docs/DEVELOPMENT.md",
-    "docs/MAP.md",
+    "build/foton/EXE-00.toc",
+    "dist/foton.exe",
+    "build/foton/PKG-00.toc",
+    "build/foton/foton.pkg",
+    "build/foton/PYZ-00.toc",
+    "build/foton/PYZ-00.pyz",
+    "build/foton/localpycs/pyimod04_pywin32.pyc",
+    "build/foton/localpycs/pyimod03_ctypes.pyc",
+    "build/foton/localpycs/pyimod02_importers.pyc",
+    "build/foton/localpycs/pyimod01_archive.pyc",
+    "build/foton/localpycs/struct.pyc",
     "README.md",
+    "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+    "docs/user/USAGE.md",
+    "docs/user/INSTALLATION.md",
+    "docs/guides/OS_INTEGRATION.md",
+    "docs/guides/PLUGIN_SYSTEM.md",
+    "docs/guides/NEW_OPERATION.md",
+    "docs/DASHBOARD.md",
     "QUICKSTART.md",
+    "docs/SPRINTS.md",
+    "docs/ROADMAP.md",
+    "docs/DEVELOPMENT.md",
+    "LLM_CONTEXT.md",
+    "docs/MAP.md",
     "docs/REPORT.md",
     "docs/INDEX.md",
-    "docs/ROADMAP.md",
     "CONTRIBUTING.md",
     "docs/GRAPH.md",
     "docs/ARCHITECTURE.md",
     "CodeAssistant.llm-context.md",
     "Automation.llm-context.md",
     "llm-context.md",
-    "docs/BUSINESS.md",
-    "docs/guides/OS_INTEGRATION.md",
-    "docs/guides/PLUGIN_SYSTEM.md",
-    "docs/guides/NEW_OPERATION.md"
+    "docs/BUSINESS.md"
   ]
 }

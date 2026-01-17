@@ -3,11 +3,13 @@ import os
 from pathlib import Path
 
 def build():
-    print("🚀 Iniciando build do fotonPDF v1.0.0...")
+    from src import __version__
+    print(f"🚀 Iniciando build do fotonPDF v{__version__}...")
     
     # Caminhos
-    base_path = Path(__file__).parent
-    entry_point = base_path / "src" / "interfaces" / "cli" / "main.py"
+    scripts_path = Path(__file__).parent
+    project_root = scripts_path.parent
+    entry_point = project_root / "src" / "interfaces" / "cli" / "main.py"
     
     # Configurações do PyInstaller
     params = [
@@ -16,11 +18,18 @@ def build():
         "--onefile", # Binário único
         "--windowed", # Não abrir console
         "--clean",
-        f"--add-data=src;src", # Incluir todo o código fonte
+        f"--add-data={project_root / 'src'};src", # Incluir todo o código fonte
         "--hidden-import=PyQt6",
         "--hidden-import=fitz",
         "--hidden-import=requests",
         "--hidden-import=plyer",
+        # Excluir pacotes pesados do ambiente global que não são usados
+        "--exclude-module=torch",
+        "--exclude-module=matplotlib",
+        "--exclude-module=pandas",
+        "--exclude-module=numpy",
+        "--exclude-module=PIL",
+        "--exclude-module=tkinter",
     ]
     
     # Executar build

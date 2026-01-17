@@ -31,7 +31,8 @@ class UpdateWorker(QThread):
 
 class UpdateService:
     """Serviço de orquestração de atualizações."""
-    VERSION = "1.0.0" # Versão base inicial
+    from src import __version__
+    VERSION = __version__
     REPO = "LAMP-LUCAS/fotonPDF"
 
     def __init__(self):

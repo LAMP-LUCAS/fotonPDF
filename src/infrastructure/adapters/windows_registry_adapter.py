@@ -10,25 +10,19 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         self._app_path = sys.executable if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"}"'
         self._ext = ".pdf"
 
-    def register_context_menu(self) -> bool:
+    def register_context_menu(self, label: str, command: str) -> bool:
         """
-        Adiciona submenus ao menu de contexto de PDFs no Windows.
-        Implementação simplificada: cria uma entrada 'fotonPDF' com comandos.
+        Adiciona uma entrada ao menu de contexto de PDFs no Windows.
         """
         try:
-            # Caminho no registro para o tipo de arquivo PDF
-            # Primeiro, descobrimos o ProgID associado a .pdf
-            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC" # Fallback comum
-
+            # Descobrimos o ProgID associado a .pdf
+            prog_id = self._get_prog_id(".pdf") or "AcroExch.Document.DC"
             shell_path = fr"Software\Classes\{prog_id}\shell"
             
-            # 1. Rotação 90°
-            self._create_menu_entry(shell_path, "foton_rotate", "Girar 90° (fotonPDF)", f"{self._app_path} rotate \"%1\" -d 90")
+            # Criar a entrada principal pedida (ex: "Abrir com fotonPDF")
+            clean_name = "".join(x for x in label if x.isalnum())
+            self._create_menu_entry(shell_path, f"foton_{clean_name}", label, command)
             
-            # 2. Unir (Merge) - Requer múltiplos arquivos, o Shell do Windows passa um por um ou via DDE
-            # Para simplificar no MVP, registramos a opção de abrir com a CLI
-            self._create_menu_entry(shell_path, "foton_merge", "Unir com fotonPDF", f"{self._app_path} merge \"%1\"")
-
             return True
         except Exception as e:
             print(f"Erro ao registrar no Windows: {e}")

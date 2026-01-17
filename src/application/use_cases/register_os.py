@@ -6,6 +6,6 @@ class RegisterOSIntegrationUseCase:
     def __init__(self, os_port: OSIntegrationPort):
         self._os_port = os_port
 
-    def execute(self) -> bool:
+    def execute(self, label: str, command: str) -> bool:
         """Executa o registro no menu de contexto."""
-        return self._os_port.register_context_menu()
+        return self._os_port.register_context_menu(label, command)

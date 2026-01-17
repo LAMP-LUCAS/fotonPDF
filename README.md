@@ -11,6 +11,16 @@ O **fotonPDF** é uma ferramenta desktop multiplataforma (Windows/Linux) focada 
 Para uma experiência completa no **Obsidian**, utilize o arquivo central de navegação:
 👉 **[[docs/MAP|🗺️ Mapa da Documentação]]**
 
+---
+
+## 📖 Guia do Usuário (End-User)
+
+Se você deseja apenas usar o software e não é desenvolvedor, acesse:
+
+- [**📥 Instalação Rápida**](docs/user/INSTALLATION.md)
+- [**📖 Como Usar o fotonPDF**](docs/user/USAGE.md)
+- [**🛠️ Resolução de Problemas & Desinstalação**](docs/user/TROUBLESHOOTING_AND_UNINSTALL.md)
+
 ### 🏛️ Pilares do Projeto
 
 - **[[docs/ARCHITECTURE|🏗️ Arquitetura]]**: Entenda a estrutura Hexagonal + Monólito Modular.
