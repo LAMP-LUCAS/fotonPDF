@@ -81,6 +81,24 @@ def split(path: Path, pages: str, output: Path | None):
         notify_error(str(e))
 
 @cli.command()
+@click.argument('path', type=click.Path(exists=True, path_type=Path), required=False)
+def view(path: Path | None):
+    """Abre o visualizador GUI do fotonPDF."""
+    try:
+        from src.interfaces.gui.app import main
+        import sys
+        
+        # Injetar o arquivo se passado via argumento
+        if path:
+            sys.argv.append(str(path))
+            
+        click.echo("🚀 Abrindo Visualizador Fóton...")
+        main()
+        
+    except Exception as e:
+        notify_error(str(e))
+
+@cli.command()
 def install():
     """Registra o fotonPDF no Menu de Contexto (Windows)."""
     try:
