@@ -2,17 +2,34 @@
 
 Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 4 - MVP Polish & Conversores 🟡
+## 🏁 Sprint Atual: Sprint 4 - Lógica de Interface & UX Premium 🟡
 
-**Objetivo:** Refinar a experiência do usuário e implementar as últimas funcionalidades do MVP.
+**Objetivo:** Integrar as capacidades do motor à GUI e elevar a estética do produto.
 
 ### Backlog da Sprint
 
-- [ ] Extração de páginas específicas via GUI (Integração com SplitUseCase).
-- [ ] Conversores PDF ↔ Imagem integrados (Exportar páginas).
-- [ ] Scripts de instalação e finalização de binários (PyInstaller).
-- [ ] Refinar UI (Layout adaptativo e ícones premium).
-- [ ] Documentação de usuário final (Manual rápido).
+- **🛠️ Lógica de Interface (Ponte GUI-Motor):**
+  - [ ] **Extração de Páginas (GUI):** Integrar o `SplitPDFUseCase` à interface, permitindo selecionar páginas visualmente via miniaturas e salvar como novo arquivo.
+  - [ ] **Conversores (Exportação):** Implementar funcionalidade de "Exportar como Imagem" (PNG/JPG) diretamente no visualizador.
+- **💎 UX e Refino Estético:**
+  - [ ] **Design Premium:** Aplicar paleta de cores vibrantes, ícones consistentes e layout adaptativo/moderno.
+  - [ ] **Interatividade Senior:** Refinar atalhos de teclado e feedbacks visuais durante o processamento.
+
+---
+
+## 🔜 Próximas Sprints
+
+### Sprint 5: Distribuição & Sistema de Atualização ✅
+
+**Objetivo:** Gerar o entregável final (MVP) e garantir que ele seja autossustentável.
+
+- **📦 Distribuição (O Entregável MVP):**
+  - [ ] **Geração do Binário (foton.exe):** Configurar `PyInstaller` para empacotar Python, PyQt6 e PyMuPDF em um único executável.
+  - [ ] **Scripts de Instalação Final:** Integrar o registro no Menu de Contexto do Windows diretamente no binário para setup automático.
+- **🔄 Ciclo de Vida do Produto:**
+  - [ ] **Sistema de Auto-Update:** Implementar verificador de versão e notificação/download automático para novas versões.
+- **📘 Documentação de Saída:**
+  - [ ] **Manual do Usuário:** Documentar instalação e operação (Explorer e Visualizador) para o usuário final.
 
 ---
 
