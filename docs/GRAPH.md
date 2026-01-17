@@ -16,8 +16,12 @@ graph TD
     MAP --> DEV[🛠️ DEVELOPMENT.md]
     MAP --> BUS[💰 BUSINESS.md]
     MAP --> ROAD[🚀 ROADMAP.md]
+    MAP --> SPRINTS[🏃 SPRINTS.md]
     MAP --> GUIDES[📖 Guides]
     MAP --> MODULES[🧩 Modules]
+    
+    ROAD --> SPRINTS
+
     
     GUIDES --> NEW_OP[➕ NEW_OPERATION.md]
     GUIDES --> PLUGIN[🔌 PLUGIN_SYSTEM.md]

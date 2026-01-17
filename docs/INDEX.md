@@ -24,7 +24,8 @@
 | Arquivo | Descrição | Status |
 |---------|-----------|--------|
 | [[docs/BUSINESS\|BUSINESS.md]] | Estratégia de sustentabilidade (MVP) | ✅ Completo |
-| [[docs/ROADMAP\|ROADMAP.md]] | Fases e Sprints | ✅ Completo |
+| [[docs/ROADMAP\|ROADMAP.md]] | Roadmap de Fases (Macro) | ✅ Completo |
+| [[docs/SPRINTS\|SPRINTS.md]] | Gerenciamento de Sprints (Micro) | ✅ Completo |
 | [[docs/DASHBOARD\|DASHBOARD.md]] | Dashboard executivo do projeto | ✅ Completo |
 
 ### Meta-Documentação

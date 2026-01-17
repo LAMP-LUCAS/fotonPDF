@@ -19,7 +19,8 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 ## 💼 Negócios e Produto
 
 - [[BUSINESS|💰 Estratégia de Sustentabilidade (MVP)]]: Como o projeto se sustenta.
-- [[ROADMAP|📅 Ciclos de Lançamento]]: Cronograma e Sprints.
+- [[ROADMAP|📅 Roadmap de Fases]]: Visão macro do projeto.
+- [[SPRINTS|🏃 Gerenciamento de Sprints]]: Visão micro e detalhamento técnico.
 
 ## 📚 Guias e Tutoriais
 
