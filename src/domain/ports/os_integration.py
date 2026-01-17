@@ -4,7 +4,7 @@ class OSIntegrationPort(ABC):
     """Porta para integração com o Shell do Sistema Operacional."""
 
     @abstractmethod
-    def register_context_menu(self) -> bool:
+    def register_context_menu(self, label: str, command: str) -> bool:
         """Registra a aplicação no menu de contexto de arquivos PDF."""
         pass
 
