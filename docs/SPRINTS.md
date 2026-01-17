@@ -2,32 +2,30 @@
 
 Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 3 - Visualizador & Renderização 🟡
+## 🏁 Sprint Atual: Sprint 4 - MVP Polish & Conversores 🟡
 
-**Objetivo:** Iniciar a interface gráfica (GUI) minimalista focada em velocidade extrema.
+**Objetivo:** Refinar a experiência do usuário e implementar as últimas funcionalidades do MVP.
 
 ### Backlog da Sprint
 
-- [ ] Setup do ambiente PyQt6 e estrutura de diretórios para `interfaces/gui`.
-- [ ] Protótipo do `Visualizador Fóton` com abertura instantânea (< 1s).
-- [ ] Implementação de renderização de páginas sob demanda (Lazy Loading).
-- [ ] Painel lateral de miniaturas para navegação rápida.
-- [ ] Atalhos de teclado para operações rápidas (Girar, Zoom).
-
----
-
-## 🔜 Próximas Sprints
-
-### Sprint 4: MVP Polish & Conversores
-
-- **Objetivo:** Refinar para entrega final do MVP.
-- [ ] Extração de páginas específicas via GUI.
-- [ ] Conversores PDF ↔ Imagem integrados.
+- [ ] Extração de páginas específicas via GUI (Integração com SplitUseCase).
+- [ ] Conversores PDF ↔ Imagem integrados (Exportar páginas).
 - [ ] Scripts de instalação e finalização de binários (PyInstaller).
+- [ ] Refinar UI (Layout adaptativo e ícones premium).
+- [ ] Documentação de usuário final (Manual rápido).
 
 ---
 
 ## 📅 Histórico de Sprints
+
+### Sprint 3: Visualizador & Renderização ✅
+
+**Objetivo:** Iniciar a interface gráfica (GUI) minimalista focada em velocidade extrema.
+
+- [x] Interface Gráfica (GUI) em PyQt6 e estrutura `interfaces/gui`.
+- [x] Visualizador com Lazy Loading e Renderização Assíncrona.
+- [x] Navegação por Miniaturas (Thumbnails) e Integração CLI.
+- [x] Atalhos de teclado senior e suporte a Drag & Drop.
 
 ### Sprint 2: OS Integration & Multi-file Ops ✅
 

@@ -22,20 +22,13 @@ pie title Cobertura da Documentação
 | **Sprint 3 - UI** | 🟢 Completo | ████████████ 100% | 28/02/2026 ✅ |
 | **Sprint 4 - Polimento** | 🟡 Iniciando | ░░░░░░░░░░░░ 0% | 15/03/2026 |
 
-## 📋 Próximas Tarefas (Sprint 2)
+### Sprint 3 (Concluído) ✅
 
-### Prioridade Alta 🔴
-
-- [ ] Implementar `RegisterAdapter` no Windows (Menu de Contexto)
-- [ ] Criar Caso de Uso: `MergePDFUseCase`
-- [ ] Criar Caso de Uso: `SplitPDFUseCase`
-- [ ] Integrar Notificações Nativas do Sistema
-
-### Prioridade Média 🟡
-
-- [ ] Documentar módulo de Integração com SO
-- [ ] Melhorar CLI para aceitar múltiplos arquivos
-- [ ] Implementar logging estruturado para operações em lote
+- [x] Interface Gráfica (GUI) em PyQt6
+- [x] Visualizador com Lazy Loading Assíncrono
+- [x] Navegação por Miniaturas (Thumbnails)
+- [x] Comando `foton view` integrado à CLI
+- [x] Atalhos de teclado (Vim-style J/K)
 
 ### Sprint 2 (Concluído) ✅
 
@@ -142,6 +135,6 @@ graph LR
 ---
 
 **Última atualização:** 2026-01-17  
-**Próxima revisão:** Fim da Sprint 1 (31/01/2026)
+**Próxima revisão:** Fim da Sprint 4 (15/03/2026)
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]
