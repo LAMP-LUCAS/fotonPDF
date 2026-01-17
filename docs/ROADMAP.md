@@ -6,6 +6,8 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 ### Sprint 1: Core Engine & CLI Basics [x]
 
+### Sprint 2: Integração & Expansão [x]
+
 ## 🏁 Fase 1: Fundação & MVP (Semanas 1-4)
 
 **Objetivo:** Estabelecer o motor base e as funcionalidades essenciais de manipulação de arquivos únicos e múltiplos via CLI e Menu de Contexto.

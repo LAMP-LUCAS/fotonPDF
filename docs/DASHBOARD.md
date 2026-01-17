@@ -18,8 +18,8 @@ pie title Cobertura da Documentação
 | --- | --- | --- | --- |
 | **Sprint 0 - Kickoff** | 🟢 Completo | ████████████ 100% | 17/01/2026 ✅ |
 | **Sprint 1 - Core MVP** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
-| **Sprint 2 - Integração** | 🟡 Iniciando | ░░░░░░░░░░░░ 0% | 14/02/2026 |
-| **Sprint 3 - UI** | ⚪ Planejado | ░░░░░░░░░░░░ 0% | 28/02/2026 |
+| **Sprint 2 - Integração** | 🟢 Completo | ████████████ 100% | 14/02/2026 ✅ |
+| **Sprint 3 - UI** | 🟡 Iniciando | ░░░░░░░░░░░░ 0% | 28/02/2026 |
 
 ## 📋 Próximas Tarefas (Sprint 2)
 
@@ -36,14 +36,15 @@ pie title Cobertura da Documentação
 - [ ] Melhorar CLI para aceitar múltiplos arquivos
 - [ ] Implementar logging estruturado para operações em lote
 
-### Sprint 1 (Concluído) ✅
+### Sprint 2 (Concluído) ✅
 
-- [x] Setup da estrutura de diretórios `src/` (Hexagonal)
-- [x] Implementação de entidades básicas e portas no `domain/`
-- [x] Implementação do `PyMuPDFAdapter` em `infrastructure/`
-- [x] Caso de uso: Rotação de PDF
-- [x] Implementação da CLI básica para rotação
-- [x] Suíte de testes unitários e integração (3/3 passados)
+- [x] Expansão do Engine (Merge/Split)
+- [x] Integração com Windows Registry (Menu de Contexto)
+- [x] Sistema de Notificações Nativas (Plyer)
+- [x] Atualização da CLI para múltiplas operações
+- [x] Suíte de testes (7/7 passados)
+
+### Sprint 1 (Concluído) ✅
 
 ## 🧩 Módulos Implementados
 

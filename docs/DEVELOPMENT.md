@@ -20,15 +20,16 @@ Bem-vindo ao desenvolvimento do **fotonPDF**. Este documento define os padrões 
    pip install -e .  # Instala no modo editável
    ```
 
-## 📏 Padrões de Código
+## 📏 Padrões de Código & Filosofia
 
-- **Formatter:** Black
-- **Linter:** Flake8 / MyPy (para tipos)
-- **Imports:** Organizados por `isort`.
+- **Filosofia Senior:** Todo código deve buscar ser **CLEAN**, **DRY** e seguir os princípios **SOLID**.
+- **Centros de Verdade:** Desenvolvedores devem identificar e criar centros de verdade para lógicas compartilhadas. Isso reduz a redundância, fortalece as bases do sistema e garante que o código seja estável e confiável tanto na execução quanto na documentação.
 - **Naming:**
   - Classes: `PascalCase`
   - Funções/Variáveis: `snake_case`
   - Constantes: `UPPER_SNAKE_CASE`
+- **Documentação de Evolução:**
+  - É mandatório documentar o que está sendo desenvolvido, o que foi concluído e, principalmente, **o que foi corrigido ou excluído** (com a justificativa técnica). Isso é vital para a saúde e histórico do projeto.
 
 ## 🧪 Estratégia de Testes
 

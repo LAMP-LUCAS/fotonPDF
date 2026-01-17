@@ -14,6 +14,19 @@ Este arquivo serve como a "Memória de Longo Prazo" para qualquer IA assistente 
 2. **Ports & Adapters:** Bibliotecas externas (PyMuPDF, Registry API) devem ser encapsuladas em adaptadores que implementam protocolos definidos no domínio.
 3. **Imutabilidade:** Operações em PDFs devem, por padrão, gerar novos arquivos ou cópias temporárias antes de sobrescrever, garantindo segurança de dados.
 4. **I/O Assíncrono:** Todas as operações de processamento de PDF devem ser executadas em threads separadas para não bloquear a UI.
+5. **Filosofia Senior (Obrigatório):**
+   - **DRY (Don't Repeat Yourself):** Reutilize código, centralize lógicas comuns nos domínios.
+   - **CLEAN Code:** Código legível, nomes auto-explicativos e funções com responsabilidade única.
+   - **SOLID:** Princípios de design para garantir escalabilidade e facilitar manutenção.
+   - **Centros de Verdade:** Centralize definições e lógicas críticas em locais únicos e bem definidos no `domain`. Evite dispersão de lógica de negócio para garantir estabilidade, confiabilidade e facilidade de documentação.
+
+## 📝 Documentação e Rastreamento (Crucial)
+
+Para a saúde do projeto, é obrigatório registrar:
+
+- **O que foi desenvolvido:** Novas funcionalidades e lógica implementada.
+- **O que foi concluído:** Itens do ROADMAP e DASHBOARD atingidos.
+- **O que foi corrigido/excluído:** Explicação clara de bugs resolvidos ou códigos legados removidos, e o porquê.
 
 ## 📓 Padrão de Commits (Obrigatório)
 
