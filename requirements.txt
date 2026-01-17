@@ -1,3 +1,4 @@
 pymupdf>=1.23.0
 click>=8.1.0
 pytest>=7.4.0
+plyer>=2.1.0
