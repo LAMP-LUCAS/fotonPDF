@@ -113,7 +113,6 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/SPRINTS.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -123,7 +122,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para SPRINTS"
+              "title": "Backlinks"
             }
           },
           {
@@ -132,12 +131,11 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/SPRINTS.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para SPRINTS"
+              "title": "Links de saída"
             }
           },
           {
@@ -175,13 +173,12 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/SPRINTS.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de SPRINTS"
+              "title": "Sumário"
             }
           }
         ]
@@ -205,10 +202,13 @@
       "markdown-importer:Abrir importador Markdown": false
     }
   },
-  "active": "0de5068e11cf9b71",
+  "active": "88743dffe8841c08",
   "lastOpenFiles": [
-    "docs/ROADMAP.md",
+    "docs/REPORT.md",
+    "QUICKSTART.md",
+    "docs/INDEX.md",
     "docs/SPRINTS.md",
+    "docs/ROADMAP.md",
     "docs/MAP.md",
     "CONTRIBUTING.md",
     "docs/DEVELOPMENT.md",
@@ -220,10 +220,7 @@
     "Automation.llm-context.md",
     "llm-context.md",
     "docs/BUSINESS.md",
-    "QUICKSTART.md",
     "docs/DASHBOARD.md",
-    "docs/REPORT.md",
-    "docs/INDEX.md",
     "docs/guides/OS_INTEGRATION.md",
     "docs/guides/PLUGIN_SYSTEM.md",
     "docs/guides/NEW_OPERATION.md",

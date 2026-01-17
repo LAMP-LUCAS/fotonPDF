@@ -19,7 +19,7 @@ A infraestrutura de documentação do **fotonPDF** foi completamente estabelecid
 ```
 fotonPDF/
 ├── README.md                    # 🏠 Entrada principal do projeto
-├── .llm-context.md              # 🧠 Instruções para CodeAssistants
+├── LLM_CONTEXT.md              # 🧠 Instruções para CodeAssistants
 ├── CONTRIBUTING.md              # 🤝 Guia de contribuição
 ├── docs/
 │   ├── MAP.md                   # 🗺️ Hub central de navegação (MOC)
@@ -108,7 +108,7 @@ O arquivo `GRAPH.md` fornece:
 ### Fundação (Completos)
 
 - [x] README.md
-- [x] .llm-context.md
+- [x] LLM_CONTEXT.md
 - [x] CONTRIBUTING.md
 - [x] docs/MAP.md
 - [x] docs/INDEX.md
@@ -171,7 +171,7 @@ O arquivo `GRAPH.md` fornece:
 
 ### Para CodeAssistants (LLMs)
 
-1. **Sempre** leia [[.llm-context|.llm-context.md]] antes de qualquer tarefa.
+1. **Sempre** leia [[LLM_CONTEXT|LLM_CONTEXT.md]] antes de qualquer tarefa.
 2. Consulte [[docs/ARCHITECTURE|ARCHITECTURE.md]] para decisões de design.
 3. Referencie guias específicos conforme a tarefa.
 4. Mantenha a coerência com os padrões estabelecidos.

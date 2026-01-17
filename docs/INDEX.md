@@ -62,7 +62,7 @@
 - **Início:** [[README|README.md]]
 - **Mapa Central:** [[docs/MAP|MAP.md]]
 - **Para Devs:** [[docs/DEVELOPMENT|DEVELOPMENT.md]]
-- **Para LLMs:** [[.llm-context|.llm-context.md]]
+- **Para LLMs:** [[LLM_CONTEXT|LLM_CONTEXT.md]]
 
 ## 📊 Estatísticas
 

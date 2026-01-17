@@ -13,7 +13,7 @@
 
 ### 🤖 CodeAssistant (LLM)?
 
-1. **SEMPRE leia primeiro**: [[.llm-context|.llm-context.md]]
+1. **SEMPRE leia primeiro**: [[LLM_CONTEXT|LLM_CONTEXT.md]]
 2. Consulte: [[docs/ARCHITECTURE|ARCHITECTURE.md]] para decisões
 3. Siga: Padrões em [[docs/DEVELOPMENT|DEVELOPMENT.md]]
 
