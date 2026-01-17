@@ -1,10 +1,40 @@
 # 🏃 Gerenciamento de Sprints
 
-Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
+Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Fase 2 - Interface & Funcionalidade 🚀
+## 🏁 Sprint Atual: Sprint 6 - Inteligência de Busca & Navegação �
 
-**Objetivo:** Evoluir para uma interface gráfica robusta e adicionar inteligência ao processamento.
+**Objetivo:** Adicionar capacidade de busca textual instantânea e melhorar a navegação interna nos documentos.
+
+### Backlog da Sprint
+
+- **🔍 Busca Inteligente:**
+  - [ ] **Engine de Busca:** Implementar buscador indexado (PyMuPDF) para localização ultra-rápida de termos.
+  - [ ] **Interface de Busca:** Adicionar barra de busca (`Ctrl+F`) com destaque (highlight) visual nos termos encontrados.
+  - [ ] **Painel de Resultados:** Lista lateral com snippets de texto e navegação rápida para a página/posição.
+- **📍 Navegação Avançada:**
+  - [ ] **Suporte a Sumário (Bookmarks):** Renderização da árvore de conteúdos do PDF na sidebar.
+  - [ ] **Histórico de Navegação:** Botões "Voltar" e "Avançar" para saltos entre páginas e links internos.
+
+---
+
+## 🔜 Próximas Sprints
+
+### Sprint 7: OCR & Camada de Texto (A Visão Fóton) 🏗️
+
+- **Objetivo:** Dar inteligência a documentos baseados em imagens.
+- [ ] **Integração OCR:** Adicionar motor OCR (Tesseract ou similar) como plugin/dependência.
+- [ ] **Reconhecimento Automático:** Detectar PDFs sem camada de texto e sugerir OCR.
+- [ ] **Camada de Texto Invisível:** Gerar e injetar texto pesquisável sobre PDFs escaneados.
+- [ ] **Extração Inteligente:** Copiar texto de áreas selecionadas, mesmo em imagens (OCR on-demand).
+
+### Sprint 8: UI Evolution & Modo Profissional 💎
+
+- **Objetivo:** Refinar a interface para produtividade de alto nível.
+- [ ] **Dual/Multi-View:** Visualização de duas páginas lado a lado ou documentos diferentes.
+- [ ] **Modo Madrugada/Leitura:** Filtros de cor customizados para redução de fadiga ocular.
+- [ ] **Annotations Basics:** Implementar realce (highlight) e sublinhado persistente.
+- [ ] **Configurações Globais:** Persistência de zoom, última página lida e preferências de tema.
 
 ---
 
@@ -12,53 +42,31 @@ Este documento detalha o **micro-gerenciamento** da Fase 1, com o que deve ser d
 
 ### Sprint 5: Distribuição & Sistema de Atualização ✅
 
-**Objetivo:** Gerar o entregável final (MVP) e garantir que ele seja autossustentável.
-
-- [x] **Geração do Binário (foton.exe):** Configurado `PyInstaller` para empacotamento completo.
-- [x] **Scripts de Instalação Final:** Registro inteligente no Menu de Contexto (Portable/Binary).
-- [x] **Sistema de Auto-Update:** Implementado `UpdateService` com GitHub API e notificações.
-- [x] **Manual do Usuário:** Documentação básica de instalação incluída no README.
+- [x] Auto-Update Engine e Notificações Mobile-style.
+- [x] Build automatizado via PyInstaller (`foton.exe`).
+- [x] Registro inteligente no Menu de Contexto.
 
 ### Sprint 4: Lógica de Interface & UX Premium ✅
 
-**Objetivo:** Integrar as capacidades do motor à GUI e elevar a estética do produto.
-
-- [x] Extração de Páginas (GUI): Seleção múltipla e integração com `SplitPDFUseCase`.
-- [x] Conversores (Exportação): Renderização e salvamento em PNG/JPG.
-- [x] Design Premium: Tema dark, barra de ferramentas e CSS moderno.
-- [x] Interatividade: Atalhos senior e feedback visual na barra de status.
+- [x] Barra de ferramentas com Extração e Exportação.
+- [x] Design Premium e Feedbacks em tempo real.
 
 ### Sprint 3: Visualizador & Renderização ✅
 
-**Objetivo:** Iniciar a interface gráfica (GUI) minimalista focada em velocidade extrema.
-
-- [x] Interface Gráfica (GUI) em PyQt6 e estrutura `interfaces/gui`.
-- [x] Visualizador com Lazy Loading e Renderização Assíncrona.
-- [x] Navegação por Miniaturas (Thumbnails) e Integração CLI.
-- [x] Atalhos de teclado senior e suporte a Drag & Drop.
+- [x] Interface Gráfica base e Lazy Loading.
+- [x] Navegação por Miniaturas.
 
 ### Sprint 2: OS Integration & Multi-file Ops ✅
 
-**Objetivo:** Integração com sistema para uso prático e expansão do motor.
-
-- [x] Implementação de `MergePDFUseCase` e `SplitPDFUseCase`.
-- [x] Integração com Registro do Windows (Menu de Contexto).
-- [x] Sistema de Notificações Nativas (Plyer).
-- [x] Refatoração CLI para múltiplas operações e arquivos.
+- [x] Merge/Split no motor e Menu de Contexto.
 
 ### Sprint 1: Core Engine & CLI Basics ✅
 
-**Objetivo:** Configurar o ambiente de desenvolvimento e implementar Rotação básica.
-
-- [x] Setup do motor PyMuPDF e estrutura de diretórios seguindo Hexagonal.
-- [x] Implementação do `Domain` e `Application` (RotateUseCase).
-- [x] Implementação de Adapter para PyMuPDF.
-- [x] CLI simples para invocar a rotação.
+- [x] Fundação Hexagonal e PyMuPDF Adapter.
 
 ### Sprint 0: Kickoff ✅
 
-- [x] README, Arquitetura e Estrutura de Pastas.
-- [x] Contexto para CodeAssistants (LLM_CONTEXT.md).
+- [x] Estratégia de documentação e arquitetura.
 
 ---
 
