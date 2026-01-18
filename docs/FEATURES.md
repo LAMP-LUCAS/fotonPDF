@@ -1,98 +1,97 @@
 # ✨ Funcionalidades do fotonPDF
 
-Este documento detalha as capacidades técnicas do **fotonPDF**, explicando sua implementação, modos de uso e as melhores práticas recomendadas.
+Este documento detalha as capacidades técnicas do **fotonPDF**, explicando sua implementação profunda, modos de uso avançados e as melhores práticas recomendadas para produtividade máxima.
 
 ---
 
 ## 🛠️ 1. Manipulação Core (Motor PDF)
 
-As funcionalidades core são implementadas sobre o adaptador `PyMuPDF` (fitz), garantindo alta performance e baixo consumo de memória.
+As funcionalidades core são implementadas sobre o adaptador `PyMuPDF` (fitz), garantindo alta fidelidade e performance.
 
 ### 1.1 Girar Páginas (Rotate)
 
 - **O que faz:** Rotaciona páginas específicas ou todo o documento em incrementos de 90°.
-- **Implementação:** `src/application/use_cases/rotate_pdf.py`. Utiliza o método `set_rotation` do PyMuPDF.
+- **Interno:** Implementado via `src/application/use_cases/rotate_pdf.py`. No modo visual, a rotação é aplicada no `PDFStateManager` como um `rotation_offset`, permitindo que o usuário visualize a mudança instantaneamente sem modificar o arquivo original até o momento do "Salvar".
 - **Como utilizar:**
+  - **GUI:** Selecione as miniaturas na barra lateral (use `Ctrl` para múltiplas) e clique em **Girar -90°** ou **Girar +90°**.
   - **CLI:** `foton rotate --file "doc.pdf" --pages 1,3 --degrees 90`
-  - **GUI:** Selecione as miniaturas na barra lateral e use os botões de giro na toolbar.
-  - **Context Menu:** Clique com o botão direito no arquivo e escolha `fotonPDF ▸ Girar 90°`.
-- **Boas Práticas:** Use o visualizador para confirmar a orientação antes de salvar o arquivo final.
+- **Integridade**: O sistema sincroniza o índice visual com o estado interno, garantindo que a página rotacionada seja exatamente a que você selecionou, mesmo após reordenações.
 
-### 1.2 Unir PDFs (Merge 2.0)
+### 1.2 Unir PDFs (Merge 2.0 - Documento Virtual)
 
-- **O que faz:** Combina múltiplos arquivos PDF em um único documento, preservando a ordem desejada.
-- **Implementação:** `src/interfaces/gui/state/pdf_state.py` (`append_document`). Implementa um **Documento Virtual** que permite anexação instantânea sem recarregar arquivos.
-- **Como utilizar:**
-  - **CLI:** `foton merge --files "a.pdf" "b.pdf"`
-  - **GUI:** Botão "Unir PDF" ou arraste arquivos diretamente para a **Sidebar de Miniaturas**.
-- **Boas Práticas:** Reordene as páginas visualmente na sidebar após unir os arquivos para garantir o fluxo correto do documento.
-
-### 1.3 Separar Páginas (Split)
-
-- **O que faz:** Divide um documento em múltiplos arquivos baseados em intervalos de páginas.
-- **Como utilizar:**
-  - **CLI:** `foton split --file "doc.pdf" --ranges "1-5,6-10"`
-- **Boas Práticas:** Ideal para separar capítulos ou anexos de um documento principal.
+- **O que faz:** Combina múltiplos arquivos PDF em um único fluxo de trabalho contínuo.
+- **Diferencial Técnico:** Introduz o conceito de **Documento Virtual**. Em vez de unir arquivos fisicamente no disco e recarregar, o fotonPDF gerencia uma lista dinâmica de referências para páginas de diferentes arquivos fonte. Isso torna a "unificação" instantânea.
+- **Interface Inteligente:**
+  - Arraste arquivos para a **Sidebar** para anexá-los ao documento atual.
+  - Arraste para o **Centro** para abrir como um novo projeto.
+- **Boas Práticas:** Utilize a reordenação por Drag & Drop na sidebar para organizar o documento final antes de salvar.
 
 ---
 
 ## 🖥️ 2. Visualizador Fóton (GUI Premium)
 
-Interface gráfica desenvolvida em **PyQt6**, focada em velocidade e fluidez.
+Interface gráfica em **PyQt6**, projetada para ser o centro de controle do seu fluxo de trabalho documental.
 
-### 2.1 Visualização Ultra-Rápida (RenderEngine)
+### 2.1 Motor de Renderização Concorrente (`RenderEngine`)
 
-- **Implementação:** `src/interfaces/gui/state/render_engine.py`. Utiliza `QThreadPool` e uma fila de renderização inteligente para evitar crashes e travamentos da UI.
-- **Diferencial:** Renderiza apenas as páginas visíveis sob demanda (Lazy Loading), mantendo a memória sob controle.
+- **Implementação**: Localizada em `src/interfaces/gui/state/render_engine.py`. Utiliza `QThreadPool` com limite de concorrência (2 threads) para evitar que o Windows esgote recursos ao abrir PDFs massivos.
+- **Estabilidade**: Cada página é renderizada em uma tarefa isolada. Se uma página estiver corrompida, o visualizador continua operando normalmente para as demais.
 
-### 2.2 Navegação e Zoom Inteligente
+### 2.2 Navegação Adaptativa
 
-- **Funções:** Zoom +, Zoom -, 100%, Ajustar Largura e Ajustar Altura.
-- **Smarts:** Os botões de **Ajuste** detectam automaticamente a página atual visível e adaptam o zoom às proporções específicas dessa página (ideal para PDFs com tamanhos de página mistos).
+- **Ajuste de Tela**: Os botões de **Largura** e **Altura** são "conscientes do contexto". Eles identificam qual página está mais visível no topo do viewport e ajustam o zoom baseado nas dimensões reais *daquela página específica*.
+- **Suporte Mixed-Size**: Perfeito para documentos que misturam páginas A4 vertical com plantas de engenharia no formato paisagem (A3/A2).
 
-### 2.3 Extração Visual
+### 2.3 Extração Visual Premium
 
-- **O que faz:** Permite selecionar um subconjunto de páginas na barra lateral e salvá-las instantaneamente como um novo arquivo PDF.
-- **Como utilizar:** Selecione as páginas na sidebar (Ctrl+Clique) e clique no botão **Extrair** na Toolbar.
+- **O que faz:** Cria um novo arquivo PDF contendo apenas as páginas que você selecionou visualmente.
+- **Processo**:
+    1. Selecione as páginas desejadas na sidebar (ordenadas como desejar).
+    2. Clique em **Extrair** na Toolbar.
+    3. O sistema compila um novo PDF binário unindo as fontes originais e preservando a nova ordem e rotações aplicadas.
+- **Uso Comum**: Separar páginas de um contrato ou criar um resumo de um relatório extenso.
 
 ---
 
-## 🚀 3. Suíte de Conversão
+## 🚀 3. Suíte de Conversão Profissional
 
-Ferramentas avançadas para exportar o conteúdo do PDF para outros formatos.
+Converta o conteúdo estático do PDF em ativos úteis para outros softwares.
 
-### 3.1 Exportar como Imagem
+### 3.1 Exportação para Imagem (High-DPI)
 
-- **Formatos:** PNG (Alta Resolução), JPG (Compacto), WebP (Otimizado).
-- **Implementação:** Gera pixmaps de alta fidelidade (300 DPI) para garantir clareza textual nas imagens.
-- **Uso:** Toolbar ▸ Botão "Exportar Imagem".
+- **Formatos**: **PNG** (Lossless), **JPG** (Web), **WebP** (Moderno).
+- **Qualidade Técnica**: Gera buffers de imagem a **300 DPI** (dots per inch). Diferente de capturas de tela, a exportação utiliza o motor vetorial do PDF para rasterizar o texto com nitidez cirúrgica.
+- **Fluxo**: Utiliza o componente `QImage` para garantir compressão otimizada e compatibilidade total com visualizadores de imagem padrão.
 
-### 3.2 Exportar SVG (Vetores)
+### 3.2 Exportação SVG (Vetor Nativo)
 
-- **O que faz:** Converte a página visível em um gráfico vetorial (SVG), permitindo edição em softwares como Illustrator ou Figma.
+- **O que faz**: Converte a geometria da página em XML vetorial.
+- **Vantagem**: O arquivo gerado pode ser aberto em ferramentas como **Figma**, **Illustrator** ou browsers, mantendo a capacidade de redimensionamento infinito sem perda de definição.
 
-### 3.3 Exportar Markdown
+### 3.3 Exportação Markdown (Text Logic)
 
-- **O que faz:** Extrai o texto do PDF convertendo-o em Markdown estruturado, ideal para anotações em ferramentas como Obsidian ou Notion.
+- **O que faz**: Extrai a estrutura semântica do documento para um arquivo `.md`.
+- **Implementação**: Tenta identificar cabeçalhos, tabelas e parágrafos. Cada página do PDF é separada por um divisor `---` e um título `# Página X`.
+- **Ideal para**: Usuários de **Obsidian**, **Logseq** ou **Notion** que precisam processar textos de PDFs de forma rápida e estruturada.
 
 ---
 
 ## 🖥️ 4. Integração com Sistema Operacional
 
-Conecta o fotonPDF diretamente ao workflow do usuário.
+Conforto e rapidez diretamente da área de trabalho.
 
-### 4.1 Menu de Contexto (Windows Explorer)
+### 4.1 Menu de Contexto (Windows)
 
-- **O que faz:** Adiciona o menu `fotonPDF ▸` ao clicar com o botão direito em arquivos PDF.
-- **Segurança:** Gera arquivos com **Timestamps** automáticos para evitar que o arquivo original seja sobrescrito acidentalmente.
+- **Acesso**: Botão direito no Explorer ▸ `fotonPDF ▸`.
+- **Timestamps**: Todas as ações rápidas (Girar, Unir) geram novos arquivos com a marca de tempo no nome (ex: `documento_ROTATE_20260118.pdf`). Isso garante que você nunca perca o arquivo original por um erro de operação.
 
 ---
 
 ## 🔗 Relacionamentos e Navegação
 
-- [[ARCHITECTURE|🏗️ Arquitetura]]: Entenda como os adaptadores e portas sustentam estas features.
-- [[DASHBOARD|🎛️ Dashboard]]: Acompanhe o status de implementação de cada funcionalidade.
-- [[guides/NEW_OPERATION|➕ Guia de Operações]]: Aprenda a adicionar novas funcionalidades a este ecossistema.
+- [[ARCHITECTURE|🏗️ Arquitetura]]: Saiba mais sobre o motor centralizado.
+- [[DASHBOARD|🎛️ Dashboard]]: Status atual de cada funcionalidade.
+- [[guides/NEW_OPERATION|➕ Guia de Operações]]: Como estender o sistema com novos conversores.
 
 ---
 [[MAP|← Voltar ao Mapa]]
