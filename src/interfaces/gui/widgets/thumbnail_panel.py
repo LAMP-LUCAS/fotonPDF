@@ -4,17 +4,27 @@ from PyQt6.QtCore import QSize, pyqtSignal, Qt
 import fitz
 
 class ThumbnailPanel(QListWidget):
-    """Painel lateral com miniaturas para navegação rápida."""
+    """Painel lateral com miniaturas para navegação rápida e reordenação."""
     pageSelected = pyqtSignal(int)
+    orderChanged = pyqtSignal(list) # Lista de novos índices
 
     def __init__(self):
         super().__init__()
-        self.setFixedWidth(200)
-        self.setIconSize(QSize(150, 200))
-        self.setGridSize(QSize(180, 220))
-        self.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
-        self.setFlow(QListWidget.Flow.TopToBottom)
-        self.setMovement(QListWidget.Movement.Static)
+        self.setFixedWidth(220)
+        self.setIconSize(QSize(120, 160))
+        self.setGridSize(QSize(140, 180))
+        self.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
+        self.setFlow(QListWidget.Flow.LeftToRight)
+        self.setWrapping(True)
+        self.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.setMovement(QListWidget.Movement.Free)
+        
+        # Drag & Drop Reordering
+        self.setDragEnabled(True)
+        self.setAcceptDrops(True)
+        self.setDropIndicatorShown(True)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
         self.setStyleSheet("""
             QListWidget {
                 background-color: #1e1e1e;
@@ -36,14 +46,24 @@ class ThumbnailPanel(QListWidget):
         """)
         self.itemClicked.connect(self._on_item_clicked)
 
+    def dropEvent(self, event):
+        """Detecta o drop e emite sinal de mudança de ordem."""
+        super().dropEvent(event)
+        new_order = []
+        for i in range(self.count()):
+            item = self.item(i)
+            new_order.append(item.data(Qt.ItemDataRole.UserRole))
+        self.orderChanged.emit(new_order)
+
     def load_thumbnails(self, doc):
         self.clear()
         for i in range(len(doc)):
             page = doc.load_page(i)
-            # Miniatura menor para performance
-            pix = page.get_pixmap(matrix=fitz.Matrix(0.2, 0.2))
+            # Miniatura menor para performance e compatibilidade de cor
+            # alpha=False garante fundo branco (padrão PDF) mas retorna RGB (3 bytes)
+            pix = page.get_pixmap(matrix=fitz.Matrix(0.2, 0.2), alpha=False)
             
-            fmt = QImage.Format.Format_RGBA8888
+            fmt = QImage.Format.Format_RGB888
             img = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
             
             item = QListWidgetItem(f"Página {i+1}")

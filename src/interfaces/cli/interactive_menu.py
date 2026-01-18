@@ -4,7 +4,7 @@ Exibido quando o executável é aberto sem argumentos.
 """
 import click
 import sys
-from src.infrastructure.services.logger import log_info
+from src.infrastructure.services.logger import log_info, log_exception
 
 
 def print_header():
@@ -54,6 +54,7 @@ def run_interactive_menu():
                 from src.interfaces.gui.app import main
                 main()
             except Exception as e:
+                log_exception(f"Erro ao abrir visualizador no menu: {e}")
                 click.secho(f"  ❌ Erro ao abrir visualizador: {e}", fg='red')
                 click.pause()
             return  # Sair após abrir

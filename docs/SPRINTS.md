@@ -40,9 +40,14 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 
 ## 📅 Histórico de Sprints Concluídas
 
-### Fase 2: : Interface & Funcionalidade
+### Fase 2: Interface & Funcionalidade
 
-Aguardando...
+#### Sprint de Estabilização Crítica (Hotfix) ✅
+
+- [x] **Refatoração Thread-Safe**: Implementação do `RenderEngine` centralizado com `QThreadPool`.
+- [x] **Gestão de Recursos**: Fila de renderização limitada (max 2 threads) para evitar crashes por exaustão de handles.
+- [x] **Correção de UI**: Miniaturas com fundo branco (RGB) e sincronização de layout via `QTimer`.
+
 ### Fase 1: Fundação & MVP
 
 #### Sprint 5: Distribuição & Sistema de Atualização ✅

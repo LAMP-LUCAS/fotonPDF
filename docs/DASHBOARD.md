@@ -25,11 +25,11 @@ pie title Cobertura da Documentação
 
 ### Sprint 3 (Concluído) ✅
 
-- [x] Interface Gráfica (GUI) em PyQt6
-- [x] Visualizador com Lazy Loading Assíncrono
-- [x] Navegação por Miniaturas (Thumbnails)
+- [x] Interface Gráfica (GUI) em PyQt6 ✅
+- [x] Visualizador com Motor de Renderização Centralizado (Thread-Safe) 🚀
+- [x] Navegação por Miniaturas (Thumbnails) com fundo opaco
 - [x] Comando `foton view` integrado à CLI
-- [x] Atalhos de teclado (Vim-style J/K)
+- [x] Sincronização de Layout pós-merge (QTimer sync)
 
 ### Sprint 2 (Concluído) ✅
 
@@ -135,7 +135,7 @@ graph LR
 
 ---
 
-**Última atualização:** 2026-01-17  
-**Próxima revisão:** Fim da Sprint 4 (15/03/2026)
+**Última atualização:** 2026-01-18  
+**Próxima revisão:** Início da Sprint 6 (Busca & Navegação)
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]
