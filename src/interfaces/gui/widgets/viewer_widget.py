@@ -7,7 +7,7 @@ from src.infrastructure.services.logger import log_debug, log_warning
 from src.interfaces.gui.state.render_engine import RenderEngine
 
 class PDFViewerWidget(QScrollArea):
-    """Widget de visualização estável com suporte a Fila de Renderização Centralizada."""
+    """Visualizador que suporta documentos virtuais (múltiplas fontes)."""
 
     def __init__(self):
         super().__init__()
@@ -22,121 +22,107 @@ class PDFViewerWidget(QScrollArea):
         self.layout.setContentsMargins(40, 40, 40, 40)
         
         self.setWidget(self.container)
-        self._doc = None
-        self._doc_path = None
-        self._placeholder = None
+        self._doc = None # Usado apenas para metadados/layout da 1ª página
         self._pages = []
         self._zoom = 1.0
         self._panning = False
         self._last_mouse_pos = None
+        self._placeholder = None
 
-        # Conectar scroll para renderização preguiçosa
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
 
-    def has_document(self) -> bool:
-        return self._doc is not None
-
-    def setPlaceholder(self, widget: QWidget):
-        if self._placeholder:
-            self._placeholder.deleteLater()
-        self._placeholder = widget
-        self.layout.addWidget(widget)
-
-    def set_zoom(self, zoom: float):
-        if not self._doc:
-            return
-        self._zoom = max(0.2, min(zoom, 5.0))
-        # Ao mudar zoom, opcionalmente limpar fila pendente
-        # RenderEngine.instance().cancel_all()
-        self.check_visibility()
-
-    def zoom_in(self):
-        self.set_zoom(self._zoom * 1.2)
-
-    def zoom_out(self):
-        self.set_zoom(self._zoom / 1.2)
-
-    def fit_width(self):
-        if not self._pages or not self._doc:
-            return
-        page_width = self._doc[0].rect.width
-        available_width = self.viewport().width() - 100
-        self.set_zoom(available_width / page_width)
-
-    def fit_height(self):
-        if not self._pages or not self._doc:
-            return
-        page_height = self._doc[0].rect.height
-        available_height = self.viewport().height() - 100
-        self.set_zoom(available_height / page_height)
-
-    def real_size(self):
-        self.set_zoom(1.0)
-
-    def load_document(self, path: Path):
-        """Carrega novo documento com limpeza rigorosa de recursos."""
-        # 1. Cancelar renderizações pendentes do arquivo anterior
+    def clear(self):
+        """Limpa o visualizador e encerra processos pendentes."""
         RenderEngine.instance().cancel_all()
-        
-        # 2. Fechar handle do documento atual
         if self._doc:
             self._doc.close()
             self._doc = None
             
-        if self._placeholder:
-            self._placeholder.hide()
-            
-        # 3. Limpar widgets de página
         while self.layout.count():
             child = self.layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
-        
         self._pages = []
-        self._doc_path = str(path)
-        self._doc = fitz.open(self._doc_path)
+
+    def setPlaceholder(self, widget: QWidget):
+        if self._placeholder: self._placeholder.deleteLater()
+        self._placeholder = widget
+        self.layout.addWidget(widget)
+
+    def load_document(self, path: Path):
+        """Inicializa o visualizador com um arquivo."""
+        self.clear()
+        if self._placeholder: self._placeholder.hide()
         
-        log_debug(f"Viewer: Carregando {path.name} ({len(self._doc)} páginas)")
-        
-        for i in range(len(self._doc)):
-            page_widget = PageWidget(i)
-            self.layout.addWidget(page_widget)
-            self._pages.append(page_widget)
-        
+        self.add_pages(path)
         self.verticalScrollBar().setValue(0)
-        # Timer para garantir estabilização do layout antes da primeira renderização
         QTimer.singleShot(200, self._initial_render)
         
+        # Manter doc principal para cálculos de "fit"
+        self._doc = fitz.open(str(path))
         return self._doc
 
+    def add_pages(self, path: Path):
+        """Adiciona páginas de um novo documento sem resetar."""
+        path_str = str(path)
+        temp_doc = fitz.open(path_str)
+        num_pages = len(temp_doc)
+        
+        log_debug(f"Viewer: Adicionando {num_pages} páginas de {path.name}")
+        
+        for i in range(num_pages):
+            page_widget = PageWidget(path_str, i)
+            self.layout.addWidget(page_widget)
+            self._pages.append(page_widget)
+            
+        temp_doc.close()
+        self.check_visibility()
+
     def _initial_render(self):
-        if not self._doc: return
         self.fit_width()
         self.check_visibility()
 
-    def refresh_page(self, index: int, rotation: int = None):
-        if 0 <= index < len(self._pages):
-            page_widget = self._pages[index]
-            if rotation is not None:
-                page_widget.rotation = rotation
-            page_widget._rendered = False
-            self.check_visibility()
-
     def check_visibility(self):
-        """Identifica páginas visíveis e solicita renderização centralizada."""
-        if not self._doc:
-            return
-            
+        """Solicita renderização das páginas que entram no viewport."""
         viewport_top = self.verticalScrollBar().value()
         viewport_bottom = viewport_top + self.height()
-        buffer = 1200 # Margem de renderização antecipada
+        buffer = 1200 
         
         for page in self._pages:
             pos = page.pos().y()
             if pos < viewport_bottom + buffer and pos + page.height() > viewport_top - buffer:
-                # Solicita via caminho para garantir isolamento de handle se necessário,
-                # embora o RenderEngine já trate do isolamento.
-                page.render_page(self._doc_path, zoom=self._zoom)
+                page.render_page(zoom=self._zoom)
+
+    def set_zoom(self, zoom: float):
+        self._zoom = max(0.1, min(zoom, 10.0))
+        self.check_visibility()
+
+    def zoom_in(self): self.set_zoom(self._zoom * 1.2)
+    def zoom_out(self): self.set_zoom(self._zoom / 1.2)
+
+    def fit_width(self):
+        if not self._pages: return
+        # Tenta obter largura da primeira página carregada (via fitz temporário se necessário)
+        # Por simplicidade, assumimos 1ª página se _doc existe
+        if self._doc:
+            page_width = self._doc[0].rect.width
+            available_width = self.viewport().width() - 100
+            self.set_zoom(available_width / page_width)
+
+    def fit_height(self):
+        if not self._doc: return
+        page_height = self._doc[0].rect.height
+        available_height = self.viewport().height() - 100
+        self.set_zoom(available_height / page_height)
+
+    def real_size(self): self.set_zoom(1.0)
+
+    def refresh_page(self, index: int, rotation: int = None):
+        if 0 <= index < len(self._pages):
+            page_widget = self._pages[index]
+            if rotation is not None: page_widget.rotation = rotation
+            page_widget._rendered = False
+            page_widget.render_page(zoom=self._zoom)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:
@@ -166,24 +152,29 @@ class PDFViewerWidget(QScrollArea):
         else:
             super().wheelEvent(event)
 
-    def reorder_pages(self, new_order: list[int]):
+    def reorder_pages(self, new_order_of_current_widgets: list[int]):
+        """Reordena os widgets físicos baseando-se na nova ordem desejada."""
         if not self._pages: return
-        widgets_map = {p.page_num: p for p in self._pages}
+        
+        # Importante: new_order_of_current_widgets contém os índices da lista self._pages
+        current_pages = list(self._pages)
+        
         for i in reversed(range(self.layout.count())):
             item = self.layout.takeAt(i)
             if item.widget(): item.widget().setParent(None)
         
-        new_pages_list = []
-        for orig_idx in new_order:
-            widget = widgets_map[orig_idx]
+        self._pages = []
+        for idx in new_order_of_current_widgets:
+            widget = current_pages[idx]
             self.layout.addWidget(widget)
-            new_pages_list.append(widget)
+            self._pages.append(widget)
         
-        self._pages = new_pages_list
         self.check_visibility()
 
+    def scroll_to_page(self, visual_index: int):
+        if 0 <= visual_index < len(self._pages):
+            self.verticalScrollBar().setValue(self._pages[visual_index].pos().y())
+
     def closeEvent(self, event):
-        RenderEngine.instance().cancel_all()
-        if self._doc:
-            self._doc.close()
+        self.clear()
         super().closeEvent(event)

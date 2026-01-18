@@ -5,24 +5,26 @@ from src.infrastructure.services.logger import log_debug, log_error, log_excepti
 from src.interfaces.gui.state.render_engine import RenderEngine
 
 class PageWidget(QLabel):
-    """Widget de página que renderiza sob demanda via RenderEngine centralizado."""
+    """Widget de página que conhece sua própria origem (Source Path/Index)."""
 
-    def __init__(self, page_num, parent=None):
+    def __init__(self, source_path: str, source_index: int, parent=None):
         super().__init__(parent)
-        self.page_num = page_num
+        self.source_path = source_path
+        self.source_index = source_index
         self.zoom = 1.0
         self.rotation = 0
+        
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("background-color: white; border: 1px solid #111;")
-        self.setMinimumHeight(400) # Placeholder height
-        self._current_render_id = 0 # Para evitar atualizações de zoom obsoletas
+        self.setMinimumHeight(400) # Placeholder
         self._rendered = False
 
-    def render_page(self, doc_path, zoom=None, rotation=None):
+    def render_page(self, zoom=None, rotation=None):
+        """Solicita renderização usando sua própria origem."""
         try:
             should_render = False
             
-            if zoom is not None and self.zoom != zoom:
+            if zoom is not None and abs(self.zoom - zoom) > 0.001:
                 should_render = True
                 self.zoom = zoom
             
@@ -36,8 +38,8 @@ class PageWidget(QLabel):
             self._rendered = False
             # O RenderEngine gerencia a fila e as threads
             RenderEngine.instance().request_render(
-                doc_path, 
-                self.page_num, 
+                self.source_path, 
+                self.source_index, 
                 self.zoom, 
                 self.rotation, 
                 self.on_render_finished
@@ -46,13 +48,12 @@ class PageWidget(QLabel):
             log_exception(f"PageWidget: Erro ao solicitar render: {e}")
 
     def on_render_finished(self, page_num, pixmap, zoom, rotation):
-        """Callback quando o RenderEngine termina uma tarefa."""
-        # Verificar se ainda é a mesma página e o mesmo zoom/rotação solicitado
-        if page_num != self.page_num:
+        """Callback do motor central."""
+        # Verificar se ainda é a mesma origem e o mesmo zoom solicitado
+        if page_num != self.source_index:
             return
             
         if abs(zoom - self.zoom) > 0.001 or rotation != self.rotation:
-            # log_debug(f"PageWidget: Descartando render obsoleto da página {page_num}")
             return
 
         try:
@@ -63,6 +64,5 @@ class PageWidget(QLabel):
             self._rendered = True
             self.setMinimumHeight(0)
             self.setFixedSize(pixmap.size())
-            # log_debug(f"PageWidget: Atualizada página {self.page_num}")
         except Exception as e:
             log_exception(f"PageWidget: Erro ao atualizar UI: {e}")

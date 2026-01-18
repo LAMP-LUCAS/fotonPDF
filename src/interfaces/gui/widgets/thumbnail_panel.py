@@ -4,9 +4,9 @@ from PyQt6.QtCore import QSize, pyqtSignal, Qt
 import fitz
 
 class ThumbnailPanel(QListWidget):
-    """Painel lateral com miniaturas para navegação rápida e reordenação."""
+    """Painel lateral com suporte a adição incremental de miniaturas."""
     pageSelected = pyqtSignal(int)
-    orderChanged = pyqtSignal(list) # Lista de novos índices
+    orderChanged = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
@@ -19,65 +19,58 @@ class ThumbnailPanel(QListWidget):
         self.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.setMovement(QListWidget.Movement.Free)
         
-        # Drag & Drop Reordering
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
         self.setDropIndicatorShown(True)
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        
         self.setStyleSheet("""
-            QListWidget {
-                background-color: #1e1e1e;
-                border-right: 1px solid #333;
-                color: white;
-            }
-            QListWidget::item {
-                border-radius: 5px;
-                margin: 5px;
-                padding: 10px;
-            }
-            QListWidget::item:selected {
-                background-color: #2e2e2e;
-                border: 2px solid #4CAF50;
-            }
-            QListWidget::item:hover {
-                background-color: #252525;
-            }
+            QListWidget { background-color: #1e1e1e; border-right: 1px solid #333; color: white; }
+            QListWidget::item { border-radius: 5px; margin: 5px; padding: 10px; }
+            QListWidget::item:selected { background-color: #2e2e2e; border: 2px solid #4CAF50; }
         """)
         self.itemClicked.connect(self._on_item_clicked)
 
     def dropEvent(self, event):
-        """Detecta o drop e emite sinal de mudança de ordem."""
         super().dropEvent(event)
         new_order = []
         for i in range(self.count()):
-            item = self.item(i)
-            new_order.append(item.data(Qt.ItemDataRole.UserRole))
+            # O UserRole agora deve mapear para o índice VISUAL na lista de widgets do Viewer
+            # Na verdade, o 'reorder' do MainWindow recebe índices visuais (0, 1, 2...)
+            # Então apenas emitimos a lista de UserRoles que inserimos.
+            new_order.append(self.item(i).data(Qt.ItemDataRole.UserRole))
         self.orderChanged.emit(new_order)
 
-    def load_thumbnails(self, doc):
+    def load_thumbnails(self, path: str):
         self.clear()
+        self.append_thumbnails(path)
+
+    def append_thumbnails(self, path: str):
+        """Adiciona miniaturas de um documento ao final da lista."""
+        doc = fitz.open(path)
+        start_idx = self.count()
+        
         for i in range(len(doc)):
             page = doc.load_page(i)
-            # Miniatura menor para performance e compatibilidade de cor
-            # alpha=False garante fundo branco (padrão PDF) mas retorna RGB (3 bytes)
             pix = page.get_pixmap(matrix=fitz.Matrix(0.2, 0.2), alpha=False)
             
-            fmt = QImage.Format.Format_RGB888
-            img = QImage(pix.samples, pix.width, pix.height, pix.stride, fmt)
+            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
             
-            item = QListWidgetItem(f"Página {i+1}")
+            # O UserRole armazena o índice ABSOLUTO na lista de páginas atual
+            # (que corresponde à ordem em que foram adicionadas inicialmente)
+            absolute_idx = start_idx + i
+            item = QListWidgetItem(f"Página {absolute_idx + 1}")
             item.setIcon(QIcon(QPixmap.fromImage(img)))
-            item.setData(Qt.ItemDataRole.UserRole, i)
+            item.setData(Qt.ItemDataRole.UserRole, absolute_idx)
             self.addItem(item)
+            
+        doc.close()
 
     def _on_item_clicked(self, item):
-        page_num = item.data(Qt.ItemDataRole.UserRole)
-        self.pageSelected.emit(page_num)
+        # Emite o índice visual atual para scroll
+        self.pageSelected.emit(self.row(item))
 
     def get_selected_pages(self) -> list[int]:
-        """Retorna os números das páginas selecionadas (1-based)."""
-        selected_items = self.selectedItems()
-        # UserRole armazena o 0-based index. Retornamos 1-based para o Caso de Uso.
-        pages = [item.data(Qt.ItemDataRole.UserRole) + 1 for item in selected_items]
-        return sorted(pages)
+        """IDs das páginas selecionadas."""
+        return sorted([item.data(Qt.ItemDataRole.UserRole) for item in self.selectedItems()])
