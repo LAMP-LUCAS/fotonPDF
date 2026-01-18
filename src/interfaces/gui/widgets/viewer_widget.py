@@ -136,12 +136,10 @@ class PDFViewerWidget(QScrollArea):
 
     def real_size(self): self.set_zoom(1.0)
 
-    def refresh_page(self, index: int, rotation: int = None):
-        if 0 <= index < len(self._pages):
-            page_widget = self._pages[index]
-            if rotation is not None: page_widget.rotation = rotation
-            page_widget._rendered = False
-            page_widget.render_page(zoom=self._zoom)
+    def refresh_page(self, visual_idx: int, rotation: int = 0):
+        """Força a renderização de uma página específica pela sua posição atual."""
+        if 0 <= visual_idx < len(self._pages):
+            self._pages[visual_idx].render_page(zoom=self._zoom, rotation=rotation)
 
     def mousePressEvent(self, event):
         if event.button() == Qt.MouseButton.LeftButton:

@@ -71,6 +71,10 @@ class ThumbnailPanel(QListWidget):
         # Emite o índice visual atual para scroll
         self.pageSelected.emit(self.row(item))
 
+    def get_selected_rows(self) -> list[int]:
+        """IDs visuais (linhas) das páginas selecionadas."""
+        return sorted([self.row(item) for item in self.selectedItems()])
+
     def get_selected_pages(self) -> list[int]:
-        """IDs das páginas selecionadas."""
+        """IDs absolutos (UserRole) das páginas selecionadas (legado)."""
         return sorted([item.data(Qt.ItemDataRole.UserRole) for item in self.selectedItems()])
