@@ -42,6 +42,13 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 
 ### Fase 2: Interface & Funcionalidade
 
+#### Sprint 6: Evolução UI & Conversão (Premium) ✅
+
+- [x] **Nova Toolbar**: Organizada por categorias: Navegação, Edição e Conversão.
+- [x] **Navegação Inteligente**: "Ajustar Largura" agora foca na página atual visível.
+- [x] **Suíte de Conversão**: Exportação direta para PNG, JPG, WebP, SVG e Markdown.
+- [x] **Ux Tooling**: Adição de botões "Salvar" e "Salvar Como".
+
 #### Sprint de Estabilização Crítica (Hotfix) ✅
 
 - [x] **Refatoração Thread-Safe**: Implementação do `RenderEngine` centralizado com `QThreadPool`.

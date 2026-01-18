@@ -100,20 +100,39 @@ class PDFViewerWidget(QScrollArea):
     def zoom_in(self): self.set_zoom(self._zoom * 1.2)
     def zoom_out(self): self.set_zoom(self._zoom / 1.2)
 
+    def get_current_page_index(self) -> int:
+        """Retorna o índice da página mais visível no topo do viewport."""
+        viewport_top = self.verticalScrollBar().value()
+        for i, page in enumerate(self._pages):
+            # Se o fundo da página estiver abaixo do topo do viewport, ela é a atual
+            if page.pos().y() + page.height() > viewport_top + 10:
+                return i
+        return 0
+
     def fit_width(self):
         if not self._pages: return
-        # Tenta obter largura da primeira página carregada (via fitz temporário se necessário)
-        # Por simplicidade, assumimos 1ª página se _doc existe
-        if self._doc:
-            page_width = self._doc[0].rect.width
-            available_width = self.viewport().width() - 100
-            self.set_zoom(available_width / page_width)
+        idx = self.get_current_page_index()
+        target_page = self._pages[idx]
+        
+        # Obter largura original da página específica
+        doc = fitz.open(target_page.source_path)
+        page_rect = doc[target_page.source_index].rect
+        doc.close()
+
+        available_width = self.viewport().width() - 80 # Margens
+        self.set_zoom(available_width / page_rect.width)
 
     def fit_height(self):
-        if not self._doc: return
-        page_height = self._doc[0].rect.height
-        available_height = self.viewport().height() - 100
-        self.set_zoom(available_height / page_height)
+        if not self._pages: return
+        idx = self.get_current_page_index()
+        target_page = self._pages[idx]
+        
+        doc = fitz.open(target_page.source_path)
+        page_rect = doc[target_page.source_index].rect
+        doc.close()
+
+        available_height = self.viewport().height() - 80
+        self.set_zoom(available_height / page_rect.height)
 
     def real_size(self): self.set_zoom(1.0)
 

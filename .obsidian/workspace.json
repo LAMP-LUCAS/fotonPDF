@@ -27,12 +27,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+                "file": "README.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "TROUBLESHOOTING_AND_UNINSTALL"
+              "title": "README"
             }
           }
         ],
@@ -110,7 +110,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -120,7 +120,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Links inversos para TROUBLESHOOTING_AND_UNINSTALL"
+              "title": "Links inversos para README"
             }
           },
           {
@@ -129,12 +129,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Links de saída para TROUBLESHOOTING_AND_UNINSTALL"
+              "title": "Links de saída para README"
             }
           },
           {
@@ -172,13 +172,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+                "file": "README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Sumário de TROUBLESHOOTING_AND_UNINSTALL"
+              "title": "Sumário de README"
             }
           }
         ]
@@ -205,29 +205,31 @@
   "active": "12f14b7531537af7",
   "lastOpenFiles": [
     "dist/foton/logs/fotonpdf.log",
-    "dist/foton/logs",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/licenses/LICENSE",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/WHEEL",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/top_level.txt",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/REQUESTED",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/RECORD",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/METADATA",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/licenses",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info/INSTALLER",
-    "dist/foton/_internal/pyqt6_sip-13.11.0.dist-info",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/tumbler-icon@2x.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/tumbler-icon16.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/tumbler-icon.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolseparator-icon@2x.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolseparator-icon16.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolseparator-icon.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolbutton-icon16.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolbutton-icon@2x.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolbutton-icon.png",
-    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/designer/images/toolbar-icon@2x.png",
-    "docs/user/INSTALLATION.md",
-    "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+    "build/foton/COLLECT-00.toc",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_zh_TW.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_zh_CN.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_uk.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_tr.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_sv.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_sl.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_sk.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_ru.qm",
+    "dist/foton/_internal/PyQt6/Qt6/translations/qt_pt_PT.qm",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background@3x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background@2x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-hovered@3x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-hovered@2x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-hovered.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-focused@3x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-focused@2x.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-focused.png",
+    "dist/foton/_internal/PyQt6/Qt6/qml/QtQuick/Controls/FluentWinUI3/light/images/textfield-background-disabled@3x.png",
+    "docs/MAP.md",
+    "docs/DEVELOPMENT.md",
     "README.md",
+    "docs/user/TROUBLESHOOTING_AND_UNINSTALL.md",
+    "docs/user/INSTALLATION.md",
     "docs/user/USAGE.md",
     "docs/guides/OS_INTEGRATION.md",
     "docs/guides/PLUGIN_SYSTEM.md",
@@ -236,9 +238,7 @@
     "QUICKSTART.md",
     "docs/SPRINTS.md",
     "docs/ROADMAP.md",
-    "docs/DEVELOPMENT.md",
     "LLM_CONTEXT.md",
-    "docs/MAP.md",
     "docs/REPORT.md",
     "docs/INDEX.md",
     "CONTRIBUTING.md",

@@ -21,15 +21,17 @@ pie title Cobertura da Documentação
 | **Sprint 2 - Integração** | 🟢 Completo | ████████████ 100% | 14/02/2026 ✅ |
 | **Sprint 3 - UI** | 🟢 Completo | ████████████ 100% | 28/02/2026 ✅ |
 | **Sprint 4 - Polimento** | 🟢 Completo | ████████████ 100% | 15/03/2026 ✅ |
-| **Sprint 5 - Distribuição** | 🟡 Iniciando | ░░░░░░░░░░░░ 0% | 31/03/2026 |
+| **Sprint 5 - Distribuição** | 🟢 Completo | ████████████ 100% | 31/03/2026 ✅ |
+| **Sprint 6 - UI & Conversão** | 🟢 Completo | ████████████ 100% | 18/01/2026 ✅ |
 
 ### Sprint 3 (Concluído) ✅
 
 - [x] Interface Gráfica (GUI) em PyQt6 ✅
 - [x] Visualizador com Motor de Renderização Centralizado (Thread-Safe) 🚀
 - [x] Navegação por Miniaturas (Thumbnails) com fundo opaco
-- [x] Comando `foton view` integrado à CLI
-- [x] Sincronização de Layout pós-merge (QTimer sync)
+- [x] Toolbar Reorganizada (Navegação, Edição, Conversão) 🛠️
+- [x] Ferramentas de Conversão (Imagem, SVG, Markdown) 🚀
+- [x] Fit-to-Width inteligente baseado na página atual
 
 ### Sprint 2 (Concluído) ✅
 

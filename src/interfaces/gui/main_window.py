@@ -1,4 +1,5 @@
 import sys
+import fitz
 from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QFileDialog, QStatusBar, QToolBar, QLabel)
@@ -55,42 +56,13 @@ class MainWindow(QMainWindow):
     def _setup_toolbar(self):
         toolbar = QToolBar("Ferramentas")
         toolbar.setIconSize(QSize(24, 24))
+        toolbar.setMovable(False)
+        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(toolbar)
 
-        # Open
-        open_action = QAction("Abrir", self)
-        open_action.triggered.connect(self._on_open_clicked)
-        toolbar.addAction(open_action)
-
-        # Save
-        self.save_action = QAction("Salvar", self)
-        self.save_action.setEnabled(False)
-        self.save_action.triggered.connect(self._on_save_clicked)
-        toolbar.addAction(self.save_action)
-
-        toolbar.addSeparator()
-
-        # Merge
-        merge_action = QAction("Unir PDF", self)
-        merge_action.triggered.connect(self._on_merge_clicked)
-        toolbar.addAction(merge_action)
-
-        toolbar.addSeparator()
-
-        # Rotation
-        self.rotate_left_action = QAction("Gir -90°", self)
-        self.rotate_left_action.setEnabled(False)
-        self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
-        toolbar.addAction(self.rotate_left_action)
-
-        self.rotate_right_action = QAction("Gir +90°", self)
-        self.rotate_right_action.setEnabled(False)
-        self.rotate_right_action.triggered.connect(lambda: self._on_rotate_clicked(90))
-        toolbar.addAction(self.rotate_right_action)
-
-        toolbar.addSeparator()
-
-        # Zoom
+        # --- GRUPO: NAVEGAÇÃO ---
+        toolbar.addWidget(QLabel("  🔍 "))
+        
         zoom_in_action = QAction("Zoom +", self)
         zoom_in_action.triggered.connect(self.viewer.zoom_in)
         toolbar.addAction(zoom_in_action)
@@ -99,9 +71,82 @@ class MainWindow(QMainWindow):
         zoom_out_action.triggered.connect(self.viewer.zoom_out)
         toolbar.addAction(zoom_out_action)
 
+        real_size_action = QAction("100%", self)
+        real_size_action.triggered.connect(self.viewer.real_size)
+        toolbar.addAction(real_size_action)
+
         fit_width_action = QAction("Largura", self)
         fit_width_action.triggered.connect(self.viewer.fit_width)
         toolbar.addAction(fit_width_action)
+
+        fit_height_action = QAction("Altura", self)
+        fit_height_action.triggered.connect(self.viewer.fit_height)
+        toolbar.addAction(fit_height_action)
+
+        toolbar.addSeparator()
+
+        # --- GRUPO: EDIÇÃO ---
+        toolbar.addWidget(QLabel("  📅 "))
+        
+        open_action = QAction("Abrir", self)
+        open_action.triggered.connect(self._on_open_clicked)
+        toolbar.addAction(open_action)
+
+        self.save_action = QAction("Salvar", self)
+        self.save_action.setEnabled(False)
+        self.save_action.triggered.connect(self._on_save_clicked)
+        toolbar.addAction(self.save_action)
+
+        self.save_as_action = QAction("Salvar Como", self)
+        self.save_as_action.setEnabled(False)
+        self.save_as_action.triggered.connect(self._on_save_as_clicked)
+        toolbar.addAction(self.save_as_action)
+
+        merge_action = QAction("Unir PDF", self)
+        merge_action.triggered.connect(self._on_merge_clicked)
+        toolbar.addAction(merge_action)
+
+        self.rotate_left_action = QAction("Girar -90°", self)
+        self.rotate_left_action.setEnabled(False)
+        self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
+        toolbar.addAction(self.rotate_left_action)
+
+        self.rotate_right_action = QAction("Girar +90°", self)
+        self.rotate_right_action.setEnabled(False)
+        self.rotate_right_action.triggered.connect(lambda: self._on_rotate_clicked(90))
+        toolbar.addAction(self.rotate_right_action)
+
+        self.extract_action = QAction("Extrair", self)
+        self.extract_action.setEnabled(False)
+        self.extract_action.triggered.connect(self._on_extract_clicked)
+        toolbar.addAction(self.extract_action)
+
+        toolbar.addSeparator()
+
+        # --- GRUPO: CONVERSÃO ---
+        toolbar.addWidget(QLabel("  🚀 "))
+        
+        from PyQt6.QtWidgets import QToolButton, QMenu
+        
+        # Export Image (Dropdown)
+        export_img_btn = QToolButton()
+        export_img_btn.setText("Exportar Imagem")
+        export_img_menu = QMenu(self)
+        export_img_menu.addAction("PNG (Alta Resolução)").triggered.connect(lambda: self._on_export_image_clicked("png"))
+        export_img_menu.addAction("JPG (Compacto)").triggered.connect(lambda: self._on_export_image_clicked("jpg"))
+        export_img_menu.addAction("WebP (Otimizado)").triggered.connect(lambda: self._on_export_image_clicked("webp"))
+        
+        export_img_btn.setMenu(export_img_menu)
+        export_img_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        toolbar.addWidget(export_img_btn)
+
+        export_svg_action = QAction("SVG", self)
+        export_svg_action.triggered.connect(self._on_export_svg_clicked)
+        toolbar.addAction(export_svg_action)
+
+        export_md_action = QAction("Markdown", self)
+        export_md_action.triggered.connect(self._on_export_md_clicked)
+        toolbar.addAction(export_md_action)
 
     def _setup_statusbar(self):
         self.setStatusBar(QStatusBar())
@@ -130,8 +175,107 @@ class MainWindow(QMainWindow):
 
     def _enable_actions(self, enabled: bool):
         self.save_action.setEnabled(enabled)
+        self.save_as_action.setEnabled(enabled)
         self.rotate_left_action.setEnabled(enabled)
         self.rotate_right_action.setEnabled(enabled)
+        self.extract_action.setEnabled(enabled)
+
+    def _on_save_clicked(self):
+        """Sobrescreve o arquivo atual."""
+        if not self.state_manager or not self.current_file: return
+        try:
+            self.state_manager.save(str(self.current_file))
+            self.statusBar().showMessage(f"Arquivo salvo: {self.current_file.name}")
+        except Exception as e:
+            self.statusBar().showMessage(f"Erro ao salvar: {e}")
+
+    def _on_save_as_clicked(self):
+        """Salva o estado atual em um novo local."""
+        if not self.state_manager: return
+        file_path, _ = QFileDialog.getSaveFileName(self, "Salvar PDF Como", "", "Arquivos PDF (*.pdf)")
+        if file_path:
+            self.state_manager.save(file_path)
+            self.statusBar().showMessage(f"Salvo como: {Path(file_path).name}")
+
+    def _on_extract_clicked(self):
+        """Salva as páginas selecionadas em um novo arquivo."""
+        if not self.state_manager: return
+        selected_indices = self.sidebar.get_selected_pages()
+        if not selected_indices:
+            self.statusBar().showMessage("Selecione páginas na barra lateral para extrair.")
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(self, "Extrair Páginas", "extracao.pdf", "Arquivos PDF (*.pdf)")
+        if not file_path: return
+
+        try:
+            # Salva apenas o subconjunto selecionado
+            # Precisamos de um método no state_manager que suporte subconjuntos
+            # Por agora, podemos fazer aqui mesmo ou adicionar no manager.
+            # Vamos adicionar no manager para manter o DRY.
+            self.state_manager.save(file_path, indices=selected_indices)
+            self.statusBar().showMessage(f"Extraídas {len(selected_indices)} páginas para {Path(file_path).name}")
+        except Exception as e:
+            self.statusBar().showMessage(f"Erro ao extrair: {e}")
+
+    def _on_export_image_clicked(self, fmt: str):
+        """Exporta a página atual como imagem."""
+        if not self.state_manager: return
+        idx = self.viewer.get_current_page_index()
+        page_state = self.state_manager.get_page(idx)
+        if not page_state: return
+
+        file_path, _ = QFileDialog.getSaveFileName(self, "Exportar Página", f"pagina_{idx+1}.{fmt}", f"Imagens (*.{fmt})")
+        if not file_path: return
+
+        try:
+            # Renderização de alta qualidade (300 DPI)
+            matrix = fitz.Matrix(300/72, 300/72)
+            page = page_state.source_doc[page_state.source_index]
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+            pix.save(file_path)
+            self.statusBar().showMessage(f"Página {idx+1} exportada como {fmt.upper()}.")
+        except Exception as e:
+            self.statusBar().showMessage(f"Erro ao exportar imagem: {e}")
+
+    def _on_export_svg_clicked(self):
+        """Exporta a página atual como SVG."""
+        if not self.state_manager: return
+        idx = self.viewer.get_current_page_index()
+        page_state = self.state_manager.get_page(idx)
+        if not page_state: return
+
+        file_path, _ = QFileDialog.getSaveFileName(self, "Exportar SVG", f"pagina_{idx+1}.svg", "SVG (*.svg)")
+        if not file_path: return
+
+        try:
+            page = page_state.source_doc[page_state.source_index]
+            svg = page.get_svg_image()
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(svg)
+            self.statusBar().showMessage(f"Página {idx+1} exportada como SVG.")
+        except Exception as e:
+            self.statusBar().showMessage(f"Erro ao exportar SVG: {e}")
+
+    def _on_export_md_clicked(self):
+        """Exporta o conteúdo do documento como Markdown."""
+        if not self.state_manager: return
+        file_path, _ = QFileDialog.getSaveFileName(self, "Exportar Markdown", "documento.md", "Markdown (*.md)")
+        if not file_path: return
+
+        try:
+            full_text = ""
+            for i, p in enumerate(self.state_manager.pages):
+                page = p.source_doc[p.source_index]
+                # PyMuPDF get_text("markdown") é excelente para tabelas e estrutura
+                full_text += f"## Página {i+1}\n\n"
+                full_text += page.get_text("markdown") + "\n\n---\n\n"
+            
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(full_text)
+            self.statusBar().showMessage("Documento exportado como Markdown.")
+        except Exception as e:
+            self.statusBar().showMessage(f"Erro ao exportar Markdown: {e}")
 
     def _on_open_clicked(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Abrir PDF", "", "Arquivos PDF (*.pdf)")
@@ -167,10 +311,6 @@ class MainWindow(QMainWindow):
         for idx in selected_indices:
             self.state_manager.rotate_page(idx, degrees)
             page_state = self.state_manager.get_page(idx)
-            # Precisamos encontrar QUAL widget do viewer corresponde ao ID absoluto 'idx'
-            # Na verdade, a ordem visual do viewer está em self.viewer._pages
-            # E o item na sidebar tem o UserRole=idx.
-            # Vamos simplificar: forçar renderização da página que tem esse source index.
             self.viewer.refresh_page(idx, rotation=page_state.absolute_rotation)
         
         self.statusBar().showMessage(f"Giro de {degrees}° aplicado.")
@@ -180,12 +320,6 @@ class MainWindow(QMainWindow):
         if self.state_manager:
             self.state_manager.reorder_pages(new_order)
             self.viewer.reorder_pages(new_order)
-
-    def _on_save_clicked(self):
-        save_path, _ = QFileDialog.getSaveFileName(self, "Salvar PDF Como", "", "Arquivos PDF (*.pdf)")
-        if save_path:
-            self.state_manager.save(save_path)
-            self.statusBar().showMessage(f"Salvo em: {Path(save_path).name}")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):

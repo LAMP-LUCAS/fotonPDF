@@ -62,18 +62,22 @@ class PDFStateManager:
             
         self.pages = [self.pages[i] for i in new_order]
 
-    def save(self, path: str):
-        """Compila e salva o estado atual em um novo arquivo."""
-        log_debug(f"StateManager: Salvando {len(self.pages)} páginas em {path}")
+    def save(self, path: str, indices: List[int] = None):
+        """Compila e salva o estado atual (ou subconjunto) em um novo arquivo."""
+        target_pages = self.pages
+        if indices is not None:
+            target_pages = [self.pages[i] for i in indices]
+            
+        log_debug(f"StateManager: Salvando {len(target_pages)} páginas em {path}")
         new_doc = fitz.open()
         
-        for i, p in enumerate(self.pages):
+        for i, p in enumerate(target_pages):
             try:
                 new_doc.insert_pdf(
                     p.source_doc, 
                     from_page=p.source_page_index, 
                     to_page=p.source_page_index, 
-                    rotate=p.rotation_offset # insert_pdf aceita rotação relativa/adicional
+                    rotate=p.rotation_offset 
                 )
             except Exception as e:
                 log_error(f"StateManager: Erro ao inserir página {i}: {e}")
