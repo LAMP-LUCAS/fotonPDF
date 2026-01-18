@@ -21,8 +21,9 @@ def build():
     params = [
         str(entry_point),
         "--name=foton",
-        "--onefile",
-        "--console",
+        "--onedir",          # Modo diretório para estabilidade e velocidade
+        "--noconfirm",       # Não pedir confirmação para sobrescrever
+        "--console",         # Mantemos console para os wizards de sistema
         "--clean",
         f"--distpath={project_root / 'dist'}",
         f"--workpath={project_root / 'build'}",
@@ -30,31 +31,26 @@ def build():
         f"--add-data={project_root / 'src'};src",
         # Notificações
         "--hidden-import=plyer.platforms.win.notification",
-        "--hidden-import=plyer.platforms.linux.notification",
-        # PyQt6 - abordagem mais robusta
-        "--collect-submodules=PyQt6",
+        # PyQt6 - Modo Diretório é muito mais seguro com collect-all
+        "--collect-all=PyQt6",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui", 
         "--hidden-import=PyQt6.QtWidgets",
         "--hidden-import=PyQt6.sip",
         # PDF e outras dependências
-        "--collect-submodules=fitz",
         "--hidden-import=fitz",
         "--hidden-import=fitz.fitz",
-        "--hidden-import=pymupdf",
         "--hidden-import=requests",
         "--hidden-import=plyer",
         "--hidden-import=click",
-        # Excluir pacotes pesados não utilizados
+        # Excluir pacotes gigantescos
         "--exclude-module=torch",
         "--exclude-module=matplotlib",
         "--exclude-module=pandas",
         "--exclude-module=numpy",
         "--exclude-module=PIL",
         "--exclude-module=tkinter",
-        "--exclude-module=scipy",
-        "--exclude-module=cv2",
     ]
     
     # Executar build

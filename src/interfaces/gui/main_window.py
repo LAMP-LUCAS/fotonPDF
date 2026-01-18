@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, 
                              QFileDialog, QLabel, QToolBar, QStatusBar)
 from PyQt6.QtGui import QAction, QIcon
@@ -10,7 +12,7 @@ from src.infrastructure.services.update_service import UpdateService
 class MainWindow(QMainWindow):
     """Janela Principal do fotonPDF com Design Premium."""
 
-    def __init__(self):
+    def __init__(self, initial_file: Path = None):
         super().__init__()
         self.setWindowTitle("fotonPDF")
         self.resize(1200, 900)
@@ -80,11 +82,10 @@ class MainWindow(QMainWindow):
         # Placeholder se nenhum arquivo aberto
         self.show_welcome_message()
         
-        # Carregar arquivo se passado via sys.argv
-        if len(sys.argv) > 1:
-            potential_file = Path(sys.argv[1])
-            if potential_file.exists() and potential_file.suffix.lower() == ".pdf":
-                self.open_file(potential_file)
+        # Carregar arquivo se fornecido
+        if initial_file:
+            if initial_file.exists() and initial_file.suffix.lower() == ".pdf":
+                self.open_file(initial_file)
 
     def show_welcome_message(self):
         if not self.viewer.has_document():

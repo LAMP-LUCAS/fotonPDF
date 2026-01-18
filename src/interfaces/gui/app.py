@@ -1,12 +1,29 @@
 import sys
+from pathlib import Path
+import ctypes
 from PyQt6.QtWidgets import QApplication
 from src.interfaces.gui.main_window import MainWindow
 
-def main():
+def hide_console():
+    """Esconde a janela do console no Windows."""
+    if sys.platform == "win32":
+        kernel32 = ctypes.WinDLL('kernel32')
+        user32 = ctypes.WinDLL('user32')
+        hWnd = kernel32.GetConsoleWindow()
+        if hWnd:
+            user32.ShowWindow(hWnd, 0) # 0 = SW_HIDE
+
+def main(file_path: str = None):
+    # Esconder terminal se estivermos no visualizador
+    hide_console()
+    
     app = QApplication(sys.argv)
     app.setApplicationName("fotonPDF")
     
-    window = MainWindow()
+    # Converter string para Path se existir
+    initial_file = Path(file_path) if file_path else None
+    
+    window = MainWindow(initial_file=initial_file)
     window.show()
     
     sys.exit(app.exec())

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt6.QtGui import QIcon, QPixmap, QImage
-from PyQt6.QtCore import QSize, pyqtSignal
+from PyQt6.QtCore import QSize, pyqtSignal, Qt
 import fitz
 
 class ThumbnailPanel(QListWidget):
@@ -14,7 +14,7 @@ class ThumbnailPanel(QListWidget):
         self.setGridSize(QSize(180, 220))
         self.setSelectionMode(QAbstractItemView.SelectionMode.MultiSelection)
         self.setFlow(QListWidget.Flow.TopToBottom)
-        self.setMovement(QAbstractItemView.Movement.Static)
+        self.setMovement(QListWidget.Movement.Static)
         self.setStyleSheet("""
             QListWidget {
                 background-color: #1e1e1e;
@@ -50,6 +50,10 @@ class ThumbnailPanel(QListWidget):
             item.setIcon(QIcon(QPixmap.fromImage(img)))
             item.setData(Qt.ItemDataRole.UserRole, i)
             self.addItem(item)
+
+    def _on_item_clicked(self, item):
+        page_num = item.data(Qt.ItemDataRole.UserRole)
+        self.pageSelected.emit(page_num)
 
     def get_selected_pages(self) -> list[int]:
         """Retorna os números das páginas selecionadas (1-based)."""
