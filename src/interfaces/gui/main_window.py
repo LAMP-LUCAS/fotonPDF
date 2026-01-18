@@ -200,8 +200,8 @@ class MainWindow(QMainWindow):
     def _on_extract_clicked(self):
         """Salva as páginas selecionadas em um novo arquivo."""
         if not self.state_manager: return
-        selected_indices = self.sidebar.get_selected_pages()
-        if not selected_indices:
+        selected_rows = self.sidebar.get_selected_rows()
+        if not selected_rows:
             self.statusBar().showMessage("Selecione páginas na barra lateral para extrair.")
             return
 
@@ -209,17 +209,14 @@ class MainWindow(QMainWindow):
         if not file_path: return
 
         try:
-            # Salva apenas o subconjunto selecionado
-            # Precisamos de um método no state_manager que suporte subconjuntos
-            # Por agora, podemos fazer aqui mesmo ou adicionar no manager.
-            # Vamos adicionar no manager para manter o DRY.
-            self.state_manager.save(file_path, indices=selected_indices)
-            self.statusBar().showMessage(f"Extraídas {len(selected_indices)} páginas para {Path(file_path).name}")
+            # Salva o subconjunto baseado na ordem visual atual
+            self.state_manager.save(file_path, indices=selected_rows)
+            self.statusBar().showMessage(f"Extraídas {len(selected_rows)} páginas para {Path(file_path).name}")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao extrair: {e}")
 
     def _on_export_image_clicked(self, fmt: str):
-        """Exporta a página atual como imagem."""
+        """Exporta a página atual como imagem (High-DPI)."""
         if not self.state_manager: return
         idx = self.viewer.get_current_page_index()
         page_state = self.state_manager.get_page(idx)
@@ -232,11 +229,17 @@ class MainWindow(QMainWindow):
             # Renderização de alta qualidade (300 DPI)
             matrix = fitz.Matrix(300/72, 300/72)
             page = page_state.source_doc[page_state.source_index]
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
-            pix.save(file_path)
+            pix = page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csRGB)
+            
+            # Converter para QImage para suporte total a formatos (JPG, WebP, etc)
+            from PyQt6.QtGui import QImage
+            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
+            img.save(file_path, fmt.upper(), 90) # Qualidade 90
+            
             self.statusBar().showMessage(f"Página {idx+1} exportada como {fmt.upper()}.")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar imagem: {e}")
+            log_exception(f"Export: {e}")
 
     def _on_export_svg_clicked(self):
         """Exporta a página atual como SVG."""
@@ -267,9 +270,15 @@ class MainWindow(QMainWindow):
             full_text = ""
             for i, p in enumerate(self.state_manager.pages):
                 page = p.source_doc[p.source_index]
-                # PyMuPDF get_text("markdown") é excelente para tabelas e estrutura
                 full_text += f"## Página {i+1}\n\n"
-                full_text += page.get_text("markdown") + "\n\n---\n\n"
+                try:
+                    # Tenta markdown nativo (requer PyMuPDF moderno)
+                    content = page.get_text("markdown")
+                except:
+                    # Fallback para texto simples formatado
+                    content = page.get_text("text")
+                
+                full_text += content + "\n\n---\n\n"
             
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(full_text)
@@ -303,14 +312,16 @@ class MainWindow(QMainWindow):
             log_exception(f"MainWindow: Erro ao anexar: {e}")
 
     def _on_rotate_clicked(self, degrees: int):
-        selected_indices = self.sidebar.get_selected_pages() # UserRole IDs
-        if not selected_indices:
+        # Agora usamos as linhas VISUAIS
+        selected_rows = self.sidebar.get_selected_rows()
+        if not selected_rows:
             self.statusBar().showMessage("Selecione páginas na barra lateral para girar.")
             return
 
-        for idx in selected_indices:
+        for idx in selected_rows:
             self.state_manager.rotate_page(idx, degrees)
             page_state = self.state_manager.get_page(idx)
+            # Atualizar o widget na posição 'idx'
             self.viewer.refresh_page(idx, rotation=page_state.absolute_rotation)
         
         self.statusBar().showMessage(f"Giro de {degrees}° aplicado.")
