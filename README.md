@@ -36,10 +36,10 @@ Se você deseja apenas usar o software e não é desenvolvedor, acesse:
 
 ## ✨ Funcionalidades Principais (MVP)
 
-- **Integração Nativa:** Menu de contexto no Windows (Registry) e Linux (.desktop).
-- **Operações Instantâneas:** Girar, Juntar, Separar e Extrair sem abrir interface.
-- **Visualizador Fóton:** Janela de pré-visualização que abre em < 1 segundo.
-- **Conversores:** PDF ↔ Imagem, PDF ↔ Markdown.
+- **Integração Nativa:** Menus organizados com prefixo `fotonPDF ▸` para PDFs.
+- **Operações Inteligentes:** Girar, Juntar e Separar com **timestamps automáticos** para evitar sobrescritas.
+- **Visualizador Fóton:** Janela de pré-visualização ultrarrápida (PyQt6) com suporte a abertura direta via CLI.
+- **Estabilidade:** Distribuição otimizada em modo diretório para performance máxima.
 
 ---
 

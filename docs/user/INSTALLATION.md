@@ -2,29 +2,34 @@
 
 Este guia irá ajudá-lo a instalar o fotonPDF no seu computador Windows.
 
-## 📥 Download
+## 📥 Download e Instalação
 
-1. Acesse a página de [Releases do GitHub](https://github.com/LAMP-LUCAS/fotonPDF/releases)
-2. Baixe o arquivo `foton.exe` da versão mais recente
-3. Salve em uma pasta de sua preferência (ex: `C:\Programas\fotonPDF\`)
+O fotonPDF é distribuído de duas formas:
+
+1. **Instalador Profissional (Recomendado)**: Baixe o `fotonPDF_Setup_v1.0.0.exe`. Ele instalará o software em seu computador e criará atalhos automaticamente.
+2. **Versão Portátil**: Baixe o arquivo `.zip`, extraia-o em uma pasta (ex: `C:\Programas\fotonPDF\`).
+
+> [!NOTE]
+> Utilizamos a distribuição em **Diretório (`--onedir`)** para garantir estabilidade máxima com a interface gráfica (PyQt6) e abertura instantânea do aplicativo.
 
 ## 🚀 Configuração (Setup)
 
-Após o download, abra o terminal (PowerShell ou CMD) na pasta onde salvou o `foton.exe` e execute:
+Se você optou pela **Versão Portátil**, abra a pasta extraída e execute o arquivo `INSTALAR.bat`.
+
+Ou, via terminal na pasta `foton/`:
 
 ```powershell
 ./foton.exe setup
 ```
 
-O assistente irá guiá-lo pelo processo de configuração, exibindo cada etapa:
+O assistente irá guiá-lo pelo processo:
 
-- Verificação de permissões
-- Registro no Menu de Contexto do Windows
+- Registro no Menu de Contexto (com prefixo **fotonPDF ▸**)
 - Verificação de integridade
 
-## ✅ Verificar Instalação
+## ✅ Verificar Status
 
-Para confirmar que tudo está funcionando:
+Para confirmar que os menus foram registrados:
 
 ```powershell
 ./foton.exe status
