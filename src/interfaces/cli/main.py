@@ -101,14 +101,9 @@ def view(path: Path | None):
     log_info(f"Comando: view | Arquivo: {path}")
     try:
         from src.interfaces.gui.app import main
-        import sys
         
-        # Injetar o arquivo se passado via argumento
-        if path:
-            sys.argv.append(str(path))
-            
         click.echo("🚀 Abrindo Visualizador Fóton...")
-        main()
+        main(file_path=str(path) if path else None)
         
     except Exception as e:
         log_exception(f"Erro no comando view: {e}")
