@@ -8,6 +8,10 @@ from PyQt6.QtCore import Qt, QSize
 
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.widgets.thumbnail_panel import ThumbnailPanel
+from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
+from src.application.use_cases.export_image import ExportImageUseCase
+from src.application.use_cases.export_svg import ExportSVGUseCase
+from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.infrastructure.services.logger import log_debug, log_exception
 
 class MainWindow(QMainWindow):
@@ -226,17 +230,22 @@ class MainWindow(QMainWindow):
         if not file_path: return
 
         try:
-            # Renderização de alta qualidade (300 DPI)
-            matrix = fitz.Matrix(300/72, 300/72)
-            page = page_state.source_doc[page_state.source_index]
-            pix = page.get_pixmap(matrix=matrix, alpha=False, colorspace=fitz.csRGB)
+            # Usar o Use Case para exportação (Desacoplamento)
+            adapter = PyMuPDFAdapter()
+            use_case = ExportImageUseCase(adapter)
             
-            # Converter para QImage para suporte total a formatos (JPG, WebP, etc)
-            from PyQt6.QtGui import QImage
-            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-            img.save(file_path, fmt.upper(), 90) # Qualidade 90
+            source_path = Path(page_state.source_doc.name)
             
-            self.statusBar().showMessage(f"Página {idx+1} exportada como {fmt.upper()}.")
+            # exec retorna uma lista de caminhos
+            output_paths = use_case.execute(
+                source_path, 
+                page_state.source_page_index, 
+                Path(file_path).parent, # Salvar no diretório pai 
+                fmt=fmt, 
+                dpi=300
+            )
+            
+            self.statusBar().showMessage(f"Página {idx+1} exportada para {output_paths[0].name}.")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar imagem: {e}")
             log_exception(f"Export: {e}")
@@ -252,11 +261,13 @@ class MainWindow(QMainWindow):
         if not file_path: return
 
         try:
-            page = page_state.source_doc[page_state.source_index]
-            svg = page.get_svg_image()
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(svg)
-            self.statusBar().showMessage(f"Página {idx+1} exportada como SVG.")
+            adapter = PyMuPDFAdapter()
+            use_case = ExportSVGUseCase(adapter)
+            
+            source_path = Path(page_state.source_doc.name)
+            output_paths = use_case.execute(source_path, page_state.source_page_index, Path(file_path).parent)
+            
+            self.statusBar().showMessage(f"Página {idx+1} exportada para {output_paths[0].name}.")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar SVG: {e}")
 
@@ -267,22 +278,17 @@ class MainWindow(QMainWindow):
         if not file_path: return
 
         try:
-            full_text = ""
-            for i, p in enumerate(self.state_manager.pages):
-                page = p.source_doc[p.source_index]
-                full_text += f"## Página {i+1}\n\n"
-                try:
-                    # Tenta markdown nativo (requer PyMuPDF moderno)
-                    content = page.get_text("markdown")
-                except:
-                    # Fallback para texto simples formatado
-                    content = page.get_text("text")
-                
-                full_text += content + "\n\n---\n\n"
+            adapter = PyMuPDFAdapter()
+            use_case = ExportMarkdownUseCase(adapter)
             
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(full_text)
-            self.statusBar().showMessage("Documento exportado como Markdown.")
+            # No caso da GUI, se houver um arquivo aberto, usamos ele.
+            # Nota: O export-md na CLI exporta o arquivo todo. 
+            # Na GUI, se houver um arquivo base, exportamos ele.
+            if self.current_file:
+                use_case.execute(self.current_file, Path(file_path))
+                self.statusBar().showMessage("Documento exportado como Markdown.")
+            else:
+                self.statusBar().showMessage("Nenhum arquivo base para exportar.")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar Markdown: {e}")
 

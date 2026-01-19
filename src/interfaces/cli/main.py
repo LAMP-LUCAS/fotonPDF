@@ -5,6 +5,9 @@ from src.infrastructure.adapters.notification_adapter import PlyerNotificationAd
 from src.application.use_cases.rotate_pdf import RotatePDFUseCase
 from src.application.use_cases.merge_pdf import MergePDFUseCase
 from src.application.use_cases.split_pdf import SplitPDFUseCase
+from src.application.use_cases.export_image import ExportImageUseCase
+from src.application.use_cases.export_svg import ExportSVGUseCase
+from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.infrastructure.services.logger import log_info, log_error, log_debug, log_exception
 
 def notify_success(title: str, msg: str):
@@ -92,6 +95,60 @@ def split(path: Path, pages: str, output: Path | None):
         
     except Exception as e:
         log_exception(f"Erro no comando split: {e}")
+        notify_error(str(e))
+
+@cli.command(name="export-img")
+@click.argument('path', type=click.Path(exists=True, path_type=Path))
+@click.option('--page', '-p', type=int, default=None, help='Página (0-based) ou omitir para todas')
+@click.option('--fmt', '-f', type=click.Choice(['png', 'jpg', 'webp']), default='png')
+def export_img(path: Path, page: int | None, fmt: str):
+    """Exporta página(s) para imagem (High-DPI)."""
+    log_info(f"Comando: export-img | Arquivo: {path} | Página: {page} | Formato: {fmt}")
+    try:
+        adapter = PyMuPDFAdapter()
+        use_case = ExportImageUseCase(adapter)
+        
+        click.echo(f"🚀 Exportando {'todas as páginas' if page is None else f'página {page+1}'}...")
+        outputs = use_case.execute(path, page, path.parent, fmt=fmt)
+        
+        msg = f"{len(outputs)} imagens salvas em: {path.parent.name}"
+        notify_success("Exportação de Imagem", msg)
+    except Exception as e:
+        log_exception(f"Erro no comando export-img: {e}")
+        notify_error(str(e))
+
+@cli.command(name="export-svg")
+@click.argument('path', type=click.Path(exists=True, path_type=Path))
+@click.option('--page', '-p', type=int, default=None, help='Página (0-based) ou omitir para todas')
+def export_svg(path: Path, page: int | None):
+    """Exporta página(s) específica para SVG."""
+    log_info(f"Comando: export-svg | Arquivo: {path} | Página: {page}")
+    try:
+        adapter = PyMuPDFAdapter()
+        use_case = ExportSVGUseCase(adapter)
+        
+        click.echo(f"🚀 Exportando {'todas as páginas' if page is None else f'página {page+1}'}...")
+        outputs = use_case.execute(path, page, path.parent)
+        
+        msg = f"{len(outputs)} SVGs salvos em: {path.parent.name}"
+        notify_success("Exportação SVG", msg)
+    except Exception as e:
+        log_exception(f"Erro no comando export-svg: {e}")
+        notify_error(str(e))
+
+@cli.command(name="export-md")
+@click.argument('path', type=click.Path(exists=True, path_type=Path))
+def export_md(path: Path):
+    """Exporta o conteúdo do PDF como Markdown."""
+    log_info(f"Comando: export-md | Arquivo: {path}")
+    try:
+        adapter = PyMuPDFAdapter()
+        use_case = ExportMarkdownUseCase(adapter)
+        output = path.parent / f"{path.stem}.md"
+        use_case.execute(path, output)
+        notify_success("Exportação Markdown", f"Markdown salvo em: {output.name}")
+    except Exception as e:
+        log_exception(f"Erro no comando export-md: {e}")
         notify_error(str(e))
 
 @cli.command()
