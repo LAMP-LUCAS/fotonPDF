@@ -48,6 +48,8 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 - [x] **Navegação Inteligente**: "Ajustar Largura" agora foca na página atual visível.
 - [x] **Suíte de Conversão**: Exportação direta para PNG, JPG, WebP, SVG e Markdown.
 - [x] **Ux Tooling**: Adição de botões "Salvar" e "Salvar Como".
+- [x] **Paridade CLI/GUI**: Conversão disponível via CLI e Menu de Contexto.
+- [x] **Refatoração Hexagonal**: Lógica de exportação movida para Use Cases.
 
 #### Sprint de Estabilização Crítica (Hotfix) ✅
 
