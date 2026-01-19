@@ -162,6 +162,8 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                 ("foton_02_Girar90", "fotonPDF ▸ Girar 90°", f'"{app_path}" rotate "%1" -d 90'),
                 ("foton_03_Girar180", "fotonPDF ▸ Girar 180°", f'"{app_path}" rotate "%1" -d 180'),
                 ("foton_04_Girar270", "fotonPDF ▸ Girar 270°", f'"{app_path}" rotate "%1" -d 270'),
+                ("foton_05_ExportMD", "fotonPDF ▸ Exportar Markdown", f'"{app_path}" export-md "%1"'),
+                ("foton_06_ExportPNG", "fotonPDF ▸ Exportar Imagens (Todas)", f'"{app_path}" export-img "%1" -f png'),
             ]
             
             for entry_name, label, command in menus:
