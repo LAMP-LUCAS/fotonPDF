@@ -24,3 +24,24 @@ class PDFOperationsPort(ABC):
     def split(self, pdf: PDFDocument, pages: list[int], output_path: Path) -> Path:
         """Extrai páginas específicas de um PDF para um novo arquivo."""
         pass
+
+    @abstractmethod
+    def export_page_to_image(self, pdf_path: Path, page_index: int | None, output_dir: Path, fmt: str = "png", dpi: int = 300) -> list[Path]:
+        """
+        Exporta página(s) para imagem. 
+        Se page_index for None, exporta todas.
+        """
+        pass
+
+    @abstractmethod
+    def export_page_to_svg(self, pdf_path: Path, page_index: int | None, output_dir: Path) -> list[Path]:
+        """
+        Exporta página(s) para SVG. 
+        Se page_index for None, exporta todas.
+        """
+        pass
+
+    @abstractmethod
+    def export_to_markdown(self, pdf_path: Path, output_path: Path) -> Path:
+        """Exporta o conteúdo textual do documento para Markdown."""
+        pass
