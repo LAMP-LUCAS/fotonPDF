@@ -2,41 +2,35 @@
 
 Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 6 - Inteligência de Busca & Navegação �
+## 🏁 Sprint Atual: Sprint 8 - UI Evolution & Modo Profissional 🏗️
 
-**Objetivo:** Adicionar capacidade de busca textual instantânea e melhorar a navegação interna nos documentos.
+**Objetivo:** Refinar a interface para produtividade de alto nível.
 
-### Backlog da Sprint
-
-- **🔍 Busca Inteligente:**
-  - [ ] **Engine de Busca:** Implementar buscador indexado (PyMuPDF) para localização ultra-rápida de termos.
-  - [ ] **Interface de Busca:** Adicionar barra de busca (`Ctrl+F`) com destaque (highlight) visual nos termos encontrados.
-  - [ ] **Painel de Resultados:** Lista lateral com snippets de texto e navegação rápida para a página/posição.
-- **📍 Navegação Avançada:**
-  - [ ] **Suporte a Sumário (Bookmarks):** Renderização da árvore de conteúdos do PDF na sidebar.
-  - [ ] **Histórico de Navegação:** Botões "Voltar" e "Avançar" para saltos entre páginas e links internos.
+- **Dual/Multi-View:** Visualização de duas páginas lado a lado ou documentos diferentes.
+- **Modo Madrugada/Leitura:** Filtros de cor customizados para redução de fadiga ocular.
+- **Annotations Basics:** Implementar realce (highlight) e sublinhado persistente.
+- **Configurações Globais:** Persistência de zoom, última página lida e preferências de tema.
 
 ---
 
 ## 🔜 Próximas Sprints
 
-### Sprint 7: OCR & Camada de Texto (A Visão Fóton) 🏗️
+### Sprint 9: Ecossistema & Plugins 🔋
 
-*(Agora a Sprint Atual)*
-
-### Sprint 8: UI Evolution & Modo Profissional 💎
-
-- **Objetivo:** Refinar a interface para produtividade de alto nível.
-- [ ] **Dual/Multi-View:** Visualização de duas páginas lado a lado ou documentos diferentes.
-- [ ] **Modo Madrugada/Leitura:** Filtros de cor customizados para redução de fadiga ocular.
-- [ ] **Annotations Basics:** Implementar realce (highlight) e sublinhado persistente.
-- [ ] **Configurações Globais:** Persistência de zoom, última página lida e preferências de tema.
+- **Objetivo:** Tornar o fotonPDF extensível.
 
 ---
 
 ## 📅 Histórico de Sprints Concluídas
 
 ### Fase 2: Interface & Funcionalidade
+
+#### Sprint 7: OCR & Camada de Texto ✅
+
+- [x] **Detecção de Camada**: Identificação inteligente de PDFs baseados em imagem.
+- [x] **Injeção de OCR**: Geração de PDFs pesquisáveis usando Tesseract.
+- [x] **Extração de Área**: Ferramenta interativa para OCR on-demand (Copiado para Clipboard).
+- [x] **Banner de Sugestão**: UI proativa sugerindo OCR quando necessário.
 
 #### Sprint 6: Inteligência de Busca & Navegação ✅
 
