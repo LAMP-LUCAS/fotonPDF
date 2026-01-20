@@ -1,16 +1,21 @@
 ; Script de Instalação Inno Setup para fotonPDF
 ; Este script gera um instalador (.exe) profissional que configura tudo automaticamente.
 
+#define MyAppVersion GetEnv('APP_VERSION')
+#if MyAppVersion == ""
+  #define MyAppVersion "1.0.0"
+#endif
+
 [Setup]
 AppName=fotonPDF
-AppVersion=1.0.0
+AppVersion={#MyAppVersion}
 DefaultDirName={localappdata}\fotonPDF
 DefaultGroupName=fotonPDF
 UninstallDisplayIcon={app}\foton.exe
 Compression=lzma2
 SolidCompression=yes
 OutputDir=..
-OutputBaseFilename=fotonPDF_Setup_v1.0.0
+OutputBaseFilename=fotonPDF_Setup_v{#MyAppVersion}
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
 ; Melhorias para Zero-Click e Permissões

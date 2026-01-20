@@ -1,0 +1,70 @@
+name: CD - Build e Release Automática
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Código
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+
+    - name: Configurar Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Extrair e Validar Versão (Centro de Verdade)
+      id: version_check
+      shell: pwsh
+      run: |
+        $codeVersion = (Get-Content src/__init__.py | Select-String "__version__").ToString().Split('"')[1]
+        $tagVersion = "${{ github.ref_name }}".Replace("v", "")
+        echo "Versão no Código: $codeVersion"
+        echo "Versão na Tag: $tagVersion"
+        if ($codeVersion -ne $tagVersion) {
+            echo "::error::A versão no código ($codeVersion) não coincide com a tag ($tagVersion)!"
+            exit 1
+        }
+        echo "APP_VERSION=$codeVersion" >> $env:GITHUB_ENV
+        echo "CLEAN_VERSION=$codeVersion" >> $env:GITHUB_OUTPUT
+
+    - name: Instalar Dependências
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pyinstaller
+
+    - name: Gerar Executável (PyInstaller)
+      run: |
+        python scripts/build_exe.py
+
+    - name: Assinar Executável (Self-Signed)
+      run: |
+        python scripts/sign_exe.py
+
+    - name: Compilar Instalador (Inno Setup)
+      shell: pwsh
+      run: iscc foton_installer.iss
+      env:
+        APP_VERSION: ${{ env.APP_VERSION }}
+
+    - name: Criar Release e Upload de Assets
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          fotonPDF_Setup_v*.exe
+          dist/foton/foton.exe
+        generate_release_notes: true
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

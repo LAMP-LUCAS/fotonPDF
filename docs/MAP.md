@@ -29,6 +29,7 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[guides/NEW_OPERATION|➕ Como adicionar nova operação PDF]]
 - [[guides/PLUGIN_SYSTEM|🔌 Criando Plugins]]
 - [[guides/OS_INTEGRATION|🖥️ Detalhes da Integração com SO]]
+- [[guides/CI_CD_STRATEGY|🎡 Estratégia de CI/CD e Releases]]
 
 ## 🤝 Comunidade
 
@@ -41,4 +42,4 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 
 ---
 
-###### Atualizado em: 2026-01-19
+### Atualizado em: 2026-01-19

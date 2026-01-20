@@ -1,0 +1,37 @@
+name: 🐛 Bug Report
+description: Relate algo que não está funcionando como deveria
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por relatar o problema! Preencha as informações abaixo para nos ajudar a resolvê-lo.
+  - type: textarea
+    id: description
+    attributes:
+      label: Descrição do Bug
+      placeholder: O que aconteceu?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir?
+      placeholder: |
+        1. Abra o arquivo...
+        2. Clique em...
+        3. O erro aparece em...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Versão do fotonPDF
+      placeholder: ex: v1.0.0
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs ou Mensagens de Erro
+      description: Cole aqui o conteúdo do console ou do arquivo de logs.

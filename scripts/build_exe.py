@@ -12,6 +12,9 @@ def build():
     from src import __version__
     print(f"🚀 Iniciando build do fotonPDF v{__version__}...")
     
+    # IMPORTANTE: src/__init__.py é o ÚNICO Centro de Verdade para a versão.
+    # O pipeline de CD no GitHub Actions validará se esta versão coincide com a Tag.
+    
     # Caminhos
     scripts_path = Path(__file__).parent
     project_root = scripts_path.parent

@@ -1,0 +1,32 @@
+name: CI - Testes e Qualidade
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.11"
+
+    - name: Instalar Dependências
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install pytest-mock
+
+    - name: Executar Testes Unitários
+      run: |
+        pytest tests/unit
+
+    - name: Executar Testes de Integração
+      run: |
+        pytest tests/integration

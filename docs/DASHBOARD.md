@@ -22,6 +22,7 @@ pie title Cobertura da Documentação
 | **Sprint 3 - UI** | 🟢 Completo | ████████████ 100% | 28/02/2026 ✅ |
 | **Sprint 4 - Polimento** | 🟢 Completo | ████████████ 100% | 15/03/2026 ✅ |
 | **Sprint 5 - Distribuição 2.0** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
+| **Geral - Automação CI/CD** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
 | **Sprint 6 - Inteligência de Busca** | 🟡 Em Progresso | ▓▓▓░░░░░░░░░ 25% | 25/02/2026 |
 
 ### Sprint 3 (Concluído) ✅
