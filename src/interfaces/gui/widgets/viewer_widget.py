@@ -30,7 +30,14 @@ class PDFViewerWidget(QScrollArea):
         self._last_mouse_pos = None
         self._placeholder = None
         self._last_emitted_page = -1
-
+        
+        # Area Selection (Sprint 7)
+        self._selection_mode = False
+        self._selecting = False
+        self._selection_start = None
+        self._selection_rect = None
+        self._selection_overlay = None # Widget visual para o retângulo
+        
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
 
     def clear(self):
@@ -149,25 +156,89 @@ class PDFViewerWidget(QScrollArea):
         if 0 <= visual_idx < len(self._pages):
             self._pages[visual_idx].render_page(zoom=self._zoom, rotation=rotation)
 
+    areaSelected = pyqtSignal(int, tuple) # page_index, (x0, y0, x1, y1) em pontos PDF
+
+    def set_selection_mode(self, enabled: bool):
+        self._selection_mode = enabled
+        self.setCursor(Qt.CursorShape.CrossCursor if enabled else Qt.CursorShape.ArrowCursor)
+        if not enabled:
+            self._clear_selection()
+
+    def _clear_selection(self):
+        self._selecting = False
+        if self._selection_overlay:
+            self._selection_overlay.hide()
+
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.LeftButton:
+        if self._selection_mode and event.button() == Qt.MouseButton.LeftButton:
+            self._selecting = True
+            self._selection_start = event.position().toPoint()
+            if not self._selection_overlay:
+                from PyQt6.QtWidgets import QRubberBand
+                self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
+            self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
+            self._selection_overlay.show()
+        elif event.button() == Qt.MouseButton.LeftButton:
             self._panning = True
             self._last_mouse_pos = event.position().toPoint()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
         super().mousePressEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if self._selecting:
+            self._selecting = False
+            end_pos = event.position().toPoint()
+            self._process_selection(self._selection_start, end_pos)
+            # Mantém o RubberBand visível por um momento ou limpa
+            QTimer.singleShot(500, self._clear_selection)
+        
         self._panning = False
-        self.setCursor(Qt.CursorShape.ArrowCursor)
+        if not self._selection_mode:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(event)
 
     def mouseMoveEvent(self, event):
-        if self._panning:
+        if self._selecting:
+            self._selection_overlay.setGeometry(
+                min(self._selection_start.x(), event.position().x()),
+                min(self._selection_start.y(), event.position().y()),
+                abs(self._selection_start.x() - event.position().x()),
+                abs(self._selection_start.y() - event.position().y())
+            )
+        elif self._panning:
             delta = event.position().toPoint() - self._last_mouse_pos
             self._last_mouse_pos = event.position().toPoint()
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
         super().mouseMoveEvent(event)
+
+    def _process_selection(self, start, end):
+        """Converte as coordenadas da tela para as coordenadas do PDF e emite o sinal."""
+        # Achar em qual página o clique começou
+        viewport_offset = self.verticalScrollBar().value()
+        start_y_absolute = start.y() + viewport_offset
+        
+        for i, page in enumerate(self._pages):
+            page_pos = page.pos()
+            if page_pos.y() <= start_y_absolute <= page_pos.y() + page.height():
+                # Encontrou a página
+                # Converter coordenadas locais do widget para pontos do PDF (72 DPI)
+                # Levando em conta o Zoom e a margem do container
+                local_x = start.x() - page_pos.x()
+                local_y = start_y_absolute - page_pos.y()
+                
+                # Coordenadas de fim relativas à mesma página
+                local_x_end = end.x() - page_pos.x()
+                local_y_end = end.y() + viewport_offset - page_pos.y()
+                
+                # Normalizar zoom
+                pdf_x0 = min(local_x, local_x_end) / self._zoom
+                pdf_y0 = min(local_y, local_y_end) / self._zoom
+                pdf_x1 = max(local_x, local_x_end) / self._zoom
+                pdf_y1 = max(local_y, local_y_end) / self._zoom
+                
+                self.areaSelected.emit(i, (pdf_x0, pdf_y0, pdf_x1, pdf_y1))
+                break
 
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:

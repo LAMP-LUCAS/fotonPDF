@@ -14,6 +14,9 @@ from src.application.use_cases.export_svg import ExportSVGUseCase
 from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.application.use_cases.search_text import SearchTextUseCase
 from src.application.use_cases.get_toc import GetTOCUseCase
+from src.application.use_cases.detect_text_layer import DetectTextLayerUseCase
+from src.application.use_cases.apply_ocr import ApplyOCRUseCase
+from src.application.use_cases.ocr_area_extraction import OCRAreaExtractionUseCase
 
 from src.infrastructure.services.logger import log_debug, log_exception
 from src.interfaces.gui.styles import get_main_stylesheet
@@ -36,6 +39,9 @@ class MainWindow(QMainWindow):
         self._adapter = PyMuPDFAdapter()
         self._search_use_case = SearchTextUseCase(self._adapter)
         self._get_toc_use_case = GetTOCUseCase(self._adapter)
+        self._detect_ocr_use_case = DetectTextLayerUseCase(self._adapter)
+        self._apply_ocr_use_case = ApplyOCRUseCase(self._adapter)
+        self._ocr_area_use_case = OCRAreaExtractionUseCase(self._adapter)
 
         # Components
         self.viewer = PDFViewerWidget()
@@ -52,7 +58,37 @@ class MainWindow(QMainWindow):
         
         # Setup Layout
         self.main_layout.addWidget(self.sidebar_tabs)
-        self.main_layout.addWidget(self.viewer, stretch=1)
+        
+        container = QWidget()
+        vbox = QVBoxLayout(container)
+        vbox.setContentsMargins(0,0,0,0)
+        vbox.setSpacing(0)
+        
+        # Banner OCR (Oculto por padrão)
+        from PyQt6.QtWidgets import QFrame, QPushButton
+        self.ocr_banner = QFrame()
+        self.ocr_banner.setFixedHeight(40)
+        self.ocr_banner.setStyleSheet("background-color: #34495e; border-bottom: 2px solid #2c3e50;")
+        banner_layout = QHBoxLayout(self.ocr_banner)
+        banner_layout.setContentsMargins(15, 0, 15, 0)
+        
+        self.banner_label = QLabel("Este documento parece ser digitalizado. Deseja aplicar OCR para torná-lo pesquisável?")
+        self.banner_label.setStyleSheet("color: #ecf0f1; font-weight: bold;")
+        
+        self.btn_apply_ocr = QPushButton("Aplicar OCR")
+        self.btn_apply_ocr.setStyleSheet("background-color: #27ae60; color: white; border: none; padding: 5px 15px; border-radius: 3px;")
+        self.btn_apply_ocr.clicked.connect(self._on_apply_ocr_clicked)
+        
+        banner_layout.addWidget(self.banner_label)
+        banner_layout.addStretch()
+        banner_layout.addWidget(self.btn_apply_ocr)
+        
+        self.ocr_banner.hide()
+        
+        vbox.addWidget(self.ocr_banner)
+        vbox.addWidget(self.viewer, stretch=1)
+        
+        self.main_layout.addWidget(container, stretch=1)
 
         # Apply Visual Identity
         self.setStyleSheet(get_main_stylesheet())
@@ -215,6 +251,16 @@ class MainWindow(QMainWindow):
         export_md_action.triggered.connect(self._on_export_md_clicked)
         toolbar.addAction(export_md_action)
 
+        toolbar.addSeparator()
+
+        # --- GRUPO: INTELIGÊNCIA OCR ---
+        toolbar.addWidget(QLabel("  🧠 "))
+        self.ocr_area_action = QAction("Extrair Área (OCR)", self)
+        self.ocr_area_action.setCheckable(True)
+        self.ocr_area_action.setEnabled(False)
+        self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
+        toolbar.addAction(self.ocr_area_action)
+
     def _setup_statusbar(self):
         self.setStatusBar(QStatusBar())
         self.statusBar().showMessage("Pronto")
@@ -234,6 +280,8 @@ class MainWindow(QMainWindow):
         self.search_shortcut.triggered.connect(self._focus_search)
         self.addAction(self.search_shortcut)
 
+        self.viewer.areaSelected.connect(self._on_area_selected)
+
     def open_file(self, file_path: Path):
         try:
             self.current_file = file_path
@@ -247,6 +295,9 @@ class MainWindow(QMainWindow):
             # Inicializar painéis da Sprint 6
             self.toc_panel.set_pdf(file_path)
             self.search_panel.set_pdf(file_path)
+            
+            # Detecção de OCR (Sprint 7)
+            self._check_ocr_needed(file_path)
             
             self.setWindowTitle(f"fotonPDF - {file_path.name}")
             self.statusBar().showMessage(f"Arquivo carregado: {file_path.name}")
@@ -268,6 +319,8 @@ class MainWindow(QMainWindow):
         self.extract_action.setEnabled(enabled)
         self.back_action.setEnabled(enabled)
         self.forward_action.setEnabled(enabled)
+        # Habilitar OCR se o motor existir
+        self.ocr_area_action.setEnabled(enabled and self._adapter.is_engine_available())
 
     def _on_save_clicked(self):
         """Sobrescreve o arquivo atual."""
@@ -472,6 +525,83 @@ class MainWindow(QMainWindow):
     def _update_history_buttons(self):
         self.back_action.setEnabled(self.history_index > 0)
         self.forward_action.setEnabled(self.history_index < len(self.navigation_history) - 1)
+
+    def _check_ocr_needed(self, file_path: Path):
+        """Verifica se o PDF precisa de OCR e se o motor está disponível."""
+        try:
+            is_searchable = self._detect_ocr_use_case.execute(file_path)
+            has_engine = self._adapter.is_engine_available()
+            
+            if not is_searchable and has_engine:
+                self.ocr_banner.show()
+                log_debug("OCR: Documento não-pesquisável detectado. Sugestão exibida.")
+            else:
+                self.ocr_banner.hide()
+        except Exception as e:
+            log_exception(f"OCR Detection: {e}")
+
+    def _on_apply_ocr_clicked(self):
+        """Executa o OCR no documento inteiro."""
+        if not self.current_file: return
+        
+        self.btn_apply_ocr.setEnabled(False)
+        self.btn_apply_ocr.setText("Processando...")
+        self.statusBar().showMessage("Executando OCR no documento... Isso pode levar alguns minutos.")
+        
+        # Usar QTimer para não travar a UI (mesmo que seja blocking no adapter por enquanto, 
+        # o ideal seria QThread, mas para manter o padrão hexagonal simples...)
+        QTimer.singleShot(100, self._process_ocr)
+
+    def _process_ocr(self):
+        try:
+            new_path = self._apply_ocr_use_case.execute(self.current_file)
+            self.ocr_banner.hide()
+            self.statusBar().showMessage(f"OCR Concluído! Novo arquivo: {new_path.name}")
+            
+            # Pergunta se deseja abrir o novo arquivo
+            from PyQt6.QtWidgets import QMessageBox
+            reply = QMessageBox.question(self, "OCR Concluído", 
+                                       f"O documento foi processado e salvo como:\n{new_path.name}\n\nDeseja abrir a versão pesquisável agora?",
+                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+            
+            if reply == QMessageBox.StandardButton.Yes:
+                self.open_file(new_path)
+        except Exception as e:
+            log_exception(f"OCR Process: {e}")
+            self.statusBar().showMessage(f"Erro no OCR: {str(e)}")
+        finally:
+            self.btn_apply_ocr.setEnabled(True)
+            self.btn_apply_ocr.setText("Aplicar OCR")
+
+    def _on_ocr_area_toggled(self, checked: bool):
+        self.viewer.set_selection_mode(checked)
+        if checked:
+            self.statusBar().showMessage("Modo de Seleção OCR Ativo: Desenhe um retângulo sobre o texto na imagem.")
+        else:
+            self.statusBar().showMessage("Modo de Seleção OCR Desativado.")
+
+    def _on_area_selected(self, page_index, rect):
+        """Chamado quando o usuário desenha uma área no viewer."""
+        if not self.current_file: return
+        
+        try:
+            self.statusBar().showMessage("Extraindo texto da área selecionada...")
+            text = self._ocr_area_use_case.execute(self.current_file, page_index, rect)
+            
+            if text:
+                from PyQt6.QtWidgets import QApplication
+                QApplication.clipboard().setText(text)
+                self.statusBar().showMessage(f"Texto extraído: '{text[:30]}...' (Copiado para área de transferência)")
+            else:
+                self.statusBar().showMessage("Nenhum texto detectado na área selecionada.")
+                
+            # Desativar modo após extração para UX fluida
+            self.ocr_area_action.setChecked(False)
+            self._on_ocr_area_toggled(False)
+            
+        except Exception as e:
+            log_exception(f"OCR Area Selection: {e}")
+            self.statusBar().showMessage(f"Erro na extração: {e}")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):
