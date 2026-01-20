@@ -9,6 +9,7 @@ def build():
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
         
+    os.environ['PYINSTALLER_BUILD'] = '1'
     from src import __version__
     print(f"🚀 Iniciando build do fotonPDF v{__version__}...")
     
@@ -23,7 +24,7 @@ def build():
     # Configurações do PyInstaller
     params = [
         str(entry_point),
-        "--name=foton",
+        "--name=foton_v1.0.0",
         f"--icon={project_root / 'docs' / 'brand' / 'logo.ico'}",
         "--onedir",          # Modo diretório para estabilidade e velocidade
         "--noconfirm",       # Não pedir confirmação para sobrescrever
@@ -33,6 +34,7 @@ def build():
         f"--workpath={project_root / 'build'}",
         f"--specpath={project_root}",
         f"--add-data={project_root / 'src'};src",
+        f"--add-data={project_root / 'docs' / 'brand'};docs/brand",
         # Notificações
         "--hidden-import=plyer.platforms.win.notification",
         # PyQt6 - Modo Diretório é muito mais seguro com collect-all
