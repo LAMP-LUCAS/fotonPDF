@@ -26,6 +26,8 @@ def print_menu_options():
     click.echo("  [3] 📊 Verificar Status da Instalação")
     click.echo("  [4] 🗑️  Remover fotonPDF")
     click.echo("  [R] 🔧 Reparar Integração (Bootstrap)")
+    click.echo("  [A] 🔗 Criar Atalhos (Desktop/Menu Iniciar)")
+    click.echo("  [D] 📌 Definir como Visualizador Padrão")
     click.echo("  [5] ❌ Sair")
     click.echo()
 def check_updates_silent():
@@ -53,7 +55,7 @@ def run_interactive_menu():
         print_header()
         print_menu_options()
         
-        choice = click.prompt("  Escolha uma opção", type=click.Choice(['1', '2', '3', '4', '5', 'r', 'R']), default='1')
+        choice = click.prompt("  Escolha uma opção", type=click.Choice(['1', '2', '3', '4', '5', 'r', 'R', 'a', 'A', 'd', 'D']), default='1')
         
         # Converter para int se for número para manter compatibilidade com a lógica anterior
         if choice.isdigit():
@@ -103,6 +105,33 @@ def run_interactive_menu():
                 click.secho("  ✅ Reparo concluído com sucesso!", fg='green')
             else:
                 click.secho("  ❌ Ocorreu um erro durante o reparo.", fg='red')
+            click.pause("\n  Pressione qualquer tecla para continuar...")
+
+        elif choice.lower() == 'a':
+            # Atalhos
+            click.echo()
+            from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
+            from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+            
+            use_case = RegisterOSIntegrationUseCase(WindowsRegistryAdapter())
+            if use_case.create_shortcut("desktop"):
+                click.secho("  ✅ Atalho criado na Área de Trabalho!", fg='green')
+            if use_case.create_shortcut("start_menu"):
+                click.secho("  ✅ Atalho criado no Menu Iniciar!", fg='green')
+            click.pause("\n  Pressione qualquer tecla para continuar...")
+
+        elif choice.lower() == 'd':
+            # Programa Padrão
+            click.echo()
+            from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
+            from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+            
+            use_case = RegisterOSIntegrationUseCase(WindowsRegistryAdapter())
+            if use_case.set_as_default():
+                click.secho("  ✅ fotonPDF registrado como visualizador padrão!", fg='green')
+                click.secho("  💡 O Windows pode pedir confirmação ao abrir o próximo PDF.", fg='yellow')
+            else:
+                click.secho("  ❌ Falha ao definir programa padrão.", fg='red')
             click.pause("\n  Pressione qualquer tecla para continuar...")
 
         elif choice == 5:

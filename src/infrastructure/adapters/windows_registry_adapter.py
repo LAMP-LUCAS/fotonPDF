@@ -1,8 +1,10 @@
 import sys
 import winreg
+import subprocess
 from pathlib import Path
 from src.domain.ports.os_integration import OSIntegrationPort
 from src.infrastructure.services.logger import log_info, log_error, log_debug
+from src.infrastructure.services.resource_service import ResourceService
 
 # Caminho moderno para menu de contexto de PDFs (funciona independente do leitor instalado)
 PDF_SHELL_PATH = r"Software\Classes\SystemFileAssociations\.pdf\shell"
@@ -135,10 +137,12 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         except WindowsError:
             return None
 
-    def _create_menu_entry(self, parent_key_path: str, name: str, label: str, command: str):
+    def _create_menu_entry(self, parent_key_path: str, name: str, label: str, command: str, icon_path: str = None):
         key_path = fr"{parent_key_path}\{name}"
         with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
             winreg.SetValue(key, "", winreg.REG_SZ, label)
+            if icon_path:
+                winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, icon_path)
             with winreg.CreateKey(key, "command") as cmd_key:
                 winreg.SetValue(cmd_key, "", winreg.REG_SZ, command)
 
@@ -166,9 +170,12 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                 ("foton_06_ExportPNG", "fotonPDF ▸ Exportar Imagens (Todas)", f'"{app_path}" export-img "%1" -f png'),
             ]
             
+            # Caminho do ícone oficial
+            official_icon = str(ResourceService.get_logo_ico())
+            
             for entry_name, label, command in menus:
                 log_debug(f"Registrando: {label}")
-                self._create_menu_entry(PDF_SHELL_PATH, entry_name, label, command)
+                self._create_menu_entry(PDF_SHELL_PATH, entry_name, label, command, icon_path=official_icon)
             
             log_info(f"Registradas {len(menus)} entradas no menu de contexto")
             return True
@@ -210,4 +217,102 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             return True
         except Exception as e:
             log_error(f"Erro durante o reparo: {e}")
+            return False
+
+    def create_shortcut(self, location: str) -> bool:
+        """Cria um atalho para o fotonPDF usando PowerShell."""
+        try:
+            if getattr(sys, 'frozen', False):
+                target_path = sys.executable
+            else:
+                # No modo dev não faz muito sentido criar atalhos, mas vamos apontar para o main.py
+                target_path = str(Path(__file__).parents[2] / "interfaces" / "cli" / "main.py")
+
+            if location == "desktop":
+                shortcut_path = "$([Environment]::GetFolderPath('Desktop'))"
+            elif location == "start_menu":
+                shortcut_path = "$([Environment]::GetFolderPath('StartMenu'))"
+            else:
+                return False
+
+            icon_path = str(ResourceService.get_logo_ico())
+            
+            ps_script = f"""
+            $WshShell = New-Object -ComObject WScript.Shell
+            $Shortcut = $WshShell.CreateShortcut("{shortcut_path}\\fotonPDF.lnk")
+            $Shortcut.TargetPath = "{target_path}"
+            $Shortcut.Arguments = "view"
+            $Shortcut.IconLocation = "{icon_path}"
+            $Shortcut.Description = "Visualizador de PDFs Ultra-Rápido"
+            $Shortcut.Save()
+            """
+            subprocess.run(["powershell", "-Command", ps_script], check=True, capture_output=True)
+            log_info(f"Atalho criado em: {location}")
+            return True
+        except Exception as e:
+            log_error(f"Erro ao criar atalho: {e}")
+            return False
+
+    def remove_shortcut(self, location: str) -> bool:
+        """Remove o atalho do fotonPDF."""
+        try:
+            if location == "desktop":
+                shortcut_path = "$([Environment]::GetFolderPath('Desktop'))"
+            elif location == "start_menu":
+                shortcut_path = "$([Environment]::GetFolderPath('StartMenu'))"
+            else:
+                return False
+
+            ps_script = f"Remove-Item -Path '{shortcut_path}\\fotonPDF.lnk' -Force -ErrorAction SilentlyContinue"
+            subprocess.run(["powershell", "-Command", ps_script], check=True, capture_output=True)
+            log_info(f"Atalho removido de: {location}")
+            return True
+        except Exception as e:
+            log_error(f"Erro ao remover atalho: {e}")
+            return False
+
+    def set_as_default_viewer(self) -> bool:
+        """
+        Associa o fotonPDF como o programa padrão para arquivos .pdf.
+        Isso registra a capacidade; o Windows 10/11 pode pedir confirmação.
+        """
+        try:
+            if getattr(sys, 'frozen', False):
+                app_path = sys.executable
+            else:
+                app_path = f'python "{Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"}"'
+
+            prog_id = "fotonPDF.AssocFile.pdf"
+            icon_path = str(ResourceService.get_logo_ico())
+
+            # 1. Registrar o ProgID
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, fr"Software\Classes\{prog_id}") as key:
+                winreg.SetValue(key, "", winreg.REG_SZ, "fotonPDF Document")
+                with winreg.CreateKey(key, "DefaultIcon") as icon_key:
+                    winreg.SetValue(icon_key, "", winreg.REG_SZ, icon_path)
+                with winreg.CreateKey(key, r"shell\open\command") as cmd_key:
+                    winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{app_path}" view "%1"')
+
+            # 2. Registrar a capacidade
+            app_reg_path = r"Software\fotonPDF\Capabilities"
+            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, app_reg_path) as key:
+                winreg.SetValue(key, "ApplicationDescription", winreg.REG_SZ, "Visualizador de PDFs ultra-rápido.")
+                winreg.SetValue(key, "ApplicationName", winreg.REG_SZ, "fotonPDF")
+                with winreg.CreateKey(key, "FileAssociations") as assoc_key:
+                    winreg.SetValueEx(assoc_key, ".pdf", 0, winreg.REG_SZ, prog_id)
+
+            # 3. Registrar o app para que apareça em "Abrir com" e "Programas Padrão"
+            reg_apps_path = r"Software\RegisteredApplications"
+            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_apps_path, 0, winreg.KEY_SET_VALUE) as key:
+                winreg.SetValueEx(key, "fotonPDF", 0, winreg.REG_SZ, app_reg_path)
+
+            # 4. Notificar o sistema sobre a mudança de associação (via PowerShell para SHChangeNotify)
+            ps_notify = "[Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.MethodInvoker]{ [void]([System.Runtime.InteropServices.Marshal]::GetComInterfaceForObject([New-Object -ComObject Shell.Application], [System.Runtime.InteropServices.Marshal]::GetType('System.Runtime.InteropServices.Marshal+ComInterface')).SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)) }"
+            # Ignoramos erros do notify pois é apenas cosmético
+            subprocess.run(["powershell", "-Command", ps_notify], capture_output=True)
+
+            log_info("Associação de arquivo .pdf registrada com sucesso.")
+            return True
+        except Exception as e:
+            log_error(f"Erro ao definir programa padrão: {e}")
             return False

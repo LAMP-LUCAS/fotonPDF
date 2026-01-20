@@ -4,6 +4,7 @@ Fornece feedback visual passo a passo durante o processo de offboarding.
 """
 import click
 from src.infrastructure.services.logger import log_info, log_error, log_warning, log_debug
+# Removida dependência direta de infraestrutura (WindowsRegistryAdapter) para seguir Arquitetura Hexagonal.
 
 
 def print_header():
@@ -75,12 +76,12 @@ def confirm_removal() -> bool:
     return click.confirm("   Deseja continuar?", default=False)
 
 
-def unregister_context_menu() -> bool:
-    """Remove o fotonPDF do menu de contexto."""
+def unregister_all_os_integrations() -> bool:
+    """Remove o fotonPDF do registro e atalhos via Use Case."""
     from src.application.use_cases.unregister_os import UnregisterOSIntegrationUseCase
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     
-    log_debug("Removendo entradas do registro...")
+    log_debug("Iniciando limpeza completa do sistema...")
     adapter = WindowsRegistryAdapter()
     use_case = UnregisterOSIntegrationUseCase(adapter)
     return use_case.execute()
@@ -113,19 +114,19 @@ def run_uninstall(skip_confirmation: bool = False) -> bool:
         click.echo()
         total_steps = 2
         
-        # Etapa 1: Remover Menu de Contexto
-        print_step(1, total_steps, "Removendo do Menu de Contexto do Windows...")
+        # Etapa 1: Limpeza do Sistema
+        print_step(1, total_steps, "Removendo registros e atalhos do sistema...")
         
-        if unregister_context_menu():
-            print_success("Entradas do registro removidas")
+        if unregister_all_os_integrations():
+            print_success("Registros e atalhos removidos com sucesso")
         else:
-            print_error("Falha ao remover do registro")
+            print_error("Houve uma falha parcial na remoção (verifique permissões)")
             print_footer_error()
             wait_for_keypress()
             return False
-        
-        # Etapa 2: Verificar Remoção
-        print_step(2, total_steps, "Verificando remoção...")
+
+        # Etapa 3: Verificar Remoção
+        print_step(3, total_steps, "Verificando remoção...")
         if verify_removal():
             print_success("Remoção verificada com sucesso")
         else:

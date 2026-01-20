@@ -102,27 +102,29 @@ def get_app_command() -> tuple[Path, str]:
 
 def register_context_menus() -> bool:
     """Registra todos os menus de contexto do fotonPDF."""
+    from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     
-    adapter = WindowsRegistryAdapter()
-    return adapter.register_all_context_menus()
+    use_case = RegisterOSIntegrationUseCase(WindowsRegistryAdapter())
+    return use_case.register_all()
 
 
 def verify_installation() -> bool:
     """Verifica se o fotonPDF está corretamente instalado."""
     from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
     adapter = WindowsRegistryAdapter()
-    result = adapter.check_installation_status()
-    log_debug(f"Verificação de instalação: {'OK' if result else 'Não encontrado'}")
-    return result
+    return adapter.check_installation_status()
 
 
 def run_setup() -> bool:
     """Executa o wizard de setup completo."""
     try:
         print_header()
+        from src.application.use_cases.register_os import RegisterOSIntegrationUseCase
+        from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
         
-        total_steps = 3
+        use_case = RegisterOSIntegrationUseCase(WindowsRegistryAdapter())
+        total_steps = 5
         
         # Etapa 1: Verificar Permissões
         print_step(1, total_steps, "Verificando permissões do sistema...")
@@ -137,26 +139,37 @@ def run_setup() -> bool:
         
         # Etapa 2: Registrar Menus de Contexto
         print_step(2, total_steps, "Registrando menus no Menu de Contexto...")
-        
-        if register_context_menus():
-            print_success("Menus registrados com sucesso:")
-            print_success("  fotonPDF ▸ Abrir")
-            print_success("  fotonPDF ▸ Girar 90°")
-            print_success("  fotonPDF ▸ Girar 180°")
-            print_success("  fotonPDF ▸ Girar 270°")
+        if use_case.register_all():
+            print_success("Menus registrados com sucesso.")
         else:
             print_error("Falha ao registrar no Menu de Contexto")
             print_footer_error()
             wait_for_keypress()
             return False
         
-        # Etapa 3: Verificar Integridade
-        print_step(3, total_steps, "Verificando integridade da instalação...")
+        # Etapa 3: Atalhos
+        print_step(3, total_steps, "Configurando atalhos...")
+        if click.confirm("  > Deseja criar um atalho na Área de Trabalho?", default=True):
+            if use_case.create_shortcut("desktop"):
+                print_success("Atalho criado na Área de Trabalho")
+        
+        if click.confirm("  > Deseja criar um atalho no Menu Iniciar?", default=True):
+            if use_case.create_shortcut("start_menu"):
+                print_success("Atalho criado no Menu Iniciar")
+
+        # Etapa 4: Programa Padrão
+        print_step(4, total_steps, "Configurando programa padrão...")
+        if click.confirm("  > Deseja definir o fotonPDF como visualizador padrão para .pdf?", default=False):
+            if use_case.set_as_default():
+                print_success("Associação de arquivo registrada")
+                print_warning("O Windows pode solicitar confirmação ao abrir o próximo PDF")
+
+        # Etapa 5: Verificar Integridade
+        print_step(5, total_steps, "Verificando integridade da instalação...")
         if verify_installation():
             print_success("Instalação verificada e funcional")
         else:
             print_warning("Não foi possível confirmar a instalação")
-            print_warning("Reinicie o Windows Explorer ou o computador")
         
         print_footer_success()
         wait_for_keypress()

@@ -14,6 +14,7 @@ from src.application.use_cases.export_svg import ExportSVGUseCase
 from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.infrastructure.services.logger import log_debug, log_exception
 from src.interfaces.gui.styles import get_main_stylesheet
+from src.infrastructure.services.resource_service import ResourceService
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_file=None):
@@ -63,7 +64,7 @@ class MainWindow(QMainWindow):
             self.open_file(Path(initial_file))
 
     def _setup_window_icon(self):
-        icon_path = Path(__file__).parents[3] / "docs" / "brand" / "logo.svg"
+        icon_path = ResourceService.get_logo_ico()
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
@@ -73,7 +74,7 @@ class MainWindow(QMainWindow):
         vbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         logo_label = QLabel()
-        icon_path = Path(__file__).parents[3] / "docs" / "brand" / "logo.svg"
+        icon_path = ResourceService.get_logo_svg()
         if icon_path.exists():
             pixmap = QIcon(str(icon_path)).pixmap(128, 128)
             logo_label.setPixmap(pixmap)
