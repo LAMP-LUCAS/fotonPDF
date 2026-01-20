@@ -22,6 +22,7 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[ROADMAP|📅 Roadmap de Fases]]: Visão macro do projeto.
 - [[FEATURES|✨ Detalhamento de Funcionalidades]]: Guia técnico de uso e implementação.
 - [[SPRINTS|🏃 Gerenciamento de Sprints]]: Visão micro e detalhamento técnico.
+- [[distribution/CODE_SIGNING_STRATEGY|🔏 Estratégia de Assinatura]]: Segurança e integridade.
 
 ## 📚 Guias e Tutoriais
 
@@ -40,4 +41,4 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 
 ---
 
-###### Atualizado em: 2026-01-18
+###### Atualizado em: 2026-01-19

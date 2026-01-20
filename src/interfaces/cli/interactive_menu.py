@@ -5,6 +5,7 @@ Exibido quando o executável é aberto sem argumentos.
 import click
 import sys
 from src.infrastructure.services.logger import log_info, log_exception
+from src.application.services.update_service import UpdateService
 
 
 def print_header():
@@ -24,20 +25,40 @@ def print_menu_options():
     click.echo("  [2] 📄 Abrir Visualizador de PDFs")
     click.echo("  [3] 📊 Verificar Status da Instalação")
     click.echo("  [4] 🗑️  Remover fotonPDF")
+    click.echo("  [R] 🔧 Reparar Integração (Bootstrap)")
     click.echo("  [5] ❌ Sair")
     click.echo()
+def check_updates_silent():
+    """Verifica atualizações e mostra apenas se houver novidade."""
+    try:
+        service = UpdateService()
+        new_version = service.check_for_updates()
+        if new_version:
+            click.echo()
+            click.secho(f"  🔔 Uma nova versão está disponível: v{new_version['version']}", fg='green', bold=True)
+            click.secho(f"  💡 Execute 'foton update' para ver detalhes.", fg='yellow')
+            click.echo()
+    except Exception:
+        pass
 
 
 def run_interactive_menu():
     """Executa o menu interativo principal."""
     log_info("Menu interativo iniciado")
     
+    # Verificação rápida de atualização no início
+    check_updates_silent()
+    
     while True:
         print_header()
         print_menu_options()
         
-        choice = click.prompt("  Escolha uma opção", type=click.IntRange(1, 5), default=1)
+        choice = click.prompt("  Escolha uma opção", type=click.Choice(['1', '2', '3', '4', '5', 'r', 'R']), default='1')
         
+        # Converter para int se for número para manter compatibilidade com a lógica anterior
+        if choice.isdigit():
+            choice = int(choice)
+
         if choice == 1:
             # Setup
             click.echo()
@@ -65,7 +86,6 @@ def run_interactive_menu():
             show_detailed_status()
             click.echo()
             click.pause("  Pressione qualquer tecla para continuar...")
-            
         elif choice == 4:
             # Remover
             click.echo()
@@ -73,6 +93,18 @@ def run_interactive_menu():
             run_uninstall()
             return  # Sair após remover
             
+        elif choice == 'r' or choice == 'R':
+            # Reparar
+            click.echo()
+            click.echo("  🔧 Iniciando Reparo Inteligente...")
+            from src.infrastructure.adapters.windows_registry_adapter import WindowsRegistryAdapter
+            adapter = WindowsRegistryAdapter()
+            if adapter.repair_installation():
+                click.secho("  ✅ Reparo concluído com sucesso!", fg='green')
+            else:
+                click.secho("  ❌ Ocorreu um erro durante o reparo.", fg='red')
+            click.pause("\n  Pressione qualquer tecla para continuar...")
+
         elif choice == 5:
             # Sair
             click.echo()

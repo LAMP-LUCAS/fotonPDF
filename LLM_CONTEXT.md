@@ -60,9 +60,9 @@ Arquivos alterados:
 ## 📂 Estrutura de Diretórios
 
 - `src/domain`: Entidades puras e protocolos (Portas).
-- `src/application`: Casos de uso e orquestração.
-- `src/infrastructure`: Implementações concretas (Adapters, Sistema de Arquivos).
-- `src/interfaces`: UI, CLI e integração com Menu de Contexto.
+- `src/application`: Casos de uso e orquestração (ex: `UpdateService`).
+- `src/infrastructure`: Implementações concretas (Adapters de Registro, Notificação e PDF).
+- `src/interfaces`: UI, CLI e integração com Menu de Contexto (Setup e Uninstall Wizards).
 
 ## 🔗 Links Relacionados
 

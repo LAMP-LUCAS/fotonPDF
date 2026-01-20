@@ -21,8 +21,8 @@ pie title Cobertura da Documentação
 | **Sprint 2 - Integração** | 🟢 Completo | ████████████ 100% | 14/02/2026 ✅ |
 | **Sprint 3 - UI** | 🟢 Completo | ████████████ 100% | 28/02/2026 ✅ |
 | **Sprint 4 - Polimento** | 🟢 Completo | ████████████ 100% | 15/03/2026 ✅ |
-| **Sprint 5 - Distribuição** | 🟢 Completo | ████████████ 100% | 31/03/2026 ✅ |
-| **Sprint 6 - UI, Conversão & Paridade** | 🟢 Completo | ████████████ 100% | 18/01/2026 ✅ |
+| **Sprint 5 - Distribuição 2.0** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
+| **Sprint 6 - Inteligência de Busca** | 🟡 Em Progresso | ▓▓▓░░░░░░░░░ 25% | 25/02/2026 |
 
 ### Sprint 3 (Concluído) ✅
 
@@ -137,7 +137,7 @@ graph LR
 
 ---
 
-**Última atualização:** 2026-01-18  
-**Próxima revisão:** Início da Sprint 6 (Busca & Navegação)
+**Última atualização:** 2026-01-19  
+**Próxima revisão:** Final da Sprint 6 (Busca & Navegação)
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]

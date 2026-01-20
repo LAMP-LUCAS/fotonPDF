@@ -9,6 +9,7 @@ from src.application.use_cases.export_image import ExportImageUseCase
 from src.application.use_cases.export_svg import ExportSVGUseCase
 from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.infrastructure.services.logger import log_info, log_error, log_debug, log_exception
+from src.application.services.update_service import UpdateService
 
 def notify_success(title: str, msg: str):
     click.secho(f"✅ {msg}", fg='green')
@@ -202,6 +203,25 @@ def status():
         click.echo()
         click.secho("Dica: Execute 'foton setup' para configurar.", fg='yellow')
     
+    click.echo()
+
+
+@cli.command()
+def update():
+    """🚀 Verifica se há uma nova versão do fotonPDF disponível."""
+    click.echo("🔍 Verificando atualizações...")
+    service = UpdateService()
+    new_version = service.check_for_updates()
+    
+    if new_version:
+        click.secho(f"\n🎉 Uma nova versão está disponível: v{new_version['version']}", fg='green', bold=True)
+        click.echo(f"🔗 Link: {new_version['url']}")
+        click.echo("\nNotas da Versão:")
+        click.echo(new_version['body'])
+        click.echo("-" * 40)
+        click.secho("\nPara atualizar, baixe a nova versão no link acima.", fg='yellow')
+    else:
+        click.secho("\n✅ Você já está usando a versão mais recente!", fg='cyan')
     click.echo()
 
 

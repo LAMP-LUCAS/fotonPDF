@@ -87,6 +87,30 @@ Conforto e rapidez diretamente da área de trabalho.
 
 ---
 
+## 📦 5. Inteligência de Distribuição
+
+Garantindo que o usuário tenha sempre a versão mais segura e funcional com o mínimo esforço.
+
+### 5.1 Notificação de Nova Versão (`UpdateService`)
+
+- **O que faz**: Verifica silenciosamente na API do GitHub se existe uma release mais recente que a versão atual (`__version__`).
+- **Comportamento**:
+  - Exibe um alerta visual no menu interativo caso uma atualização esteja disponível.
+  - Comando CLI: `foton update` fornece o link direto e o changelog da nova versão.
+
+### 5.2 Bootstrap Inteligente (Auto-Reparo)
+
+- **O que faz**: Resolve problemas comuns de integração, como quando o menu de contexto some após o software ser movido de pasta ou chaves de registro serem alteradas por outros programas.
+- **Acesso**: Opção **[R] Reparar Integração** no menu principal.
+- **Lógica**: O sistema detecta o caminho absoluto atual e força a atualização das chaves de registro do Windows, garantindo que o `fotonPDF ▸` sempre aponte para o local correto no disco.
+
+### 5.3 Infraestrutura de Assinatura de Código (Integridade)
+
+- **O que faz**: O pipeline de build está preparado para assinar os binários (`.exe`), garantindo que o software não foi alterado após a compilação por agentes maliciosos.
+- **Implementação**: Script `scripts/sign_exe.py` que gera certificados de desenvolvimento e aplica assinaturas digitais via `SignTool`.
+
+---
+
 ## 🔗 Relacionamentos e Navegação
 
 - [[ARCHITECTURE|🏗️ Arquitetura]]: Saiba mais sobre o motor centralizado.

@@ -27,9 +27,9 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 As Sprints estão detalhadas em [Sprints](SPRINTS.MD)
 
-### Sprint 5: Distribuição & Auto-Update [x]
+### Sprint 5: Distribuição 2.0 & Inteligência de Onboarding [x]
 
-### Sprint 6: Busca & Navegação [ ]
+### Sprint 6: Busca & Navegação [/]
 
 ### Sprint 7: OCR & Camada de Texto [ ]
 

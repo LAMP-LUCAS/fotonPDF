@@ -59,11 +59,13 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 
 ### Fase 1: Fundação & MVP
 
-#### Sprint 5: Distribuição & Sistema de Atualização ✅
+#### Sprint 5: Distribuição 2.0 & Inteligência de Onboarding ✅
 
-- [x] Auto-Update Engine e Notificações Mobile-style.
-- [x] Build automatizado via PyInstaller (`foton.exe`).
-- [x] Registro inteligente no Menu de Contexto.
+- [x] **Auto-Update Engine**: Notificação inteligente de nova versão via API do GitHub.
+- [x] **Intelligent Bootstrap**: Mecanismo de reparo automático do Registro do Windows (Opção `R`).
+- [x] **Code Signing Infra**: Script de assinatura (Self-signed) para integridade de binários.
+- [x] **Instalador Zero-Click**: Inno Setup otimizado para instalação por usuário e sem interrupções.
+- [x] **Registro Contextual**: Integração robusta via `SystemFileAssociations`.
 
 #### Sprint 4: Lógica de Interface & UX Premium ✅
 

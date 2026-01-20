@@ -176,3 +176,38 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         except Exception as e:
             log_error(f"Erro ao registrar menus: {e}")
             return False
+
+    def repair_installation(self) -> bool:
+        """
+        Verifica se a instalação atual está correta e repara se necessário.
+        Útil se o usuário mover a pasta do software ou se as chaves forem corrompidas.
+        """
+        try:
+            log_info("Iniciando reparo da instalação...")
+            
+            # 1. Verificar se as chaves existem
+            if not self.check_installation_status():
+                log_warning("Instalação não encontrada. Criando nova...")
+                return self.register_all_context_menus()
+            
+            # 2. Verificar se o comando apontado é o mesmo que o executável atual
+            registered_cmd = self.get_registered_command()
+            
+            # Montar comando esperado para comparação
+            if getattr(sys, 'frozen', False):
+                current_exe = sys.executable
+            else:
+                cli_path = Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"
+                current_exe = f'python "{cli_path}"'
+                
+            expected_part = f'"{current_exe}"'
+            
+            if registered_cmd and expected_part not in registered_cmd:
+                log_warning(f"Caminho no registro desatualizado. Atualizando para: {current_exe}")
+                return self.register_all_context_menus()
+            
+            log_info("Instalação está íntegra e atualizada.")
+            return True
+        except Exception as e:
+            log_error(f"Erro durante o reparo: {e}")
+            return False

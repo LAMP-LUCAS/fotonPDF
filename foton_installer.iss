@@ -4,7 +4,7 @@
 [Setup]
 AppName=fotonPDF
 AppVersion=1.0.0
-DefaultDirName={autopf}\fotonPDF
+DefaultDirName={localappdata}\fotonPDF
 DefaultGroupName=fotonPDF
 UninstallDisplayIcon={app}\foton.exe
 Compression=lzma2
@@ -13,6 +13,12 @@ OutputDir=..
 OutputBaseFilename=fotonPDF_Setup_v1.0.0
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
+; Melhorias para Zero-Click e Permissões
+PrivilegesRequired=lowest
+DisableWelcomePage=yes
+DisableDirPage=yes
+DisableProgramGroupPage=yes
+DisableFinishedPage=no
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
