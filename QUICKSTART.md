@@ -25,7 +25,7 @@
 
 ## 🧭 Estrutura de Navegação
 
-```
+```mermaid
 README.md                    # 👈 Comece aqui
     ↓
 docs/MAP.md                  # Hub central
@@ -39,12 +39,19 @@ docs/MAP.md                  # Hub central
 ## 🔍 Precisa de
 
 | Tarefa | Documento |
-|--------|-----------|
+| :--- | :--- |
 | Adicionar nova operação PDF | [[guides/NEW_OPERATION\|NEW_OPERATION]] |
 | Criar um plugin | [[guides/PLUGIN_SYSTEM\|PLUGIN_SYSTEM]] |
 | Integrar com Windows/Linux | [[guides/OS_INTEGRATION\|OS_INTEGRATION]] |
 | Entender o código existente | [[docs/ARCHITECTURE\|ARCHITECTURE]] |
 | Ver status do projeto | [[docs/DASHBOARD\|DASHBOARD]] |
+| **Consultar guia do usuário** | **[[docs/user/USAGE\|MANUAL DE USO]]** |
+
+## 👥 Para Usuários Finais
+
+1. **[[docs/user/INSTALLATION|📥 Instalação]]**: Como colocar o fotonPDF para rodar.
+2. **[[docs/user/USAGE|📖 Manual de Uso]]**: Aprenda as operações e o Visualizador.
+3. **[[docs/brand/VISUAL_IDENTITY|🎨 Identidade Visual]]**: Conheça o conceito "A Centelha da Informação".
 
 ## 📚 Leitura Recomendada (ordem)
 
@@ -61,4 +68,4 @@ docs/MAP.md                  # Hub central
 
 ---
 
-**Última atualização:** 2026-01-17
+**Última atualização:** 2026-01-19

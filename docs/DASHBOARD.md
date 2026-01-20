@@ -7,8 +7,8 @@
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#4CAF50'}}}%%
 pie title Cobertura da Documentação
-    "Completos" : 13
-    "Pendentes (Fase 1)" : 2
+    "Completos" : 18
+    "Pendentes (Fase 1)" : 0
     "Pendentes (Fase 2+)" : 4
 ```
 
@@ -68,6 +68,7 @@ gantt
 ### 📘 Documentação Essencial
 
 - [[MAP|🗺️ Mapa de Navegação]]
+- [[QUICKSTART|⚡ Início Rápido (QUICKSTART)]]
 - [[ARCHITECTURE|🏗️ Arquitetura]]
 - [[ROADMAP|🚀 Roadmap Completo]]
 

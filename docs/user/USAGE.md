@@ -1,6 +1,6 @@
 # 📖 Guia de Utilização
 
-O **fotonPDF** foi desenhado para ser simples e produtivo. Aqui estão as principais formas de interagir com ele.
+O **fotonPDF** foi desenhado para ser simples e produtivo. Aqui estão as principais formas de interagir com ele para obter o máximo de eficiência.
 
 ## 🖥️ Usando o Visualizador (Interface Gráfica)
 
@@ -17,8 +17,9 @@ O **fotonPDF** foi desenhado para ser simples e produtivo. Aqui estão as princi
 
 ### Ferramentas de Edição Rápida
 
-- **Extrair Páginas:** Selecione uma ou mais páginas na barra lateral (segurando `Ctrl` para múltiplas) e clique em **"Extrair Selecionadas"**.
-- **Exportar Imagem:** Salve páginas específicas como imagens PNG de alta qualidade clicando em **"Exportar como Imagem"**.
+- **Extrair Páginas:** Selecione uma ou mais páginas na barra lateral (segurando `Ctrl` para múltiplas) e clique em **"Extrair"**.
+- **Girar Páginas:** Utilize os botões de rotação na toolbar para ajustar a orientação visual.
+- **Exportar Imagem:** Salve páginas específicas como imagens PNG, JPG ou WebP de alta qualidade.
 
 ---
 
@@ -35,8 +36,12 @@ O **fotonPDF** foi desenhado para ser simples e produtivo. Aqui estão as princi
 
 ## 💻 Via Linha de Comando (CLI)
 
-Para usuários avançados:
+Para usuários avançados e automações:
 
 - `foton view arquivo.pdf` - Abre o visualizador.
 - `foton rotate arquivo.pdf -d 90` - Gira o PDF sem abrir a interface.
 - `foton merge arq1.pdf arq2.pdf -o final.pdf` - Une arquivos.
+- `foton update` - Verifica se há novas versões disponíveis.
+
+---
+[[../MAP|← Voltar ao Mapa]]

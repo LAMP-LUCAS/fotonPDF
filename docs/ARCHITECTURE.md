@@ -53,3 +53,6 @@ A arquitetura do fotonPDF se estende além do código rodando na máquina:
 
 - [[DEVELOPMENT|Workflow e Padrões]]
 - [[MAP|Voltar ao Mapa]]
+
+---
+[[MAP|← Voltar ao Mapa]]

@@ -18,7 +18,7 @@ Este arquivo serve como a "Memória de Longo Prazo" para qualquer IA assistente 
    - **DRY (Don't Repeat Yourself):** Reutilize código, centralize lógicas comuns nos domínios.
    - **CLEAN Code:** Código legível, nomes auto-explicativos e funções com responsabilidade única.
    - **SOLID:** Princípios de design para garantir escalabilidade e facilitar manutenção.
-   - **Centros de Verdade:** Centralize definições e lógicas críticas em locais únicos e bem definidos no `domain`. Evite dispersão de lógica de negócio para garantir estabilidade, confiabilidade e facilidade de documentação.
+   - **Centros de Verdade:** Centralize definições e lógicas críticas em locais únicos. Exemplo: `src/__init__.py` é o único centro de verdade para a versão da aplicação, validado pelo pipeline de CD.
 
 ## 📝 Documentação e Rastreamento (Crucial)
 
@@ -64,8 +64,10 @@ Arquivos alterados:
 - `src/infrastructure`: Implementações concretas (Adapters de Registro, Notificação e PDF).
 - `src/interfaces`: UI, CLI e integração com Menu de Contexto (Setup e Uninstall Wizards).
 
-## 🔗 Links Relacionados
+## 🔗 Navegação e Referências
 
-- [[docs/ARCHITECTURE|Detalhes da Arquitetura]]
-- [[docs/DEVELOPMENT|Padrões de Código]]
-- [[README|Voltar para Início]]
+- **🗺️ Mapa da Documentação:** [[docs/MAP|MAP.md]] (MOC Central)
+- **🏗️ Arquitetura Detalhada:** [[docs/ARCHITECTURE|ARCHITECTURE.md]]
+- **🛠️ Workflow e Padrões:** [[docs/DEVELOPMENT|DEVELOPMENT.md]]
+- **🎡 Estratégia CI/CD:** [[docs/guides/CI_CD_STRATEGY|CI_CD_STRATEGY.md]]
+- **🏠 Início:** [[README|README.md]]

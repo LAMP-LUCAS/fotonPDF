@@ -25,16 +25,11 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 ## 🏃 Status da Sprint Atual
 
-As Sprints estão detalhadas em [Sprints](SPRINTS.MD)
+Para o detalhamento das tarefas, veja: [[SPRINTS|🏃 Gerenciamento de Sprints]]
 
-### Sprint 5: Distribuição 2.0 & Inteligência de Onboarding [x]
-
-### Sprint 6: Busca & Navegação [/]
-
-### Sprint 7: OCR & Camada de Texto [ ]
-
-### Sprint 8: UI Evolution [ ]
+- **Sprint 5: Distribuição 2.0 & Inteligência de Onboarding** [x] 100%
+- **Sprint 6: Busca & Navegação** [/] 25%
+- **Sprint 7: OCR & Camada de Texto** [ ] 0%
 
 ---
-
-[[MAP|Voltar ao Mapa]]
+[[MAP|← Voltar ao Mapa]]

@@ -23,6 +23,7 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[FEATURES|✨ Detalhamento de Funcionalidades]]: Guia técnico de uso e implementação.
 - [[SPRINTS|🏃 Gerenciamento de Sprints]]: Visão micro e detalhamento técnico.
 - [[distribution/CODE_SIGNING_STRATEGY|🔏 Estratégia de Assinatura]]: Segurança e integridade.
+- [[brand/VISUAL_IDENTITY|🎨 Identidade Visual]]: Marca e Logotipo.
 
 ## 📚 Guias e Tutoriais
 
@@ -30,6 +31,12 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[guides/PLUGIN_SYSTEM|🔌 Criando Plugins]]
 - [[guides/OS_INTEGRATION|🖥️ Detalhes da Integração com SO]]
 - [[guides/CI_CD_STRATEGY|🎡 Estratégia de CI/CD e Releases]]
+
+## 👥 Guia do Usuário
+
+- [[user/INSTALLATION|📥 Instalação]]: Como obter e configurar.
+- [[user/USAGE|📖 Manual de Uso]]: Operações e Visualizador.
+- [[user/TROUBLESHOOTING_AND_UNINSTALL|🛠️ Suporte]]: Resolvendo problemas.
 
 ## 🤝 Comunidade
 

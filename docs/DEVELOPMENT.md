@@ -56,3 +56,6 @@ pytest
 - [[ARCHITECTURE|Entenda a estrutura de pastas]]
 - [[../LLM_CONTEXT|Instruções para seu CodeAssistant]]
 - [[MAP|Voltar ao Mapa]]
+
+---
+[[MAP|← Voltar ao Mapa]]

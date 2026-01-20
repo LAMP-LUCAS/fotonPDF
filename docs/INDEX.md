@@ -7,7 +7,8 @@
 | Arquivo | Propósito | Status |
 | :--- | :--- | :--- |
 | [[README\|README.md]] | Visão geral e entrada do projeto | ✅ Completo |
-| [[../LLM_CONTEXT\|LLM_CONTEXT.md]] | Instruções para CodeAssistants | ✅ Completo |
+| [[QUICKSTART\|QUICKSTART.md]] | Guia de 5 minutos para início rápido | ✅ Completo |
+| [[LLM_CONTEXT\|LLM_CONTEXT.md]] | Instruções para CodeAssistants | ✅ Completo |
 | [[CONTRIBUTING\|CONTRIBUTING.md]] | Guia de contribuição | ✅ Completo |
 
 ## 📂 Documentação Técnica (`docs/`)
@@ -33,10 +34,23 @@
 
 | Arquivo | Descrição | Status |
 | :--- | :--- | :--- |
-| [[docs/MAP\|MAP.md]] | Mapa de navegação (MOC) | ✅ Completo |
-| [[docs/INDEX\|INDEX.md]] | Índice completo (este arquivo) | ✅ Completo |
-| [[docs/GRAPH\|GRAPH.md]] | Visualizações Mermaid | ✅ Completo |
-| [[docs/REPORT\|REPORT.md]] | Relatório de documentação | ✅ Completo |
+| [[MAP\|MAP.md]] | Mapa de navegação (MOC) | ✅ Completo |
+| [[INDEX\|INDEX.md]] | Índice completo (este arquivo) | ✅ Completo |
+| [[GRAPH\|GRAPH.md]] | Visualizações Mermaid | ✅ Completo |
+| [[REPORT\|REPORT.md]] | Relatório de documentação | ✅ Completo |
+
+### 🎨 Branding & Identidade (`docs/brand/`)
+
+| Arquivo | Descrição | Status |
+| :--- | :--- | :--- |
+| [[VISUAL_IDENTITY\|VISUAL_IDENTITY.md]] | Manual de marca e logotipo | ✅ Completo |
+| [[logo.svg\|logo.svg]] | Logotipo oficial (Vetor) | ✅ Completo |
+
+### 📦 Distribuição & Segurança (`docs/distribution/`)
+
+| Arquivo | Descrição | Status |
+| :--- | :--- | :--- |
+| [[CODE_SIGNING_STRATEGY\|CODE_SIGNING_STRATEGY.md]] | Plano de assinatura de código | ✅ Completo |
 
 ## 🧩 Módulos Técnicos (`docs/modules/`)
 
@@ -54,17 +68,27 @@
 | :--- | :--- | :--- |
 | [[docs/guides/NEW_OPERATION\|NEW_OPERATION.md]] | Como adicionar nova operação | ✅ Completo |
 | [[docs/guides/PLUGIN_SYSTEM\|PLUGIN_SYSTEM.md]] | Criar plugins para fotonPDF | ✅ Completo |
-| [[docs/guides/OS_INTEGRATION\|OS_INTEGRATION.md]] | Integração Windows/Linux | ✅ Completo |
+| [[OS_INTEGRATION\|OS_INTEGRATION.md]] | Integração Windows/Linux | ✅ Completo |
+| [[CI_CD_STRATEGY\|CI_CD_STRATEGY.md]] | Automação e Releases | ✅ Completo |
 | `CREATING_CONVERTER.md` | Adicionar novo conversor | ⏳ Pendente |
 | `TESTING_GUIDE.md` | Estratégias de teste | ⏳ Pendente |
+
+## 👥 Guia do Usuário (`docs/user/`)
+
+| Arquivo | Descrição | Status |
+| :--- | :--- | :--- |
+| [[INSTALLATION\|INSTALLATION.md]] | Como instalar o fotonPDF | ✅ Completo |
+| [[USAGE\|USAGE.md]] | Guia de uso das funcionalidades | ✅ Completo |
+| [[TROUBLESHOOTING_AND_UNINSTALL\|TROUBLESHOOTING.md]] | Suporte e Desinstalação | ✅ Completo |
 
 ## 🗺️ Navegação
 
 - **Início:** [[README|README.md]]
-- **Mapa Central:** [[docs/MAP|MAP.md]]
-- **Para Devs:** [[docs/DEVELOPMENT|DEVELOPMENT.md]]
-- **Para LLMs:** [[LLM_CONTEXT|LLM_CONTEXT.md]]
+- **Mapa Central:** [[MAP\|MAP.md]]
+- **Para Devs:** [[DEVELOPMENT\|DEVELOPMENT.md]]
+- **Para Usuários:** [[USAGE\|USAGE.md]]
+- **Para Assistentes (AI):** [[LLM_CONTEXT\|LLM_CONTEXT.md]]
 
 ---
 
-###### Última atualização: 2026-01-18
+### Última atualização: 2026-01-19

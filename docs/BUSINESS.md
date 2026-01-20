@@ -34,30 +34,19 @@ Após o MVP estar estável e com usuários ativos, exploraremos modelos híbrido
 
 ### Opção 3: Marketplace
 
-- Comissão sobre plugins comerciais criados por terceiros.
 - Curadoria de extensões corporativas (compliance, auditoria).
+- Comissão sobre plugins comerciais criados por terceiros.
 
 ### Opção 4: Dual License
 
 - GPL para uso pessoal e código aberto.
 - Licença comercial para incorporação em produtos fechados.
 
-## � Princípios Inegociáveis
+## ⚖️ Princípios Inegociáveis
 
 1. **Não Degradar a Experiência Gratuita:** Nenhum paywall artificial ou funcionalidades "extorquidas".
 2. **Transparência Total:** Qualquer mudança no modelo será comunicada com antecedência à comunidade.
 3. **Código Primeiro:** Decisões de monetização nunca devem comprometer a qualidade técnica ou a arquitetura aberta.
-
-## 🧩 Preparando o Terreno
-
-Mesmo sem modelo definido, o código já contempla **pontos de extensão** para futuras features premium:
-
-- Sistema de Plugins com **permissões granulares**.
-- API REST local com **rate limiting configurável**.
-- Engine de Automação com **triggers enterprise-ready**.
-- Logs e telemetria **opt-in** para análise de uso.
-
-Quando o momento chegar, esses "porteiros" permitirão implementar qualquer modelo escolhido sem reescritas massivas.
 
 ## 🔗 Próximos Passos
 
@@ -67,8 +56,4 @@ Quando o momento chegar, esses "porteiros" permitirão implementar qualquer mode
 4. **Definir modelo econômico** baseado em dados, não suposições.
 
 ---
-
-**Para discussões sobre monetização futura:**
-
-- [[ROADMAP|Cronograma de Fases]]
-- [[MAP|Voltar ao Mapa]]
+[[MAP|← Voltar ao Mapa]]
