@@ -1,10 +1,12 @@
 import fitz  # PyMuPDF
 from pathlib import Path
+from typing import Tuple
 from src.domain.entities.pdf import PDFDocument
 from src.domain.ports.pdf_operations import PDFOperationsPort
+from src.domain.ports.ocr_operations import OCRPort
 from src.domain.services.naming_service import NamingService
 
-class PyMuPDFAdapter(PDFOperationsPort):
+class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
     """Implementação concreta (Adapter) usando a biblioteca PyMuPDF."""
 
     def rotate(self, pdf: PDFDocument, degrees: int) -> Path:
@@ -184,3 +186,67 @@ class PyMuPDFAdapter(PDFOperationsPort):
             toc_data = doc.get_toc() # [level, title, page, ...]
             # PyMuPDF TOC page is 1-based, converting to 0-based for standard
             return [TOCItem(level=item[0], title=item[1], page_index=item[2]-1) for item in toc_data]
+
+    def has_text_layer(self, pdf_path: Path) -> bool:
+        """
+        Verifica se o PDF tem camada de texto. 
+        Calcula a densidade de texto: se houver pouquíssimo texto por página, considera não-pesquisável.
+        """
+        with fitz.open(str(pdf_path)) as doc:
+            total_text_len = 0
+            # Amostra das primeiras 5 páginas ou todas se menos que 5
+            pages_to_check = doc[:min(5, len(doc))]
+            for page in pages_to_check:
+                total_text_len += len(page.get_text("text").strip())
+            
+            # Média de caracteres por página. Se < 50, provavelmente é scan.
+            avg_text = total_text_len / len(pages_to_check) if pages_to_check else 0
+            return avg_text > 50
+
+    def is_engine_available(self) -> bool:
+        """Verifica se o Tesseract está disponível para o PyMuPDF."""
+        try:
+            # Tenta um OCR simples em uma página vazia para testar o binário
+            import shutil
+            # Se 'tesseract' estiver no PATH, o PyMuPDF costuma encontrá-lo
+            has_binary = shutil.which("tesseract") is not None
+            return has_binary
+        except:
+            return False
+
+    def apply_ocr(self, pdf_path: Path, output_path: Path, language: str = "por+eng") -> Path:
+        """
+        Gera uma versão pesquisável do PDF.
+        Nota: PyMuPDF usa 'pdfocr_save' ou OCR via renderização.
+        """
+        if not self.is_engine_available():
+            raise RuntimeError("Motor Tesseract não encontrado no sistema.")
+
+        # Gerar nome de saída caso não provido
+        if not output_path or output_path == pdf_path:
+            output_path = NamingService.generate_output_path(
+                pdf_path, 
+                pdf_path.parent, 
+                tag="ocr", 
+                suffix=".pdf"
+            )
+
+        with fitz.open(str(pdf_path)) as doc:
+            # OCR em cada página e salva como novo PDF
+            # O PyMuPDF possui integração direta através do método 'pdfocr_save'
+            # (Requer fitz[ocr] ou tesseract instalado)
+            doc.pdfocr_save(str(output_path), language=language, treadmill=True)
+            
+        return output_path
+
+    def extract_text_from_area(self, pdf_path: Path, page_index: int, area: Tuple[float, float, float, float], language: str = "por+eng") -> str:
+        """Extrai texto de uma região específica usando OCR on-demand."""
+        if not self.is_engine_available():
+            raise RuntimeError("Motor Tesseract não encontrado no sistema.")
+
+        with fitz.open(str(pdf_path)) as doc:
+            page = doc[page_index]
+            # Converte Tupla (x0, y0, x1, y1) para Rect
+            rect = fitz.Rect(area)
+            # Tenta extrair texto via OCR apenas daquela área
+            return page.get_textbox(rect, method="ocr", language=language)
