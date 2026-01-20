@@ -24,6 +24,7 @@ def build():
     params = [
         str(entry_point),
         "--name=foton",
+        f"--icon={project_root / 'docs' / 'brand' / 'logo.ico'}",
         "--onedir",          # Modo diretório para estabilidade e velocidade
         "--noconfirm",       # Não pedir confirmação para sobrescrever
         "--console",         # Mantemos console para os wizards de sistema

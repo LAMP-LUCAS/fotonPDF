@@ -13,6 +13,7 @@ from src.application.use_cases.export_image import ExportImageUseCase
 from src.application.use_cases.export_svg import ExportSVGUseCase
 from src.application.use_cases.export_markdown import ExportMarkdownUseCase
 from src.infrastructure.services.logger import log_debug, log_exception
+from src.interfaces.gui.styles import get_main_stylesheet
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_file=None):
@@ -35,6 +36,10 @@ class MainWindow(QMainWindow):
         self.main_layout.addWidget(self.sidebar)
         self.main_layout.addWidget(self.viewer, stretch=1)
 
+        # Apply Visual Identity
+        self.setStyleSheet(get_main_stylesheet())
+        self._setup_window_icon()
+
         # UI Initialization
         self._setup_toolbar()
         self._setup_statusbar()
@@ -51,11 +56,36 @@ class MainWindow(QMainWindow):
         self.sidebar.dragEnterEvent = self._on_sidebar_drag_enter
         self.sidebar.dropEvent = self._on_sidebar_drop
 
-        # Placeholder
-        self.viewer.setPlaceholder(QLabel("Arraste um PDF aqui para começar"))
+        # Placeholder Premium
+        self._setup_placeholder()
 
         if initial_file:
             self.open_file(Path(initial_file))
+
+    def _setup_window_icon(self):
+        icon_path = Path(__file__).parents[3] / "docs" / "brand" / "logo.svg"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
+
+    def _setup_placeholder(self):
+        placeholder = QWidget()
+        vbox = QVBoxLayout(placeholder)
+        vbox.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        logo_label = QLabel()
+        icon_path = Path(__file__).parents[3] / "docs" / "brand" / "logo.svg"
+        if icon_path.exists():
+            pixmap = QIcon(str(icon_path)).pixmap(128, 128)
+            logo_label.setPixmap(pixmap)
+        
+        text_label = QLabel("fotonPDF\nArraste um documento para iniciar sua jornada")
+        text_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        text_label.setStyleSheet("font-size: 24px; color: #94A3B8; font-weight: 300;")
+        
+        vbox.addWidget(logo_label)
+        vbox.addWidget(text_label)
+        
+        self.viewer.setPlaceholder(placeholder)
 
     def _setup_toolbar(self):
         toolbar = QToolBar("Ferramentas")

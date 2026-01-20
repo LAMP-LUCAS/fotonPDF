@@ -11,6 +11,7 @@ AppName=fotonPDF
 AppVersion={#MyAppVersion}
 DefaultDirName={localappdata}\fotonPDF
 DefaultGroupName=fotonPDF
+SetupIconFile=docs\brand\logo.ico
 UninstallDisplayIcon={app}\foton.exe
 Compression=lzma2
 SolidCompression=yes
