@@ -25,12 +25,16 @@ Buscamos um equilíbrio entre a seriedade de ferramentas profissionais e a energ
 
 ---
 
-## 💎 O Logotipo (Conceito)
+## 💎 O Logotipo: "A Centelha da Informação"
 
-O logotipo funde dois elementos:
+O logotipo do **fotonPDF** não é apenas uma imagem, mas uma representação visual da velocidade e clareza da informação.
 
-1. **O Documento**: Uma base retangular ou folha estilizada.
-2. **O Fóton em Movimento**: Uma trilha de luz ou um feixe que atravessa e "ilumina" o documento.
+### Características Principais
+
+* **Equilíbrio e Coesão**: Introduzi uma moldura em diamante (um retângulo rotacionado a 45º) com baixa opacidade. Isso ancora o design e traz uma sensação de estrutura e precisão "gemológica" à informação.
+* **Velocidade Extrema**: Dois grandes feixes de luz (azul e ouro) cortam o espaço diagonalmente, convergindo para o centro. Suas espessuras generosas e gradientes de transparência transmitem a sensação de um rastro deixado por algo viajando na velocidade da luz.
+* **Iluminação Intensa**: O núcleo do fóton agora é maior e mais potente, com múltiplas camadas de brilho (aura, núcleo e ponto de ignição) para simbolizar o momento em que a informação se torna clara e compreensível.
+* **Preenchimento Visual**: O design utiliza melhor as bordas e os cantos do ícone, garantindo que ele seja facilmente reconhecível mesmo em tamanhos pequenos (como no menu de contexto ou atalhos).
 
 ---
-*fotonPDF: Iluminando sua produtividade.*
+*fotonPDF: Iluminando sua produtividade através da velocidade da luz.*
