@@ -41,6 +41,14 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
 4. O `UseCase` solicita ao `PyMuPDFAdapter` (via porta) que execute a rotação.
 5. O arquivo é salvo e uma notificação de sistema é disparada.
 
+## 📦 Infraestrutura de Distribuição
+
+A arquitetura do fotonPDF se estende além do código rodando na máquina:
+
+- **Build Pipeline (GitHub Actions)**: Garante builds reprodutíveis e validação de paridade de versão.
+- **Integridade (Code Signing)**: Camada de segurança que assina os binários gerados.
+- **Encapsulamento (Inno Setup)**: Abstrai a complexidade da instalação do Windows para uma experiência de clique único.
+
 ## 🔗 Veja Também
 
 - [[DEVELOPMENT|Workflow e Padrões]]

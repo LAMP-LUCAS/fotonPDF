@@ -32,8 +32,9 @@ Para lançar uma nova versão oficial do sistema:
 
 1. **Tag**: Crie uma tag Git seguindo o padrão semântico (ex: `git tag v1.1.0` e `git push --tags`).
 2. **Build Automático**: O GitHub detecta a tag e inicia o build.
-3. **Assinatura & Setup**: O servidor compila o código, gera o instalador e aplica a assinatura digital.
-4. **Entrega**: Uma página de **Release** é criada automaticamente com o arquivo `.exe` pronto para download.
+3. **Validação do Centro de Verdade**: O sistema verifica se a versão definida em `src/__init__.py` coincide exatamente com a Tag criada. Se houver divergência, o build é cancelado para evitar erros.
+4. **Build, Assinatura & Setup**: O servidor compila o código, gera o instalador (injetando a versão dinamicamente) e aplica a assinatura digital.
+5. **Entrega**: Uma página de **Release** é criada automaticamente com o arquivo `.exe` pronto para download.
 
 ---
 
@@ -47,14 +48,18 @@ Para manter o projeto "User-Friendly" e organizado:
 
 ---
 
-## 🚀 Como lançar uma nova versão rápida?
+## 🚀 Como lançar uma nova versão corretamente?
 
-Se você terminou uma feature e quer entregar ao usuário:
+Para garantir que o pipeline funcione sem erros, siga esta ordem:
 
-1. Garanta que o código está na `main`.
-2. No terminal: `git tag v1.X.X` (substitua pelo número correto).
-3. Execute: `git push origin --tags`.
-4. Aguarde 5-10 minutos e verifique a aba **Releases** no GitHub.
+1. **Atualize a Versão**: Mude o valor de `__version__` em `src/__init__.py` (ex: "1.2.0").
+2. **Commit**: Faça o commit dessa alteração (ex: `chore: bump version to 1.2.0`).
+3. **Tag**: No terminal, crie a tag idêntica: `git tag v1.2.0`.
+4. **Push**: Envie a tag para o GitHub: `git push origin --tags`.
+5. **Aguarde**: O pipeline irá validar a paridade, compilar e gerar a Release automaticamente.
+
+> [!IMPORTANT]
+> Se a tag for diferente da versão no código, o GitHub Actions falhará e a release não será publicada.
 
 ---
 *fotonPDF - De desenvolvedores para produtividade máxima.*
