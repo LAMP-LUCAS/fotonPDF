@@ -8,18 +8,27 @@ from pathlib import Path
 from datetime import datetime
 
 
-def get_log_path() -> Path:
+def get_log_path() -> Path | None:
     """Retorna o caminho do arquivo de log."""
-    if getattr(sys, 'frozen', False):
-        # Executável: log na mesma pasta do .exe
-        base_path = Path(sys.executable).parent
-    else:
-        # Desenvolvimento: log na raíz do projeto
-        base_path = Path(__file__).parents[3]
-    
-    log_dir = base_path / "logs"
-    log_dir.mkdir(exist_ok=True)
-    return log_dir / "fotonpdf.log"
+    # Evitar criação de log durante o build do PyInstaller ou se solicitado
+    import os
+    if os.environ.get('PYINSTALLER_BUILD') == '1':
+        return None
+
+    try:
+        if getattr(sys, 'frozen', False):
+            # Executável: log na mesma pasta do .exe
+            base_path = Path(sys.executable).parent
+        else:
+            # Desenvolvimento: log na raíz do projeto
+            # src/infrastructure/services/logger.py -> src/infrastructure/services -> src/infrastructure -> src -> project_root
+            base_path = Path(__file__).parents[3]
+        
+        log_dir = base_path / "logs"
+        log_dir.mkdir(exist_ok=True)
+        return log_dir / "fotonpdf.log"
+    except Exception:
+        return None
 
 
 def setup_logger() -> logging.Logger:
@@ -34,14 +43,19 @@ def setup_logger() -> logging.Logger:
     
     # Handler para arquivo
     log_path = get_log_path()
-    file_handler = logging.FileHandler(log_path, encoding='utf-8')
-    file_handler.setLevel(logging.DEBUG)
-    file_format = logging.Formatter(
-        '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    file_handler.setFormatter(file_format)
-    logger.addHandler(file_handler)
+    if log_path:
+        try:
+            file_handler = logging.FileHandler(log_path, encoding='utf-8')
+            file_handler.setLevel(logging.DEBUG)
+            file_format = logging.Formatter(
+                '%(asctime)s | %(levelname)-8s | %(name)s | %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
+            file_handler.setFormatter(file_format)
+            logger.addHandler(file_handler)
+        except Exception:
+            # Se não conseguir criar o arquivo de log, continuamos apenas com console
+            pass
     
     # Handler para console (apenas erros)
     console_handler = logging.StreamHandler()
