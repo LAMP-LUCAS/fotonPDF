@@ -24,7 +24,15 @@ pie title Cobertura da Documentação
 | **Sprint 5 - Distribuição 2.0** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
 | **Geral - Automação CI/CD** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
 | **Geral - Identidade Visual** | 🟢 Completo | ████████████ 100% | 19/01/2026 ✅ |
-| **Sprint 6 - Inteligência de Busca** | 🟡 Em Progresso | ▓▓▓░░░░░░░░░ 25% | 25/02/2026 |
+| **Sprint 6 - Inteligência de Busca** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
+
+### Sprint 6 (Concluído) ✅
+
+- [x] Motor de busca indexado (PyMuPDF) 🔍
+- [x] Painel Lateral de Resultados com Snippets 📋
+- [x] Sumário (Bookmarks) Hierárquico 📍
+- [x] Histórico de Navegação Avançar/Voltar ⬅️➡️
+- [x] Atalho Global `Ctrl+F` ⚡
 
 ### Sprint 3 (Concluído) ✅
 
@@ -140,7 +148,7 @@ graph LR
 
 ---
 
-**Última atualização:** 2026-01-19  
-**Próxima revisão:** Final da Sprint 6 (Busca & Navegação)
+**Última atualização:** 2026-01-20  
+**Próxima revisão:** Final da Sprint 7 (OCR & Camada de Texto)
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]

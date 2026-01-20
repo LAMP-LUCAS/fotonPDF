@@ -1,13 +1,14 @@
 from pathlib import Path
 import fitz
 from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from src.interfaces.gui.widgets.page_widget import PageWidget
 from src.infrastructure.services.logger import log_debug, log_warning
 from src.interfaces.gui.state.render_engine import RenderEngine
 
 class PDFViewerWidget(QScrollArea):
     """Visualizador que suporta documentos virtuais (múltiplas fontes)."""
+    pageChanged = pyqtSignal(int)
 
     def __init__(self):
         super().__init__()
@@ -28,6 +29,7 @@ class PDFViewerWidget(QScrollArea):
         self._panning = False
         self._last_mouse_pos = None
         self._placeholder = None
+        self._last_emitted_page = -1
 
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
 
@@ -92,6 +94,12 @@ class PDFViewerWidget(QScrollArea):
             pos = page.pos().y()
             if pos < viewport_bottom + buffer and pos + page.height() > viewport_top - buffer:
                 page.render_page(zoom=self._zoom)
+
+        # Emitir mudança de página se necessário
+        current_idx = self.get_current_page_index()
+        if current_idx != self._last_emitted_page:
+            self._last_emitted_page = current_idx
+            self.pageChanged.emit(current_idx)
 
     def set_zoom(self, zoom: float):
         self._zoom = max(0.1, min(zoom, 10.0))

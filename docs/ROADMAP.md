@@ -28,7 +28,7 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 Para o detalhamento das tarefas, veja: [[SPRINTS|🏃 Gerenciamento de Sprints]]
 
 - **Sprint 5: Distribuição 2.0 & Inteligência de Onboarding** [x] 100%
-- **Sprint 6: Busca & Navegação** [/] 25%
+- **Sprint 6: Busca & Navegação** [x] 100%
 - **Sprint 7: OCR & Camada de Texto** [ ] 0%
 
 ---

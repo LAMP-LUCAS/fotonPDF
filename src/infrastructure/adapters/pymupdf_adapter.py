@@ -149,3 +149,38 @@ class PyMuPDFAdapter(PDFOperationsPort):
                 
             final_output.write_text(full_text, encoding="utf-8")
         return final_output
+
+    def search_text(self, pdf_path: Path, query: str) -> list:
+        """Busca textual com localização e extração de contexto via PyMuPDF."""
+        from src.domain.entities.navigation import SearchResult
+        results = []
+        
+        with fitz.open(str(pdf_path)) as doc:
+            for i, page in enumerate(doc):
+                # Busca por ocorrências (usando quadras para precisão visual)
+                hits = page.search_for(query)
+                if hits:
+                    # Tenta extrair um pequeno contexto ao redor do primeiro hit da página
+                    # para mostrar no painel lateral.
+                    text = page.get_text("text")
+                    start_idx = text.lower().find(query.lower())
+                    snippet = text[max(0, start_idx-30):min(len(text), start_idx+len(query)+30)]
+                    snippet = snippet.replace("\n", " ").strip()
+                    if start_idx > 30: snippet = "..." + snippet
+                    if start_idx + len(query) + 30 < len(text): snippet = snippet + "..."
+
+                    results.append(SearchResult(
+                        page_index=i,
+                        text_snippet=snippet,
+                        highlights=[(h.x0, h.y0, h.x1, h.y1) for h in hits]
+                    ))
+        return results
+
+    def get_toc(self, pdf_path: Path) -> list:
+        """Retorna a árvore de sumário formatada."""
+        from src.domain.entities.navigation import TOCItem
+        
+        with fitz.open(str(pdf_path)) as doc:
+            toc_data = doc.get_toc() # [level, title, page, ...]
+            # PyMuPDF TOC page is 1-based, converting to 0-based for standard
+            return [TOCItem(level=item[0], title=item[1], page_index=item[2]-1) for item in toc_data]

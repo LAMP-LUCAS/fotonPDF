@@ -22,11 +22,7 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 
 ### Sprint 7: OCR & Camada de Texto (A Visão Fóton) 🏗️
 
-- **Objetivo:** Dar inteligência a documentos baseados em imagens.
-- [ ] **Integração OCR:** Adicionar motor OCR (Tesseract ou similar) como plugin/dependência.
-- [ ] **Reconhecimento Automático:** Detectar PDFs sem camada de texto e sugerir OCR.
-- [ ] **Camada de Texto Invisível:** Gerar e injetar texto pesquisável sobre PDFs escaneados.
-- [ ] **Extração Inteligente:** Copiar texto de áreas selecionadas, mesmo em imagens (OCR on-demand).
+*(Agora a Sprint Atual)*
 
 ### Sprint 8: UI Evolution & Modo Profissional 💎
 
@@ -41,6 +37,15 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 ## 📅 Histórico de Sprints Concluídas
 
 ### Fase 2: Interface & Funcionalidade
+
+#### Sprint 6: Inteligência de Busca & Navegação ✅
+
+- [x] **Engine de Busca:** Motor indexado PyMuPDF para localização instantânea.
+- [x] **UI de Busca:** Painel lateral com snippets e navegação por clique.
+- [x] **Highlights Visuais:** Destaque automático de termos encontrados no viewer.
+- [x] **Sumário (Bookmarks):** Árvore hierárquica completa para navegação rápida.
+- [x] **Histórico "Back/Forward":** Navegação intuitiva entre saltos de página.
+- [x] **Shortcuts:** `Ctrl+F` integrado para acesso rápido à busca.
 
 #### Sprint 6: Evolução UI & Conversão (Premium) ✅
 

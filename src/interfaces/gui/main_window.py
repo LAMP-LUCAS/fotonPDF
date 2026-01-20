@@ -1,17 +1,20 @@
-import sys
-import fitz
-from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-                             QFileDialog, QStatusBar, QToolBar, QLabel)
-from PyQt6.QtGui import QAction, QIcon, QDragEnterEvent, QDropEvent
+                             QFileDialog, QStatusBar, QToolBar, QLabel, QTabWidget)
+from PyQt6.QtGui import QAction, QIcon, QDragEnterEvent, QDropEvent, QKeySequence
 from PyQt6.QtCore import Qt, QSize
 
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.widgets.thumbnail_panel import ThumbnailPanel
+from src.interfaces.gui.widgets.search_panel import SearchPanel
+from src.interfaces.gui.widgets.toc_panel import TOCPanel
+
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
 from src.application.use_cases.export_image import ExportImageUseCase
 from src.application.use_cases.export_svg import ExportSVGUseCase
 from src.application.use_cases.export_markdown import ExportMarkdownUseCase
+from src.application.use_cases.search_text import SearchTextUseCase
+from src.application.use_cases.get_toc import GetTOCUseCase
+
 from src.infrastructure.services.logger import log_debug, log_exception
 from src.interfaces.gui.styles import get_main_stylesheet
 from src.infrastructure.services.resource_service import ResourceService
@@ -29,12 +32,26 @@ class MainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
+        # Use Cases & Adapter
+        self._adapter = PyMuPDFAdapter()
+        self._search_use_case = SearchTextUseCase(self._adapter)
+        self._get_toc_use_case = GetTOCUseCase(self._adapter)
+
         # Components
-        self.sidebar = ThumbnailPanel()
         self.viewer = PDFViewerWidget()
+        self.sidebar = ThumbnailPanel()
+        self.toc_panel = TOCPanel(self._get_toc_use_case)
+        self.search_panel = SearchPanel(self._search_use_case)
+
+        # Sidebar with Tabs
+        self.sidebar_tabs = QTabWidget()
+        self.sidebar_tabs.setFixedWidth(300)
+        self.sidebar_tabs.addTab(self.sidebar, "Miniaturas")
+        self.sidebar_tabs.addTab(self.toc_panel, "Sumário")
+        self.sidebar_tabs.addTab(self.search_panel, "Busca")
         
         # Setup Layout
-        self.main_layout.addWidget(self.sidebar)
+        self.main_layout.addWidget(self.sidebar_tabs)
         self.main_layout.addWidget(self.viewer, stretch=1)
 
         # Apply Visual Identity
@@ -49,6 +66,9 @@ class MainWindow(QMainWindow):
         # State
         self.current_file = None
         self.state_manager = None
+        self.navigation_history = []
+        self.history_index = -1
+        self._is_navigating_history = False
         
         # Menu Contexto / Drag & Drop
         self.setAcceptDrops(True)
@@ -117,6 +137,18 @@ class MainWindow(QMainWindow):
         fit_height_action = QAction("Altura", self)
         fit_height_action.triggered.connect(self.viewer.fit_height)
         toolbar.addAction(fit_height_action)
+
+        toolbar.addSeparator()
+
+        self.back_action = QAction("⬅️ Voltar", self)
+        self.back_action.setEnabled(False)
+        self.back_action.triggered.connect(self._on_back_clicked)
+        toolbar.addAction(self.back_action)
+
+        self.forward_action = QAction("➡️ Avançar", self)
+        self.forward_action.setEnabled(False)
+        self.forward_action.triggered.connect(self._on_forward_clicked)
+        toolbar.addAction(self.forward_action)
 
         toolbar.addSeparator()
 
@@ -190,6 +222,17 @@ class MainWindow(QMainWindow):
     def _setup_connections(self):
         self.sidebar.pageSelected.connect(self.viewer.scroll_to_page)
         self.sidebar.orderChanged.connect(self._on_pages_reordered)
+        
+        # Novas conexões da Sprint 6
+        self.viewer.pageChanged.connect(self._on_page_changed)
+        self.search_panel.result_clicked.connect(self.viewer.scroll_to_page)
+        self.toc_panel.bookmark_clicked.connect(self.viewer.scroll_to_page)
+        
+        # Atalhos
+        self.search_shortcut = QAction("Search", self)
+        self.search_shortcut.setShortcut(QKeySequence("Ctrl+F"))
+        self.search_shortcut.triggered.connect(self._focus_search)
+        self.addAction(self.search_shortcut)
 
     def open_file(self, file_path: Path):
         try:
@@ -201,9 +244,18 @@ class MainWindow(QMainWindow):
             self.viewer.load_document(file_path)
             self.sidebar.load_thumbnails(str(file_path))
             
+            # Inicializar painéis da Sprint 6
+            self.toc_panel.set_pdf(file_path)
+            self.search_panel.set_pdf(file_path)
+            
             self.setWindowTitle(f"fotonPDF - {file_path.name}")
             self.statusBar().showMessage(f"Arquivo carregado: {file_path.name}")
             self._enable_actions(True)
+            
+            # Reset History
+            self.navigation_history = [0]
+            self.history_index = 0
+            self._update_history_buttons()
         except Exception as e:
             log_exception(f"MainWindow: Erro ao abrir: {e}")
             self.statusBar().showMessage(f"Erro: {e}")
@@ -214,6 +266,8 @@ class MainWindow(QMainWindow):
         self.rotate_left_action.setEnabled(enabled)
         self.rotate_right_action.setEnabled(enabled)
         self.extract_action.setEnabled(enabled)
+        self.back_action.setEnabled(enabled)
+        self.forward_action.setEnabled(enabled)
 
     def _on_save_clicked(self):
         """Sobrescreve o arquivo atual."""
@@ -368,6 +422,56 @@ class MainWindow(QMainWindow):
         if self.state_manager:
             self.state_manager.reorder_pages(new_order)
             self.viewer.reorder_pages(new_order)
+            # Reset history after reorder to avoid confusion
+            self.navigation_history = [self.viewer.get_current_page_index()]
+            self.history_index = 0
+            self._update_history_buttons()
+
+    def _focus_search(self):
+        """Atalho Ctrl+F: foca no painel de busca."""
+        self.sidebar_tabs.setCurrentIndex(2) # Aba de Busca
+        self.search_panel.search_input.setFocus()
+
+    def _on_page_changed(self, index: int):
+        """Chamado sempre que o viewer muda de página."""
+        if self._is_navigating_history:
+            return
+
+        # Só adiciona se for uma página diferente da atual no histórico
+        if not self.navigation_history or self.navigation_history[self.history_index] != index:
+            # Ao navegar para uma nova página, corta o futuro se houver
+            self.navigation_history = self.navigation_history[:self.history_index + 1]
+            self.navigation_history.append(index)
+            self.history_index += 1
+            
+            # Limitar tamanho do histórico
+            if len(self.navigation_history) > 50:
+                self.navigation_history.pop(0)
+                self.history_index -= 1
+                
+            self._update_history_buttons()
+
+    def _on_back_clicked(self):
+        if self.history_index > 0:
+            self._is_navigating_history = True
+            self.history_index -= 1
+            page = self.navigation_history[self.history_index]
+            self.viewer.scroll_to_page(page)
+            self._is_navigating_history = False
+            self._update_history_buttons()
+
+    def _on_forward_clicked(self):
+        if self.history_index < len(self.navigation_history) - 1:
+            self._is_navigating_history = True
+            self.history_index += 1
+            page = self.navigation_history[self.history_index]
+            self.viewer.scroll_to_page(page)
+            self._is_navigating_history = False
+            self._update_history_buttons()
+
+    def _update_history_buttons(self):
+        self.back_action.setEnabled(self.history_index > 0)
+        self.forward_action.setEnabled(self.history_index < len(self.navigation_history) - 1)
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):

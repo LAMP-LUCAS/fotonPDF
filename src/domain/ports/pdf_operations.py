@@ -45,3 +45,13 @@ class PDFOperationsPort(ABC):
     def export_to_markdown(self, pdf_path: Path, output_path: Path) -> Path:
         """Exporta o conteúdo textual do documento para Markdown."""
         pass
+
+    @abstractmethod
+    def search_text(self, pdf_path: Path, query: str) -> list:
+        """Busca texto em todas as páginas do PDF."""
+        pass
+
+    @abstractmethod
+    def get_toc(self, pdf_path: Path) -> list:
+        """Extrai o sumário (bookmarks) do PDF."""
+        pass
