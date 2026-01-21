@@ -1,3 +1,4 @@
+from pathlib import Path
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QFileDialog, QStatusBar, QToolBar, QLabel, QTabWidget)
 from PyQt6.QtGui import QAction, QIcon, QDragEnterEvent, QDropEvent, QKeySequence
@@ -23,6 +24,19 @@ from src.interfaces.gui.styles import get_main_stylesheet
 from src.infrastructure.services.resource_service import ResourceService
 from src.infrastructure.services.settings_service import SettingsService
 from src.application.use_cases.add_annotation import AddAnnotationUseCase
+from src.application.use_cases.get_document_metadata import GetDocumentMetadataUseCase
+
+def safe_callback(func):
+    """Decorador para garantir resiliência em callbacks da UI."""
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            from src.infrastructure.services.logger import log_exception
+            log_exception(f"UI Error Boundary [{func.__name__}]: {e}")
+            if hasattr(self, 'statusBar'):
+                self.statusBar().showMessage(f"⚠️ Erro em {func.__name__}: {e}")
+    return wrapper
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_file=None):
@@ -41,6 +55,7 @@ class MainWindow(QMainWindow):
         self._adapter = PyMuPDFAdapter()
         self._search_use_case = SearchTextUseCase(self._adapter)
         self._get_toc_use_case = GetTOCUseCase(self._adapter)
+        self._get_metadata_use_case = GetDocumentMetadataUseCase(self._adapter)
         self._detect_ocr_use_case = DetectTextLayerUseCase(self._adapter)
         self._apply_ocr_use_case = ApplyOCRUseCase(self._adapter)
         self._ocr_area_use_case = OCRAreaExtractionUseCase(self._adapter)
@@ -292,6 +307,8 @@ class MainWindow(QMainWindow):
 
         # --- GRUPO: INTELIGÊNCIA OCR ---
         toolbar.addWidget(QLabel("  🧠 "))
+        self.ocr_area_action = QAction("OCR p/ Área", self)
+        self.ocr_area_action.setCheckable(True)
         self.ocr_area_action.setEnabled(False)
         self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
         toolbar.addAction(self.ocr_area_action)
@@ -348,13 +365,21 @@ class MainWindow(QMainWindow):
 
     def open_file(self, file_path: Path):
         try:
+            # Segurança: Sanitize Path
+            file_path = Path(file_path).resolve()
+            if not file_path.exists():
+                raise FileNotFoundError(f"Arquivo não encontrado: {file_path}")
+
             self.current_file = file_path
             from src.interfaces.gui.state.pdf_state import PDFStateManager
             self.state_manager = PDFStateManager()
             self.state_manager.load_base_document(str(file_path))
             
-            self.viewer.load_document(file_path)
-            self.sidebar.load_thumbnails(str(file_path))
+            # Obter metadados via Caso de Uso (Arquitetura Hexagonal)
+            metadata = self._get_metadata_use_case.execute(file_path)
+            
+            self.viewer.load_document(file_path, metadata)
+            self.sidebar.load_thumbnails(str(file_path), metadata["page_count"])
             SettingsService.instance().set("last_file", str(file_path))
             
             # Inicializar painéis da Sprint 6
@@ -387,6 +412,7 @@ class MainWindow(QMainWindow):
         # Habilitar OCR se o motor existir
         self.ocr_area_action.setEnabled(enabled and self._adapter.is_engine_available())
 
+    @safe_callback
     def _on_save_clicked(self):
         """Sobrescreve o arquivo atual."""
         if not self.state_manager or not self.current_file: return
@@ -396,6 +422,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao salvar: {e}")
 
+    @safe_callback
     def _on_save_as_clicked(self):
         """Salva o estado atual em um novo local."""
         if not self.state_manager: return
@@ -404,6 +431,7 @@ class MainWindow(QMainWindow):
             self.state_manager.save(file_path)
             self.statusBar().showMessage(f"Salvo como: {Path(file_path).name}")
 
+    @safe_callback
     def _on_extract_clicked(self):
         """Salva as páginas selecionadas em um novo arquivo."""
         if not self.state_manager: return
@@ -422,6 +450,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao extrair: {e}")
 
+    @safe_callback
     def _on_export_image_clicked(self, fmt: str):
         """Exporta a página atual como imagem (High-DPI)."""
         if not self.state_manager: return
@@ -453,6 +482,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Erro ao exportar imagem: {e}")
             log_exception(f"Export: {e}")
 
+    @safe_callback
     def _on_export_svg_clicked(self):
         """Exporta a página atual como SVG."""
         if not self.state_manager: return
@@ -474,6 +504,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar SVG: {e}")
 
+    @safe_callback
     def _on_export_md_clicked(self):
         """Exporta o conteúdo do documento como Markdown."""
         if not self.state_manager: return
@@ -505,22 +536,34 @@ class MainWindow(QMainWindow):
         for f in files:
             self._append_pdf(Path(f))
 
+    @safe_callback
     def _append_pdf(self, path: Path):
         """Implementação do Merge 2.0 (Incremental)."""
-        if not self.state_manager:
-            self.open_file(path)
-            return
-
         try:
+            # Segurança: Sanitize Path
+            path = Path(path).resolve()
+            if not path.exists():
+                return
+
+            if not self.state_manager:
+                self.open_file(path)
+                return
+
+            metadata = self._get_metadata_use_case.execute(path)
             self.state_manager.append_document(str(path))
             # Atualizar viewer e sidebar instantaneamente
-            self.viewer.add_pages(path)
-            self.sidebar.append_thumbnails(str(path))
-            self.statusBar().showMessage(f"Anexado: {path.name}")
+            self.viewer.add_pages(path, metadata)
+            self.sidebar.append_thumbnails(str(path), metadata["page_count"])
+            self.statusBar().showMessage(f"Adicionado: {path.name}")
         except Exception as e:
             log_exception(f"MainWindow: Erro ao anexar: {e}")
+            self.statusBar().showMessage(f"Erro ao anexar arquivo: {e}")
 
+    @safe_callback
     def _on_rotate_clicked(self, degrees: int):
+        # Segurança: Sanitize Path
+        if self.current_file:
+            self.current_file = self.current_file.resolve()
         # Agora usamos as linhas VISUAIS
         selected_rows = self.sidebar.get_selected_rows()
         if not selected_rows:
@@ -605,6 +648,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             log_exception(f"OCR Detection: {e}")
 
+    @safe_callback
     def _on_apply_ocr_clicked(self):
         """Executa o OCR no documento inteiro."""
         if not self.current_file: return

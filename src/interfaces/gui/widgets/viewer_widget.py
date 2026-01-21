@@ -1,5 +1,4 @@
 from pathlib import Path
-import fitz
 from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from src.interfaces.gui.widgets.page_widget import PageWidget
@@ -13,9 +12,6 @@ class PDFViewerWidget(QScrollArea):
     def __init__(self):
         super().__init__()
         self.setWidgetResizable(True)
-        self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet("background-color: #1e1e1e;") 
-        
         self.container = QWidget()
         self.layout = QVBoxLayout(self.container)
         self.layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -23,80 +19,72 @@ class PDFViewerWidget(QScrollArea):
         self.layout.setContentsMargins(40, 40, 40, 40)
         
         self.setWidget(self.container)
-        self._doc = None # Usado apenas para metadados/layout da 1ª página
-        self._pages = []
-        self._zoom = 1.0
-        self._panning = False
-        self._last_mouse_pos = None
-        self._placeholder = None
-        self._last_emitted_page = -1
-        self._mode = "default"
-        self._layout_mode = "single" # "single" ou "dual"
+        self.container.setStyleSheet("background-color: #1e1e1e;")
         
-        # Area Selection (Sprint 7)
+        self._pages: list[PageWidget] = []
+        self._page_sizes: list[tuple[float, float]] = [] # Armazena (w, h) de cada página original
+        self._zoom = 1.0
+        self._mode = "default"
+        self._layout_mode = "single"
+        self._last_emitted_page = -1
+
+        # Controle de renderização em lote
+        self.verticalScrollBar().valueChanged.connect(self.check_visibility)
+        
+        # Área de Seleção (OCR/Anotações)
         self._selection_mode = False
         self._selecting = False
         self._selection_start = None
         self._selection_rect = None
-        self._selection_overlay = None # Widget visual para o retângulo
-        
-        self.verticalScrollBar().valueChanged.connect(self.check_visibility)
+        self._selection_overlay = None
 
     def clear(self):
         """Limpa o visualizador e encerra processos pendentes."""
-        RenderEngine.instance().cancel_all()
-        if self._doc:
-            self._doc.close()
-            self._doc = None
-            
+        RenderEngine.instance().clear_queue()
         while self.layout.count():
             child = self.layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
-        self._pages = []
+        self._pages.clear()
+        self._page_sizes.clear()
+        self._last_emitted_page = -1
 
     def setPlaceholder(self, widget: QWidget):
-        if self._placeholder: self._placeholder.deleteLater()
-        self._placeholder = widget
+        self.clear()
         self.layout.addWidget(widget)
 
-    def load_document(self, path: Path):
-        """Inicializa o visualizador com um arquivo."""
+    def load_document(self, path: Path, metadata: dict):
+        """Inicializa o visualizador com um arquivo e seus metadados."""
         self.clear()
-        if self._placeholder: self._placeholder.hide()
-        
-        self.add_pages(path)
-        self.verticalScrollBar().setValue(0)
-        QTimer.singleShot(200, self._initial_render)
-        
-        # Manter doc principal para cálculos de "fit"
-        self._doc = fitz.open(str(path))
-        return self._doc
+        self.add_pages(path, metadata)
 
-    def add_pages(self, path: Path):
+    def add_pages(self, path: Path, metadata: dict):
         """Adiciona páginas de um novo documento sem resetar."""
-        path_str = str(path)
-        temp_doc = fitz.open(path_str)
-        num_pages = len(temp_doc)
+        page_count = metadata.get("page_count", 0)
+        page_info = metadata.get("pages", [])
         
-        log_debug(f"Viewer: Adicionando {num_pages} páginas de {path.name}")
-        
-        for i in range(num_pages):
-            page_widget = PageWidget(path_str, i)
+        for i in range(page_count):
+            page_widget = PageWidget(str(path), i)
             self.layout.addWidget(page_widget)
             self._pages.append(page_widget)
             
-        temp_doc.close()
-        self.check_visibility()
+            # Armazenar tamanho original para cálculos de zoom/fit
+            if i < len(page_info):
+                self._page_sizes.append(page_info[i])
+            else:
+                self._page_sizes.append((595.0, 842.0)) # Fallback A4
+        
+        QTimer.singleShot(100, self._initial_render)
 
     def _initial_render(self):
-        self.fit_width()
         self.check_visibility()
 
     def check_visibility(self):
         """Solicita renderização das páginas que entram no viewport."""
         viewport_top = self.verticalScrollBar().value()
-        viewport_bottom = viewport_top + self.height()
+        viewport_bottom = viewport_top + self.viewport().height()
+        
+        # Margem de segurança (buffer) para carregar páginas um pouco antes de entrarem
         buffer = 1200 
         
         for page in self._pages:
@@ -129,27 +117,26 @@ class PDFViewerWidget(QScrollArea):
     def fit_width(self):
         if not self._pages: return
         idx = self.get_current_page_index()
-        target_page = self._pages[idx]
         
-        # Obter largura original da página específica
-        doc = fitz.open(target_page.source_path)
-        page_rect = doc[target_page.source_index].rect
-        doc.close()
+        if idx < len(self._page_sizes):
+            orig_w, _ = self._page_sizes[idx]
+        else:
+            orig_w = 595.0
 
         available_width = self.viewport().width() - 80 # Margens
-        self.set_zoom(available_width / page_rect.width)
+        self.set_zoom(available_width / orig_w)
 
     def fit_height(self):
         if not self._pages: return
         idx = self.get_current_page_index()
-        target_page = self._pages[idx]
         
-        doc = fitz.open(target_page.source_path)
-        page_rect = doc[target_page.source_index].rect
-        doc.close()
+        if idx < len(self._page_sizes):
+            _, orig_h = self._page_sizes[idx]
+        else:
+            orig_h = 842.0
 
         available_height = self.viewport().height() - 80
-        self.set_zoom(available_height / page_rect.height)
+        self.set_zoom(available_height / orig_h)
 
     def real_size(self): self.set_zoom(1.0)
 

@@ -1,10 +1,9 @@
 from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt6.QtGui import QIcon, QPixmap, QImage
 from PyQt6.QtCore import QSize, pyqtSignal, Qt
-import fitz
 
 class ThumbnailPanel(QListWidget):
-    """Painel lateral com suporte a adição incremental de miniaturas."""
+    """Painel lateral com suporte a exibição de miniaturas via sinal externo."""
     pageSelected = pyqtSignal(int)
     orderChanged = pyqtSignal(list)
 
@@ -36,36 +35,39 @@ class ThumbnailPanel(QListWidget):
         super().dropEvent(event)
         new_order = []
         for i in range(self.count()):
-            # O UserRole agora deve mapear para o índice VISUAL na lista de widgets do Viewer
-            # Na verdade, o 'reorder' do MainWindow recebe índices visuais (0, 1, 2...)
-            # Então apenas emitimos a lista de UserRoles que inserimos.
             new_order.append(self.item(i).data(Qt.ItemDataRole.UserRole))
         self.orderChanged.emit(new_order)
 
-    def load_thumbnails(self, path: str):
+    def load_thumbnails(self, path: str, page_count: int):
+        """Limpa e inicia o carregamento de novas miniaturas."""
         self.clear()
-        self.append_thumbnails(path)
+        self.append_thumbnails(path, page_count)
 
-    def append_thumbnails(self, path: str):
-        """Adiciona miniaturas de um documento ao final da lista."""
-        doc = fitz.open(path)
+    def append_thumbnails(self, path: str, page_count: int):
+        """Adiciona placeholders de miniaturas. O carregamento real deve ser assíncrono via MainWindow/RenderEngine."""
         start_idx = self.count()
         
-        for i in range(len(doc)):
-            page = doc.load_page(i)
-            pix = page.get_pixmap(matrix=fitz.Matrix(0.2, 0.2), alpha=False)
-            
-            img = QImage(pix.samples, pix.width, pix.height, pix.stride, QImage.Format.Format_RGB888)
-            
-            # O UserRole armazena o índice ABSOLUTO na lista de páginas atual
-            # (que corresponde à ordem em que foram adicionadas inicialmente)
+        for i in range(page_count):
             absolute_idx = start_idx + i
             item = QListWidgetItem(f"Página {absolute_idx + 1}")
-            item.setIcon(QIcon(QPixmap.fromImage(img)))
+            # Placeholder inicial
             item.setData(Qt.ItemDataRole.UserRole, absolute_idx)
             self.addItem(item)
             
-        doc.close()
+            # Solicitar renderização da miniatura via RenderEngine (Zoom baixo)
+            from src.interfaces.gui.state.render_engine import RenderEngine
+            RenderEngine.instance().request_render(
+                path, 
+                i, 
+                0.2, 
+                0, 
+                lambda p_idx, pix, z, r, m, it=item: self._on_thumbnail_ready(it, pix)
+            )
+
+    def _on_thumbnail_ready(self, item, pixmap):
+        """Callback para atualizar o ícone do item quando a renderização termina."""
+        if item:
+            item.setIcon(QIcon(pixmap))
 
     def _on_item_clicked(self, item):
         # Emite o índice visual atual para scroll

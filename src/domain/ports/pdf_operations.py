@@ -60,3 +60,13 @@ class PDFOperationsPort(ABC):
     def add_annotation(self, pdf_path: Path, page_index: int, rect: tuple, type: str = "highlight", color: tuple = (1, 1, 0)) -> Path:
         """Adiciona uma anotação (realce/sublinhado) em uma área específica e salva."""
         pass
+
+    @abstractmethod
+    def get_document_metadata(self, pdf_path: Path) -> dict:
+        """Retorna metadados técnicos do documento (número de páginas, dimensões das páginas, etc.)."""
+        pass
+
+    @abstractmethod
+    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
+        """Renderiza uma página e retorna (bytes, width, height, stride)."""
+        pass

@@ -216,6 +216,30 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         doc.close()
         return output_path
 
+    def get_document_metadata(self, pdf_path: Path) -> dict:
+        """Extrai metadados técnicos (páginas, dimensões) via PyMuPDF."""
+        metadata = {
+            "page_count": 0,
+            "pages": [] # list of (width, height)
+        }
+        with fitz.open(str(pdf_path)) as doc:
+            metadata["page_count"] = doc.page_count
+            for page in doc:
+                rect = page.rect
+                metadata["pages"].append((rect.width, rect.height))
+        return metadata
+
+    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
+        """Renderiza uma página e retorna (bytes, width, height, stride)."""
+        with fitz.open(str(pdf_path)) as doc:
+            page = doc.load_page(page_index)
+            mat = fitz.Matrix(zoom, zoom)
+            if rotation != 0:
+                mat.prerotate(rotation)
+            
+            pix = page.get_pixmap(matrix=mat, alpha=False)
+            return (pix.samples, pix.width, pix.height, pix.stride)
+
     def has_text_layer(self, pdf_path: Path) -> bool:
         """
         Verifica se o PDF tem camada de texto. 
