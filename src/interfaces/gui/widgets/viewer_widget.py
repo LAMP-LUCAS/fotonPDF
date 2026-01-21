@@ -30,6 +30,8 @@ class PDFViewerWidget(QScrollArea):
         self._last_mouse_pos = None
         self._placeholder = None
         self._last_emitted_page = -1
+        self._mode = "default"
+        self._layout_mode = "single" # "single" ou "dual"
         
         # Area Selection (Sprint 7)
         self._selection_mode = False
@@ -100,7 +102,7 @@ class PDFViewerWidget(QScrollArea):
         for page in self._pages:
             pos = page.pos().y()
             if pos < viewport_bottom + buffer and pos + page.height() > viewport_top - buffer:
-                page.render_page(zoom=self._zoom)
+                page.render_page(zoom=self._zoom, mode=self._mode)
 
         # Emitir mudança de página se necessário
         current_idx = self.get_current_page_index()
@@ -154,7 +156,70 @@ class PDFViewerWidget(QScrollArea):
     def refresh_page(self, visual_idx: int, rotation: int = 0):
         """Força a renderização de uma página específica pela sua posição atual."""
         if 0 <= visual_idx < len(self._pages):
-            self._pages[visual_idx].render_page(zoom=self._zoom, rotation=rotation)
+            self._pages[visual_idx].render_page(zoom=self._zoom, rotation=rotation, mode=self._mode)
+
+    def set_reading_mode(self, mode: str):
+        """Redetalha todas as páginas com o novo filtro de cor."""
+        if self._mode == mode: return
+        self._mode = mode
+        log_debug(f"Viewer: Alterando modo de leitura para {mode}")
+        
+        # Atualizar cor de fundo do container baseado no modo
+        bg_colors = {
+            "default": "#1e1e1e",
+            "dark": "#0B0F19",
+            "sepia": "#F4ECD8",
+            "night": "#050505"
+        }
+        self.container.setStyleSheet(f"background-color: {bg_colors.get(mode, '#1e1e1e')};")
+        
+        for page in self._pages:
+            page.render_page(mode=self._mode)
+
+    def set_layout_mode(self, mode: str):
+        """Altera o layout entre página única ou lado-a-lado."""
+        if self._layout_mode == mode: return
+        self._layout_mode = mode
+        log_debug(f"Viewer: Alterando layout para {mode}")
+        
+        # Desconectar para evitar loops durante re-layout
+        try:
+            self.verticalScrollBar().valueChanged.disconnect(self.check_visibility)
+        except Exception:
+            pass
+        
+        if mode == "dual":
+            # Grid layout com 2 colunas
+            from PyQt6.QtWidgets import QGridLayout
+            new_layout = QGridLayout(self.container)
+            new_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            new_layout.setSpacing(30)
+            new_layout.setContentsMargins(40, 40, 40, 40)
+            
+            for i, page in enumerate(self._pages):
+                new_layout.addWidget(page, i // 2, i % 2)
+        else:
+            # Vertical layout padrão
+            new_layout = QVBoxLayout(self.container)
+            new_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            new_layout.setSpacing(30)
+            new_layout.setContentsMargins(40, 40, 40, 40)
+            
+            for page in self._pages:
+                new_layout.addWidget(page)
+
+        # Trocar o layout antigo pelo novo
+        old_layout = self.layout
+        self.layout = new_layout
+        
+        # No PyQt6, para trocar o layout, precisamos deletar o antigo
+        import sip
+        if old_layout:
+            sip.delete(old_layout)
+        
+        self.container.setLayout(new_layout)
+        self.verticalScrollBar().valueChanged.connect(self.check_visibility)
+        self.check_visibility()
 
     areaSelected = pyqtSignal(int, tuple) # page_index, (x0, y0, x1, y1) em pontos PDF
 

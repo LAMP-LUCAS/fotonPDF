@@ -21,6 +21,8 @@ from src.application.use_cases.ocr_area_extraction import OCRAreaExtractionUseCa
 from src.infrastructure.services.logger import log_debug, log_exception
 from src.interfaces.gui.styles import get_main_stylesheet
 from src.infrastructure.services.resource_service import ResourceService
+from src.infrastructure.services.settings_service import SettingsService
+from src.application.use_cases.add_annotation import AddAnnotationUseCase
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_file=None):
@@ -42,6 +44,7 @@ class MainWindow(QMainWindow):
         self._detect_ocr_use_case = DetectTextLayerUseCase(self._adapter)
         self._apply_ocr_use_case = ApplyOCRUseCase(self._adapter)
         self._ocr_area_use_case = OCRAreaExtractionUseCase(self._adapter)
+        self._add_annot_use_case = AddAnnotationUseCase(self._adapter)
 
         # Components
         self.viewer = PDFViewerWidget()
@@ -116,8 +119,42 @@ class MainWindow(QMainWindow):
         # Placeholder Premium
         self._setup_placeholder()
 
+        # Carregar configurações iniciais
+        self._load_settings()
+
         if initial_file:
             self.open_file(Path(initial_file))
+        elif (last := SettingsService.instance().get("last_file")):
+             if Path(last).exists():
+                 self.open_file(Path(last))
+
+    def _load_settings(self):
+        """Aplica preferências salvas do usuário."""
+        settings = SettingsService.instance()
+        
+        # Modo de Leitura
+        mode = settings.get("reading_mode", "default")
+        self.viewer.set_reading_mode(mode)
+        
+        # Layout
+        is_dual = settings.get_bool("dual_view", False)
+        if is_dual:
+            self.layout_action.setChecked(True)
+            self.viewer.set_layout_mode("dual")
+            
+        # Zoom (Padrão 1.5 para conforto se for o primeiro boot)
+        zoom = settings.get_float("zoom", 1.5)
+        self.viewer.set_zoom(zoom)
+
+    def closeEvent(self, event):
+        """Salva o estado ao fechar."""
+        settings = SettingsService.instance()
+        settings.set("reading_mode", self.viewer._mode)
+        settings.set("dual_view", self.viewer._layout_mode == "dual")
+        settings.set("zoom", self.viewer._zoom)
+        if self.current_file:
+            settings.set("last_file", str(self.current_file))
+        super().closeEvent(event)
 
     def _setup_window_icon(self):
         icon_path = ResourceService.get_logo_ico()
@@ -255,11 +292,38 @@ class MainWindow(QMainWindow):
 
         # --- GRUPO: INTELIGÊNCIA OCR ---
         toolbar.addWidget(QLabel("  🧠 "))
-        self.ocr_area_action = QAction("Extrair Área (OCR)", self)
-        self.ocr_area_action.setCheckable(True)
         self.ocr_area_action.setEnabled(False)
         self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
         toolbar.addAction(self.ocr_area_action)
+
+        toolbar.addSeparator()
+
+        # --- GRUPO: VISUALIZAÇÃO ---
+        toolbar.addWidget(QLabel("  👁️ "))
+        
+        # Reading Modes (Dropdown)
+        reading_mode_btn = QToolButton()
+        reading_mode_btn.setText("Modo de Leitura")
+        rm_menu = QMenu(self)
+        rm_menu.addAction("Padrão").triggered.connect(lambda: self.viewer.set_reading_mode("default"))
+        rm_menu.addAction("Sépia").triggered.connect(lambda: self.viewer.set_reading_mode("sepia"))
+        rm_menu.addAction("Noturno").triggered.connect(lambda: self.viewer.set_reading_mode("dark"))
+        rm_menu.addAction("Madrugada (Extra Dark)").triggered.connect(lambda: self.viewer.set_reading_mode("night"))
+        
+        reading_mode_btn.setMenu(rm_menu)
+        reading_mode_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        toolbar.addWidget(reading_mode_btn)
+
+        # Layout Mode (Dual View)
+        self.layout_action = QAction("Lado a Lado", self)
+        self.layout_action.setCheckable(True)
+        self.layout_action.triggered.connect(self._on_layout_toggled)
+        toolbar.addAction(self.layout_action)
+
+        self.highlight_action = QAction("Realçar (Highlight)", self)
+        self.highlight_action.setCheckable(True)
+        self.highlight_action.triggered.connect(self._on_highlight_toggled)
+        toolbar.addAction(self.highlight_action)
 
     def _setup_statusbar(self):
         self.setStatusBar(QStatusBar())
@@ -291,6 +355,7 @@ class MainWindow(QMainWindow):
             
             self.viewer.load_document(file_path)
             self.sidebar.load_thumbnails(str(file_path))
+            SettingsService.instance().set("last_file", str(file_path))
             
             # Inicializar painéis da Sprint 6
             self.toc_panel.set_pdf(file_path)
@@ -580,10 +645,35 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().showMessage("Modo de Seleção OCR Desativado.")
 
+    def _on_layout_toggled(self, checked: bool):
+        """Alterna entre visão única e visão dupla."""
+        mode = "dual" if checked else "single"
+        self.viewer.set_layout_mode(mode)
+        self.statusBar().showMessage(f"Modo de Visualização: {'Lado a Lado' if checked else 'Página Única'}")
+
+    def _on_highlight_toggled(self, checked: bool):
+        """Ativa/Desativa o modo de seleção para anotação."""
+        if checked:
+            # Desativar outros modos de área
+            self.ocr_area_action.setChecked(False)
+            self.viewer.set_area_selection_mode(True)
+            self.statusBar().showMessage("Modo Realce Ativado: Desenhe um retângulo sobre o texto.")
+        else:
+            self.viewer.set_area_selection_mode(False)
+            self.statusBar().showMessage("Modo Realce Desativado.")
+
     def _on_area_selected(self, page_index, rect):
         """Chamado quando o usuário desenha uma área no viewer."""
         if not self.current_file: return
         
+        # Se estivermos no modo OCR
+        if self.ocr_area_action.isChecked():
+            self._handle_ocr_area(page_index, rect)
+        # Se estivermos no modo Realce
+        elif self.highlight_action.isChecked():
+            self._handle_highlight_area(page_index, rect)
+
+    def _handle_ocr_area(self, page_index, rect):
         try:
             self.statusBar().showMessage("Extraindo texto da área selecionada...")
             text = self._ocr_area_use_case.execute(self.current_file, page_index, rect)
@@ -595,13 +685,34 @@ class MainWindow(QMainWindow):
             else:
                 self.statusBar().showMessage("Nenhum texto detectado na área selecionada.")
                 
-            # Desativar modo após extração para UX fluida
             self.ocr_area_action.setChecked(False)
-            self._on_ocr_area_toggled(False)
+            self.viewer.set_area_selection_mode(False)
             
         except Exception as e:
             log_exception(f"OCR Area Selection: {e}")
             self.statusBar().showMessage(f"Erro na extração: {e}")
+
+    def _handle_highlight_area(self, page_index, rect):
+        try:
+            self.statusBar().showMessage("Aplicando realce...")
+            new_path = self._add_annot_use_case.execute(
+                self.current_file, 
+                page_index, 
+                rect, 
+                type="highlight", 
+                color=(1, 1, 0) # Amarelo padrão
+            )
+            
+            # Recarregar o arquivo para mostrar a anotação (Fóton 2.0 é imutável no estado, então abrimos o novo)
+            self.open_file(new_path)
+            self.statusBar().showMessage("Realce aplicado com sucesso!")
+            
+            self.highlight_action.setChecked(False)
+            self.viewer.set_area_selection_mode(False)
+            
+        except Exception as e:
+            log_exception(f"Highlight: {e}")
+            self.statusBar().showMessage(f"Erro ao realçar: {e}")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):

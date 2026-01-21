@@ -98,4 +98,33 @@ def get_main_stylesheet():
         background-color: #334155;
         color: #64748B;
     }
+    /* Glow Effect for Active/Checked Actions */
+    QToolBar QToolButton:checked {
+        background-color: #334155;
+        border-bottom: 2px solid #FFC107;
+        color: #FFC107;
+    }
+
+    /* TabWidget Styling */
+    QTabWidget::pane { 
+        border: none;
+        background-color: #1E293B;
+    }
+    QTabBar::tab {
+        background: #0F172A;
+        color: #94A3B8;
+        padding: 8px 20px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    QTabBar::tab:selected {
+        background: #1E293B;
+        color: #FFC107;
+        font-weight: bold;
+    }
+
+    /* Animation-like transitions for buttons */
+    QToolButton {
+        transition: background-color 0.3s ease;
+    }
     """
