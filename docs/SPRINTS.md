@@ -2,28 +2,34 @@
 
 Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 8 - UI Evolution & Modo Profissional 🏗️
+## 🏁 Sprint Atual: Sprint 9 - Ecossistema & Plugins 🏗️
 
-**Objetivo:** Refinar a interface para produtividade de alto nível.
+**Objetivo:** Tornar o fotonPDF uma plataforma extensível e automatizável.
 
-- **Dual/Multi-View:** Visualização de duas páginas lado a lado ou documentos diferentes.
-- **Modo Madrugada/Leitura:** Filtros de cor customizados para redução de fadiga ocular.
-- **Annotations Basics:** Implementar realce (highlight) e sublinhado persistente.
-- **Configurações Globais:** Persistência de zoom, última página lida e preferências de tema.
+- **Foco:** Sistema de Plugins, Automação em Lote e Integração com LLMs.
+- **Entregável:** Marketplace de plugins e suporte a automações baseadas em YAML.
 
 ---
 
 ## 🔜 Próximas Sprints
 
-### Sprint 9: Ecossistema & Plugins 🔋
+### Sprint 10: Inteligência de Conteúdo (LLM Sync) 🔋
 
-- **Objetivo:** Tornar o fotonPDF extensível.
+- **Objetivo:** Integração profunda com modelos de linguagem para resumos e chat sobre PDFs.
 
 ---
 
 ## 📅 Histórico de Sprints Concluídas
 
 ### Fase 2: Interface & Funcionalidade
+
+#### Sprint 8: UI Evolution & Modo Profissional ✅
+
+- [x] **Settings Service**: Persistência de zoom, tema e último arquivo aberto.
+- [x] **Modos de Leitura**: Filtros de cor (Sépia, Noturno, Invertido) para conforto visual.
+- [x] **Dual-View**: Layout lado-a-lado para comparação e leitura densa.
+- [x] **Anotações Básicas**: Ferramenta de realce (Highlight) persistente.
+- [x] **Premium UI**: Micro-animações e refinamento estético (Glow effect e Tabs).
 
 #### Sprint 7: OCR & Camada de Texto ✅
 
