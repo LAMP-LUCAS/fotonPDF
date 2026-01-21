@@ -55,3 +55,8 @@ class PDFOperationsPort(ABC):
     def get_toc(self, pdf_path: Path) -> list:
         """Extrai o sumário (bookmarks) do PDF."""
         pass
+
+    @abstractmethod
+    def add_annotation(self, pdf_path: Path, page_index: int, rect: tuple, type: str = "highlight", color: tuple = (1, 1, 0)) -> Path:
+        """Adiciona uma anotação (realce/sublinhado) em uma área específica e salva."""
+        pass

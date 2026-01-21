@@ -187,6 +187,35 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
             # PyMuPDF TOC page is 1-based, converting to 0-based for standard
             return [TOCItem(level=item[0], title=item[1], page_index=item[2]-1) for item in toc_data]
 
+    def add_annotation(self, pdf_path: Path, page_index: int, rect: tuple, type: str = "highlight", color: tuple = (1, 1, 0)) -> Path:
+        """Adiciona uma anotação em uma área específica e salva o arquivo modificado."""
+        doc = fitz.open(str(pdf_path))
+        page = doc.load_page(page_index)
+        
+        # Converte a tupla (x0, y0, x1, y1) para fitz.Rect
+        fitz_rect = fitz.Rect(rect)
+        
+        if type == "highlight":
+            annot = page.add_highlight_annot(fitz_rect)
+        elif type == "underline":
+            annot = page.add_underline_annot(fitz_rect)
+        else:
+            annot = page.add_rect_annot(fitz_rect)
+            
+        annot.set_colors(stroke=color)
+        annot.update()
+        
+        # Salva em um arquivo temporário seguindo a política de nomes
+        output_path = NamingService.generate_output_path(
+            pdf_path, 
+            pdf_path.parent, 
+            suffix=f"_{type}.pdf"
+        )
+        
+        doc.save(str(output_path))
+        doc.close()
+        return output_path
+
     def has_text_layer(self, pdf_path: Path) -> bool:
         """
         Verifica se o PDF tem camada de texto. 
