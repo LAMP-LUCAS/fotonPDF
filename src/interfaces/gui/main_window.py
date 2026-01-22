@@ -8,6 +8,9 @@ from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.widgets.thumbnail_panel import ThumbnailPanel
 from src.interfaces.gui.widgets.search_panel import SearchPanel
 from src.interfaces.gui.widgets.toc_panel import TOCPanel
+from src.interfaces.gui.widgets.activity_bar import ActivityBar
+from src.interfaces.gui.widgets.side_bar import SideBar
+from PyQt6.QtWidgets import QSplitter
 
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
 from src.application.use_cases.export_image import ExportImageUseCase
@@ -50,6 +53,17 @@ class MainWindow(QMainWindow):
         self.main_layout = QHBoxLayout(self.central_widget)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
+        
+        # --- NOVO LAYOUT VS CODE ---
+        self.activity_bar = ActivityBar(self)
+        self.side_bar = SideBar(self)
+        
+        # Splitter principal (Edição e Visualização)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        
+        self.main_layout.addWidget(self.activity_bar)
+        self.main_layout.addWidget(self.side_bar)
+        self.main_layout.addWidget(self.splitter, stretch=1)
 
         # Use Cases & Adapter
         self._adapter = PyMuPDFAdapter()
@@ -63,60 +77,38 @@ class MainWindow(QMainWindow):
 
         # Components
         self.viewer = PDFViewerWidget()
-        self.sidebar = ThumbnailPanel()
+        self.viewer2 = None # Para Split View
+        self.thumbnails = ThumbnailPanel()
         self.toc_panel = TOCPanel(self._get_toc_use_case)
         self.search_panel = SearchPanel(self._search_use_case)
 
-        # Sidebar with Tabs
-        self.sidebar_tabs = QTabWidget()
-        self.sidebar_tabs.setFixedWidth(300)
-        self.sidebar_tabs.addTab(self.sidebar, "Miniaturas")
-        self.sidebar_tabs.addTab(self.toc_panel, "Sumário")
-        self.sidebar_tabs.addTab(self.search_panel, "Busca")
+        # Adicionar painéis à SideBar
+        self.side_bar.add_panel(self.thumbnails, "Explorer")
+        self.side_bar.add_panel(self.search_panel, "Search")
+        self.side_bar.add_panel(self.toc_panel, "Sumário")
         
-        # Setup Layout
-        self.main_layout.addWidget(self.sidebar_tabs)
+        # Área de Visualização Principal (dentro do splitter)
+        self.viewer_container = QWidget()
+        self.vbox_viewer = QVBoxLayout(self.viewer_container)
+        self.vbox_viewer.setContentsMargins(0, 0, 0, 0)
+        self.vbox_viewer.setSpacing(0)
         
-        container = QWidget()
-        vbox = QVBoxLayout(container)
-        vbox.setContentsMargins(0,0,0,0)
-        vbox.setSpacing(0)
+        # Banner OCR
+        self._setup_ocr_banner()
+        self.vbox_viewer.addWidget(self.ocr_banner)
+        self.vbox_viewer.addWidget(self.viewer, stretch=1)
         
-        # Banner OCR (Oculto por padrão)
-        from PyQt6.QtWidgets import QFrame, QPushButton
-        self.ocr_banner = QFrame()
-        self.ocr_banner.setFixedHeight(40)
-        self.ocr_banner.setStyleSheet("background-color: #34495e; border-bottom: 2px solid #2c3e50;")
-        banner_layout = QHBoxLayout(self.ocr_banner)
-        banner_layout.setContentsMargins(15, 0, 15, 0)
+        self.splitter.addWidget(self.viewer_container)
         
-        self.banner_label = QLabel("Este documento parece ser digitalizado. Deseja aplicar OCR para torná-lo pesquisável?")
-        self.banner_label.setStyleSheet("color: #ecf0f1; font-weight: bold;")
-        
-        self.btn_apply_ocr = QPushButton("Aplicar OCR")
-        self.btn_apply_ocr.setStyleSheet("background-color: #27ae60; color: white; border: none; padding: 5px 15px; border-radius: 3px;")
-        self.btn_apply_ocr.clicked.connect(self._on_apply_ocr_clicked)
-        
-        banner_layout.addWidget(self.banner_label)
-        banner_layout.addStretch()
-        banner_layout.addWidget(self.btn_apply_ocr)
-        
-        self.ocr_banner.hide()
-        
-        vbox.addWidget(self.ocr_banner)
-        vbox.addWidget(self.viewer, stretch=1)
-        
-        self.main_layout.addWidget(container, stretch=1)
-
         # Apply Visual Identity
         self.setStyleSheet(get_main_stylesheet())
         self._setup_window_icon()
 
         # UI Initialization
-        self._setup_toolbar()
+        self._setup_menus()
         self._setup_statusbar()
         self._setup_connections()
-        
+
         # State
         self.current_file = None
         self.state_manager = None
@@ -126,10 +118,10 @@ class MainWindow(QMainWindow):
         
         # Menu Contexto / Drag & Drop
         self.setAcceptDrops(True)
-        self.sidebar.setAcceptDrops(True)
-        # Custom drop for sidebar to handle APPEND
-        self.sidebar.dragEnterEvent = self._on_sidebar_drag_enter
-        self.sidebar.dropEvent = self._on_sidebar_drop
+        self.thumbnails.setAcceptDrops(True)
+        # Custom drop for thumbnails to handle APPEND
+        self.thumbnails.dragEnterEvent = self._on_sidebar_drag_enter
+        self.thumbnails.dropEvent = self._on_sidebar_drop
 
         # Placeholder Premium
         self._setup_placeholder()
@@ -196,164 +188,194 @@ class MainWindow(QMainWindow):
         
         self.viewer.setPlaceholder(placeholder)
 
-    def _setup_toolbar(self):
-        toolbar = QToolBar("Ferramentas")
-        toolbar.setIconSize(QSize(24, 24))
-        toolbar.setMovable(False)
-        toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.addToolBar(toolbar)
-
-        # --- GRUPO: NAVEGAÇÃO ---
-        toolbar.addWidget(QLabel("  🔍 "))
+    def _setup_ocr_banner(self):
+        from PyQt6.QtWidgets import QFrame, QPushButton
+        self.ocr_banner = QFrame()
+        self.ocr_banner.setFixedHeight(40)
+        self.ocr_banner.setStyleSheet("background-color: #34495e; border-bottom: 2px solid #2c3e50;")
+        banner_layout = QHBoxLayout(self.ocr_banner)
+        banner_layout.setContentsMargins(15, 0, 15, 0)
         
-        zoom_in_action = QAction("Zoom +", self)
-        zoom_in_action.triggered.connect(self.viewer.zoom_in)
-        toolbar.addAction(zoom_in_action)
-
-        zoom_out_action = QAction("Zoom -", self)
-        zoom_out_action.triggered.connect(self.viewer.zoom_out)
-        toolbar.addAction(zoom_out_action)
-
-        real_size_action = QAction("100%", self)
-        real_size_action.triggered.connect(self.viewer.real_size)
-        toolbar.addAction(real_size_action)
-
-        fit_width_action = QAction("Largura", self)
-        fit_width_action.triggered.connect(self.viewer.fit_width)
-        toolbar.addAction(fit_width_action)
-
-        fit_height_action = QAction("Altura", self)
-        fit_height_action.triggered.connect(self.viewer.fit_height)
-        toolbar.addAction(fit_height_action)
-
-        toolbar.addSeparator()
-
-        self.back_action = QAction("⬅️ Voltar", self)
-        self.back_action.setEnabled(False)
-        self.back_action.triggered.connect(self._on_back_clicked)
-        toolbar.addAction(self.back_action)
-
-        self.forward_action = QAction("➡️ Avançar", self)
-        self.forward_action.setEnabled(False)
-        self.forward_action.triggered.connect(self._on_forward_clicked)
-        toolbar.addAction(self.forward_action)
-
-        toolbar.addSeparator()
-
-        # --- GRUPO: EDIÇÃO ---
-        toolbar.addWidget(QLabel("  📅 "))
+        self.banner_label = QLabel("Digitalizado detectado. Deseja aplicar OCR?")
+        self.banner_label.setStyleSheet("color: #ecf0f1; font-weight: bold;")
         
-        open_action = QAction("Abrir", self)
+        self.btn_apply_ocr = QPushButton("Aplicar OCR")
+        self.btn_apply_ocr.setStyleSheet("background-color: #27ae60; color: white; border: none; padding: 5px 15px; border-radius: 3px;")
+        self.btn_apply_ocr.clicked.connect(self._on_apply_ocr_clicked)
+        
+        banner_layout.addWidget(self.banner_label)
+        banner_layout.addStretch()
+        banner_layout.addWidget(self.btn_apply_ocr)
+        self.ocr_banner.hide()
+
+    def _setup_menus(self):
+        menubar = self.menuBar()
+        
+        # --- MENU ARQUIVO ---
+        file_menu = menubar.addMenu("&Arquivo")
+        
+        open_action = QAction("&Abrir...", self)
+        open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._on_open_clicked)
-        toolbar.addAction(open_action)
-
-        self.save_action = QAction("Salvar", self)
+        file_menu.addAction(open_action)
+        
+        self.save_action = QAction("&Salvar", self)
+        self.save_action.setShortcut("Ctrl+S")
         self.save_action.setEnabled(False)
         self.save_action.triggered.connect(self._on_save_clicked)
-        toolbar.addAction(self.save_action)
-
-        self.save_as_action = QAction("Salvar Como", self)
+        file_menu.addAction(self.save_action)
+        
+        self.save_as_action = QAction("Salvar &Como...", self)
         self.save_as_action.setEnabled(False)
         self.save_as_action.triggered.connect(self._on_save_as_clicked)
-        toolbar.addAction(self.save_as_action)
-
-        merge_action = QAction("Unir PDF", self)
+        file_menu.addAction(self.save_as_action)
+        
+        file_menu.addSeparator()
+        
+        merge_action = QAction("&Unir PDFs...", self)
         merge_action.triggered.connect(self._on_merge_clicked)
-        toolbar.addAction(merge_action)
-
+        file_menu.addAction(merge_action)
+        
+        self.extract_action = QAction("&Extrair Páginas...", self)
+        self.extract_action.setEnabled(False)
+        self.extract_action.triggered.connect(self._on_extract_clicked)
+        file_menu.addAction(self.extract_action)
+        
+        # Submenu Exportar
+        export_menu = file_menu.addMenu("&Exportar")
+        export_menu.addAction("Imagem High-DPI (PNG)").triggered.connect(lambda: self._on_export_image_clicked("png"))
+        export_menu.addAction("SVG").triggered.connect(self._on_export_svg_clicked)
+        export_menu.addAction("Markdown").triggered.connect(self._on_export_md_clicked)
+        
+        # --- MENU EDITAR ---
+        edit_menu = menubar.addMenu("&Editar")
+        
         self.rotate_left_action = QAction("Girar -90°", self)
         self.rotate_left_action.setEnabled(False)
         self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
-        toolbar.addAction(self.rotate_left_action)
-
+        edit_menu.addAction(self.rotate_left_action)
+        
         self.rotate_right_action = QAction("Girar +90°", self)
         self.rotate_right_action.setEnabled(False)
         self.rotate_right_action.triggered.connect(lambda: self._on_rotate_clicked(90))
-        toolbar.addAction(self.rotate_right_action)
-
-        self.extract_action = QAction("Extrair", self)
-        self.extract_action.setEnabled(False)
-        self.extract_action.triggered.connect(self._on_extract_clicked)
-        toolbar.addAction(self.extract_action)
-
-        toolbar.addSeparator()
-
-        # --- GRUPO: CONVERSÃO ---
-        toolbar.addWidget(QLabel("  🚀 "))
+        edit_menu.addAction(self.rotate_right_action)
         
-        from PyQt6.QtWidgets import QToolButton, QMenu
+        edit_menu.addSeparator()
         
-        # Export Image (Dropdown)
-        export_img_btn = QToolButton()
-        export_img_btn.setText("Exportar Imagem")
-        export_img_menu = QMenu(self)
-        export_img_menu.addAction("PNG (Alta Resolução)").triggered.connect(lambda: self._on_export_image_clicked("png"))
-        export_img_menu.addAction("JPG (Compacto)").triggered.connect(lambda: self._on_export_image_clicked("jpg"))
-        export_img_menu.addAction("WebP (Otimizado)").triggered.connect(lambda: self._on_export_image_clicked("webp"))
+        self.highlight_action = QAction("Modo Realçar (Highlight)", self)
+        self.highlight_action.setCheckable(True)
+        self.highlight_action.triggered.connect(self._on_highlight_toggled)
+        edit_menu.addAction(self.highlight_action)
         
-        export_img_btn.setMenu(export_img_menu)
-        export_img_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        toolbar.addWidget(export_img_btn)
-
-        export_svg_action = QAction("SVG", self)
-        export_svg_action.triggered.connect(self._on_export_svg_clicked)
-        toolbar.addAction(export_svg_action)
-
-        export_md_action = QAction("Markdown", self)
-        export_md_action.triggered.connect(self._on_export_md_clicked)
-        toolbar.addAction(export_md_action)
-
-        toolbar.addSeparator()
-
-        # --- GRUPO: INTELIGÊNCIA OCR ---
-        toolbar.addWidget(QLabel("  🧠 "))
-        self.ocr_area_action = QAction("OCR p/ Área", self)
+        # --- MENU VER ---
+        view_menu = menubar.addMenu("&Ver")
+        
+        zoom_menu = view_menu.addMenu("&Zoom")
+        zoom_menu.addAction("Aumentar").triggered.connect(self.viewer.zoom_in)
+        zoom_menu.addAction("Diminuir").triggered.connect(self.viewer.zoom_out)
+        zoom_menu.addAction("100%").triggered.connect(self.viewer.real_size)
+        
+        view_menu.addSeparator()
+        
+        self.back_action = QAction("⬅️ Voltar", self)
+        self.back_action.setShortcut(QKeySequence.StandardKey.Back)
+        self.back_action.setEnabled(False)
+        self.back_action.triggered.connect(self._on_back_clicked)
+        view_menu.addAction(self.back_action)
+        
+        self.forward_action = QAction("➡️ Avançar", self)
+        self.forward_action.setShortcut(QKeySequence.StandardKey.Forward)
+        self.forward_action.setEnabled(False)
+        self.forward_action.triggered.connect(self._on_forward_clicked)
+        view_menu.addAction(self.forward_action)
+        
+        view_menu.addSeparator()
+        
+        self.layout_action = QAction("&Lado a Lado (Páginas)", self)
+        self.layout_action.setCheckable(True)
+        self.layout_action.triggered.connect(self._on_layout_toggled)
+        view_menu.addAction(self.layout_action)
+        
+        self.split_action = QAction("&Dividir Editor (Split)", self)
+        self.split_action.setShortcut("Ctrl+\\")
+        self.split_action.triggered.connect(self._on_split_clicked)
+        view_menu.addAction(self.split_action)
+        
+        reading_menu = view_menu.addMenu("&Modo de Leitura")
+        reading_menu.addAction("Padrão").triggered.connect(lambda: self.viewer.set_reading_mode("default"))
+        reading_menu.addAction("Sépia").triggered.connect(lambda: self.viewer.set_reading_mode("sepia"))
+        reading_menu.addAction("Noturno").triggered.connect(lambda: self.viewer.set_reading_mode("dark"))
+        reading_menu.addAction("Madrugada").triggered.connect(lambda: self.viewer.set_reading_mode("night"))
+        
+        # --- MENU FERRAMENTAS ---
+        tools_menu = menubar.addMenu("&Ferramentas")
+        
+        pan_action = QAction("✋ Mão (Pan)", self)
+        pan_action.triggered.connect(lambda: self.viewer.set_tool_mode("pan"))
+        tools_menu.addAction(pan_action)
+        
+        select_action = QAction("🖱️ Ponteiro (Seleção)", self)
+        select_action.triggered.connect(lambda: self.viewer.set_tool_mode("selection"))
+        tools_menu.addAction(select_action)
+        
+        tools_menu.addSeparator()
+        
+        self.ocr_area_action = QAction("🧠 OCR p/ Área", self)
         self.ocr_area_action.setCheckable(True)
         self.ocr_area_action.setEnabled(False)
         self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
-        toolbar.addAction(self.ocr_area_action)
-
-        toolbar.addSeparator()
-
-        # --- GRUPO: VISUALIZAÇÃO ---
-        toolbar.addWidget(QLabel("  👁️ "))
-        
-        # Reading Modes (Dropdown)
-        reading_mode_btn = QToolButton()
-        reading_mode_btn.setText("Modo de Leitura")
-        rm_menu = QMenu(self)
-        rm_menu.addAction("Padrão").triggered.connect(lambda: self.viewer.set_reading_mode("default"))
-        rm_menu.addAction("Sépia").triggered.connect(lambda: self.viewer.set_reading_mode("sepia"))
-        rm_menu.addAction("Noturno").triggered.connect(lambda: self.viewer.set_reading_mode("dark"))
-        rm_menu.addAction("Madrugada (Extra Dark)").triggered.connect(lambda: self.viewer.set_reading_mode("night"))
-        
-        reading_mode_btn.setMenu(rm_menu)
-        reading_mode_btn.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        toolbar.addWidget(reading_mode_btn)
-
-        # Layout Mode (Dual View)
-        self.layout_action = QAction("Lado a Lado", self)
-        self.layout_action.setCheckable(True)
-        self.layout_action.triggered.connect(self._on_layout_toggled)
-        toolbar.addAction(self.layout_action)
-
-        self.highlight_action = QAction("Realçar (Highlight)", self)
-        self.highlight_action.setCheckable(True)
-        self.highlight_action.triggered.connect(self._on_highlight_toggled)
-        toolbar.addAction(self.highlight_action)
+        tools_menu.addAction(self.ocr_area_action)
 
     def _setup_statusbar(self):
+        from PyQt6.QtWidgets import QPushButton, QHBoxLayout, QFrame
+        
         self.setStatusBar(QStatusBar())
         self.statusBar().showMessage("Pronto")
+        
+        # Container para botões de toggle (Layout) na direita
+        self.status_controls = QWidget()
+        layout = QHBoxLayout(self.status_controls)
+        layout.setContentsMargins(0, 0, 5, 0)
+        layout.setSpacing(2)
+        
+        # Botão Toggle SideBar
+        self.btn_toggle_sidebar = QPushButton("▥")
+        self.btn_toggle_sidebar.setToolTip("Alternar Side Bar")
+        self.btn_toggle_sidebar.setFixedSize(24, 20)
+        self.btn_toggle_sidebar.setStyleSheet("background: transparent; border: none; color: #858585;")
+        self.btn_toggle_sidebar.clicked.connect(self.side_bar.toggle_collapse)
+        
+        # Botão Toggle ActivityBar
+        self.btn_toggle_activity = QPushButton("┇")
+        self.btn_toggle_activity.setToolTip("Alternar Activity Bar")
+        self.btn_toggle_activity.setFixedSize(24, 20)
+        self.btn_toggle_activity.setStyleSheet("background: transparent; border: none; color: #858585;")
+        self.btn_toggle_activity.clicked.connect(self._on_toggle_activity_bar)
+        
+        layout.addWidget(self.btn_toggle_sidebar)
+        layout.addWidget(self.btn_toggle_activity)
+        
+        self.statusBar().addPermanentWidget(self.status_controls)
+
+    def _on_toggle_activity_bar(self):
+        """Alterna a visibilidade da barra de atividades."""
+        visible = self.activity_bar.isVisible()
+        self.activity_bar.setVisible(not visible)
 
     def _setup_connections(self):
-        self.sidebar.pageSelected.connect(self.viewer.scroll_to_page)
-        self.sidebar.orderChanged.connect(self._on_pages_reordered)
+        self.thumbnails.pageSelected.connect(self.viewer.scroll_to_page)
+        self.thumbnails.orderChanged.connect(self._on_pages_reordered)
         
-        # Novas conexões da Sprint 6
         self.viewer.pageChanged.connect(self._on_page_changed)
         self.search_panel.result_clicked.connect(self.viewer.scroll_to_page)
+        self.search_panel.results_found.connect(self._on_search_results_found)
         self.toc_panel.bookmark_clicked.connect(self.viewer.scroll_to_page)
+        
+        # Conexão da Activity Bar
+        self.activity_bar.clicked.connect(self._on_activity_clicked)
+        
+        # Conexão da Floating Nav Bar
+        self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked)
         
         # Atalhos
         self.search_shortcut = QAction("Search", self)
@@ -362,6 +384,31 @@ class MainWindow(QMainWindow):
         self.addAction(self.search_shortcut)
 
         self.viewer.areaSelected.connect(self._on_area_selected)
+
+    def _on_activity_clicked(self, idx):
+        titles = {0: "EXPLORER", 1: "SEARCH", 2: "SUMÁRIO", 3: "ANNOTATIONS"}
+        
+        if idx == 99:
+             return
+             
+        # Se clicar no ícone que já está ativo, colapsa/expande a sidebar (estilo VS Code)
+        if self.side_bar.stack.currentIndex() == idx and not self.side_bar._is_collapsed:
+            self.side_bar.toggle_collapse()
+        else:
+            self.side_bar.show_panel(idx, titles.get(idx, ""))
+
+    def _on_search_results_found(self, results):
+        """Atualiza os marcadores na barra de rolagem."""
+        if not self.state_manager: return
+        
+        page_count = self.state_manager.get_page_count()
+        if page_count == 0: return
+        
+        # Calcular posições relativas (0.0 a 1.0)
+        positions = [res.page_index / page_count for res in results]
+        
+        # Definir marcadores na scrollbar do viewer
+        self.viewer.verticalScrollBar().set_markers(positions)
 
     def open_file(self, file_path: Path):
         try:
@@ -379,7 +426,7 @@ class MainWindow(QMainWindow):
             metadata = self._get_metadata_use_case.execute(file_path)
             
             self.viewer.load_document(file_path, metadata)
-            self.sidebar.load_thumbnails(str(file_path), metadata["page_count"])
+            self.thumbnails.load_thumbnails(str(file_path), metadata["page_count"])
             SettingsService.instance().set("last_file", str(file_path))
             
             # Inicializar painéis da Sprint 6
@@ -400,6 +447,28 @@ class MainWindow(QMainWindow):
         except Exception as e:
             log_exception(f"MainWindow: Erro ao abrir: {e}")
             self.statusBar().showMessage(f"Erro: {e}")
+
+    @safe_callback
+    def _on_page_changed(self, index: int):
+        """Sincroniza a seleção da sidebar com a página atual do viewer."""
+        self.thumbnails.set_selected_page(index)
+        
+        if self._is_navigating_history:
+            return
+            
+        # Só adiciona se for uma página diferente da atual no histórico
+        if not self.navigation_history or self.navigation_history[self.history_index] != index:
+            # Ao navegar para uma nova página, corta o futuro se houver
+            self.navigation_history = self.navigation_history[:self.history_index + 1]
+            self.navigation_history.append(index)
+            self.history_index += 1
+            
+            # Limitar tamanho do histórico
+            if len(self.navigation_history) > 50:
+                self.navigation_history.pop(0)
+                self.history_index -= 1
+                
+            self._update_history_buttons()
 
     def _enable_actions(self, enabled: bool):
         self.save_action.setEnabled(enabled)
@@ -435,7 +504,7 @@ class MainWindow(QMainWindow):
     def _on_extract_clicked(self):
         """Salva as páginas selecionadas em um novo arquivo."""
         if not self.state_manager: return
-        selected_rows = self.sidebar.get_selected_rows()
+        selected_rows = self.thumbnails.get_selected_rows()
         if not selected_rows:
             self.statusBar().showMessage("Selecione páginas na barra lateral para extrair.")
             return
@@ -553,7 +622,7 @@ class MainWindow(QMainWindow):
             self.state_manager.append_document(str(path))
             # Atualizar viewer e sidebar instantaneamente
             self.viewer.add_pages(path, metadata)
-            self.sidebar.append_thumbnails(str(path), metadata["page_count"])
+            self.thumbnails.append_thumbnails(str(path), metadata["page_count"])
             self.statusBar().showMessage(f"Adicionado: {path.name}")
         except Exception as e:
             log_exception(f"MainWindow: Erro ao anexar: {e}")
@@ -565,7 +634,7 @@ class MainWindow(QMainWindow):
         if self.current_file:
             self.current_file = self.current_file.resolve()
         # Agora usamos as linhas VISUAIS
-        selected_rows = self.sidebar.get_selected_rows()
+        selected_rows = self.thumbnails.get_selected_rows()
         if not selected_rows:
             self.statusBar().showMessage("Selecione páginas na barra lateral para girar.")
             return
@@ -590,13 +659,31 @@ class MainWindow(QMainWindow):
 
     def _focus_search(self):
         """Atalho Ctrl+F: foca no painel de busca."""
-        self.sidebar_tabs.setCurrentIndex(2) # Aba de Busca
+        self.activity_bar.set_active(1)
+        self._on_activity_clicked(1)
         self.search_panel.search_input.setFocus()
 
-    def _on_page_changed(self, index: int):
-        """Chamado sempre que o viewer muda de página."""
-        if self._is_navigating_history:
-            return
+    @safe_callback
+    def _on_split_clicked(self):
+        """Ativa/Desativa o modo Split Editor para documentos distintos."""
+        if self.viewer2 is None:
+            # Ativar Split
+            file_path, _ = QFileDialog.getOpenFileName(self, "Abrir Segundo PDF (Split)", "", "Arquivos PDF (*.pdf)")
+            if not file_path: return
+            
+            self.viewer2 = PDFViewerWidget()
+            # Precisamos de um novo State Manager se quisermos edições independentes,
+            # mas para visualização clean, vamos focar no loading.
+            metadata = self._get_metadata_use_case.execute(Path(file_path))
+            self.viewer2.load_document(Path(file_path), metadata)
+            
+            self.splitter.addWidget(self.viewer2)
+            self.statusBar().showMessage(f"Split: {Path(file_path).name} aberto à direita.")
+        else:
+            # Desativar Split
+            self.viewer2.deleteLater()
+            self.viewer2 = None
+            self.statusBar().showMessage("Split Editor fechado.")
 
         # Só adiciona se for uma página diferente da atual no histórico
         if not self.navigation_history or self.navigation_history[self.history_index] != index:
