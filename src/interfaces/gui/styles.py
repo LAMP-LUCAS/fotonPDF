@@ -1,22 +1,20 @@
 def get_main_stylesheet():
     return """
     QMainWindow {
-        background-color: #1E1E1E; /* Editor Background */
+        background-color: #1E1E1E;
         color: #D4D4D4;
     }
 
     QWidget {
         background-color: #1E1E1E;
         color: #D4D4D4;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
+        font-family: 'Segoe UI', 'Inter', sans-serif;
     }
 
-    /* Activity Bar (Icons on the left) */
+    /* Activity Bar */
     #ActivityBar {
         background-color: #333333;
         border-right: 1px solid #252526;
-        min-width: 50px;
-        max-width: 50px;
     }
 
     #ActivityBar QPushButton {
@@ -28,6 +26,7 @@ def get_main_stylesheet():
 
     #ActivityBar QPushButton:hover {
         color: #FFFFFF;
+        background-color: #3c3c3c;
     }
 
     #ActivityBar QPushButton:checked {
@@ -35,84 +34,102 @@ def get_main_stylesheet():
         border-left: 2px solid #FFFFFF;
     }
 
-    /* Side Bar (Collapsible Content) */
+    /* Side Bars (Left & Right) */
     #SideBar {
         background-color: #252526;
-        border-right: 1px solid #333333;
+        border-right: 1px solid #1e1e1e;
+        border-left: 1px solid #1e1e1e;
     }
 
-    QListWidget {
-        background-color: #252526;
-        border: none;
-        outline: none;
-    }
-
-    QListWidget::item {
-        margin: 5px 10px;
-        padding: 5px;
-        border-radius: 4px;
-        color: #CCCCCC;
-    }
-
-    QListWidget::item:selected {
-        background-color: #37373D;
-        color: #FFFFFF;
-    }
-
-    /* TabWidget (Inside Sidebar) */
+    /* Tabs Container */
     QTabWidget::pane { 
         border: none;
-        background-color: #252526;
-    }
-    QTabBar::tab {
-        background: #2D2D2D;
-        color: #969696;
-        padding: 6px 15px;
-        font-size: 11px;
-        text-transform: uppercase;
-    }
-    QTabBar::tab:selected {
-        background: #252526;
-        color: #E7E7E7;
-        border-bottom: 1px solid #007ACC;
+        background-color: #1e1e1e;
     }
 
-    /* Scrollbars (Floating style) */
+    QTabBar {
+        background-color: #252526;
+    }
+
+    QTabBar::tab {
+        background: #2d2d2d;
+        color: #969696;
+        padding: 8px 20px;
+        font-size: 11px;
+        border-right: 1px solid #1e1e1e;
+        min-width: 120px;
+    }
+
+    QTabBar::tab:selected {
+        background: #1e1e1e;
+        color: #ffffff;
+        border-top: 1px solid #007acc;
+    }
+
+    QTabBar::tab:hover:not(:selected) {
+        background: #323232;
+    }
+
+    /* Bottom Panel */
+    BottomPanel {
+        background-color: #1e1e1e;
+        border-top: 1px solid #333;
+    }
+
+    /* Scrollbars */
     QScrollBar:vertical {
-        background: transparent;
-        width: 12px;
+        background: #1e1e1e;
+        width: 14px;
+        margin: 0px;
     }
 
     QScrollBar::handle:vertical {
-        background: rgba(121, 121, 121, 0.4);
+        background: #37373d;
         min-height: 20px;
+        margin: 2px;
+        border-radius: 4px;
     }
 
     QScrollBar::handle:vertical:hover {
-        background: rgba(121, 121, 121, 0.7);
+        background: #4f4f56;
+    }
+
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
     }
 
     /* Menu Bar */
     QMenuBar {
-        background-color: #3C3C3C;
-        color: #CCCCCC;
+        background-color: #3c3c3c;
+        color: #cccccc;
+        border-bottom: 1px solid #252526;
     }
 
     QMenuBar::item:selected {
         background-color: #505050;
     }
 
-    /* Status Bar */
+    /* Status Bar (VS Code Blue) */
     QStatusBar {
-        background-color: #007ACC;
-        color: #FFFFFF;
+        background-color: #007acc;
+        color: #ffffff;
+    }
+    
+    QStatusBar QLabel {
+        background: transparent;
+        color: white;
     }
 
-    /* QSplitter Handle */
+    /* Splitter */
     QSplitter::handle {
-        background-color: #252526;
+        background-color: #1a1a1a;
     }
+    
     QSplitter::handle:horizontal {
         width: 1px;
+    }
+    
+    QSplitter::handle:vertical {
+        height: 1px;
     }
     """
