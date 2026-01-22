@@ -1,12 +1,13 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QStackedWidget, QFrame
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
 
 class SideBar(QFrame):
     """Container colapsável para os painéis de ferramentas (Miniaturas, Busca, etc)."""
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, initial_width=300):
         super().__init__(parent)
         self.setObjectName("SideBar")
-        self.setFixedWidth(300)
+        self._base_width = initial_width
+        self.setFixedWidth(initial_width)
         self._is_collapsed = False
         
         self.layout = QVBoxLayout(self)
@@ -16,11 +17,15 @@ class SideBar(QFrame):
         # Header
         self.header = QWidget()
         self.header.setFixedHeight(35)
-        h_layout = QVBoxLayout(self.header)
-        h_layout.setContentsMargins(15, 0, 0, 0)
-        self.title_label = QLabel("EXPLORER")
+        self.header.setStyleSheet("background-color: #252526; border-bottom: 1px solid #333;")
+        h_layout = QHBoxLayout(self.header)
+        h_layout.setContentsMargins(15, 0, 10, 0)
+        
+        self.title_label = QLabel("SIDEBAR")
         self.title_label.setStyleSheet("font-weight: bold; color: #BBBBBB; font-size: 11px;")
+        
         h_layout.addWidget(self.title_label)
+        h_layout.addStretch()
         
         self.layout.addWidget(self.header)
         
@@ -28,10 +33,15 @@ class SideBar(QFrame):
         self.stack = QStackedWidget()
         self.layout.addWidget(self.stack)
         
-        # Animation
-        self._width_animation = QPropertyAnimation(self, b"minimumWidth")
-        self._width_animation.setDuration(200)
-        self._width_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+        # Animation setup
+        self._animation = QPropertyAnimation(self, b"minimumWidth")
+        self._animation.setDuration(300)
+        self._animation.setEasingCurve(QEasingCurve.Type.OutQuint)
+        
+        # Sincronizar minimumWidth com maximumWidth para o Splitter não forçar o tamanho
+        self._animation_max = QPropertyAnimation(self, b"maximumWidth")
+        self._animation_max.setDuration(300)
+        self._animation_max.setEasingCurve(QEasingCurve.Type.OutQuint)
 
     def add_panel(self, widget, title):
         self.stack.addWidget(widget)
@@ -40,23 +50,23 @@ class SideBar(QFrame):
         if self._is_collapsed:
             self.toggle_collapse()
         
-        self.stack.setCurrentIndex(idx)
-        self.title_label.setText(title.upper())
+        if idx < self.stack.count():
+            self.stack.setCurrentIndex(idx)
+            self.title_label.setText(title.upper())
 
     def toggle_collapse(self):
         start_val = self.width()
-        end_val = 0 if not self._is_collapsed else 300
+        end_val = 0 if not self._is_collapsed else self._base_width
         
-        self._width_animation.setStartValue(start_val)
-        self._width_animation.setEndValue(end_val)
-        self._width_animation.start()
+        self._animation.setStartValue(start_val)
+        self._animation.setEndValue(end_val)
+        self._animation_max.setStartValue(start_val)
+        self._animation_max.setEndValue(end_val)
+        
+        self._animation.start()
+        self._animation_max.start()
         
         self._is_collapsed = not self._is_collapsed
 
-    @pyqtProperty(int)
-    def width_val(self):
-        return self.width()
-
-    @width_val.setter
-    def width_val(self, val):
-        self.setFixedWidth(val)
+    def set_title(self, text):
+        self.title_label.setText(text.upper())
