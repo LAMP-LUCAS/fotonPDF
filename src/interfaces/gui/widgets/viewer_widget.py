@@ -1,9 +1,11 @@
 from pathlib import Path
-from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame
-from PyQt6.QtCore import Qt, QTimer, pyqtSignal
+from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame, QMenu
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint
 from src.interfaces.gui.widgets.page_widget import PageWidget
 from src.infrastructure.services.logger import log_debug, log_warning
 from src.interfaces.gui.state.render_engine import RenderEngine
+from src.interfaces.gui.widgets.floating_navbar import FloatingNavBar
+from src.interfaces.gui.widgets.marker_scrollbar import MarkerScrollBar
 
 class PDFViewerWidget(QScrollArea):
     """Visualizador que suporta documentos virtuais (múltiplas fontes)."""
@@ -21,12 +23,21 @@ class PDFViewerWidget(QScrollArea):
         self.setWidget(self.container)
         self.container.setStyleSheet("background-color: #1e1e1e;")
         
+        # Custom ScrollBar com marcadores
+        self.setVerticalScrollBar(MarkerScrollBar(Qt.Orientation.Vertical, self))
+        
+        # Floating Navigation Bar
+        self.nav_bar = FloatingNavBar(self)
+        self.nav_bar.hide()
+        self._setup_nav_bar_connections()
+        
         self._pages: list[PageWidget] = []
-        self._page_sizes: list[tuple[float, float]] = [] # Armazena (w, h) de cada página original
+        self._page_sizes: list[tuple[float, float]] = [] 
         self._zoom = 1.0
         self._mode = "default"
         self._layout_mode = "single"
         self._last_emitted_page = -1
+        self._tool_mode = "pan" # "pan" ou "selection"
 
         # Controle de renderização em lote
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
@@ -97,6 +108,28 @@ class PDFViewerWidget(QScrollArea):
         if current_idx != self._last_emitted_page:
             self._last_emitted_page = current_idx
             self.pageChanged.emit(current_idx)
+            self.nav_bar.update_page(current_idx, len(self._pages))
+            if len(self._pages) > 0:
+                self.nav_bar.show()
+                # Posicionar a navbar no fundo central
+                self._update_nav_pos()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_nav_pos()
+
+    def _update_nav_pos(self):
+        if self.nav_bar.isVisible():
+            x = (self.width() - self.nav_bar.width()) // 2
+            y = self.height() - self.nav_bar.height() - 30
+            self.nav_bar.move(x, y)
+
+    def _setup_nav_bar_connections(self):
+        self.nav_bar.zoomIn.connect(self.zoom_in)
+        self.nav_bar.zoomOut.connect(self.zoom_out)
+        self.nav_bar.resetZoom.connect(self.real_size)
+        self.nav_bar.nextPage.connect(lambda: self.scroll_to_page(self.get_current_page_index() + 1))
+        self.nav_bar.prevPage.connect(lambda: self.scroll_to_page(self.get_current_page_index() - 1))
 
     def set_zoom(self, zoom: float):
         self._zoom = max(0.1, min(zoom, 10.0))
@@ -210,7 +243,16 @@ class PDFViewerWidget(QScrollArea):
 
     areaSelected = pyqtSignal(int, tuple) # page_index, (x0, y0, x1, y1) em pontos PDF
 
+    def set_tool_mode(self, mode: str):
+        """Alterna entre 'pan' e 'selection'."""
+        self._tool_mode = mode
+        if mode == "selection":
+            self.setCursor(Qt.CursorShape.IBeamCursor)
+        else:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+
     def set_selection_mode(self, enabled: bool):
+        # Legado para OCR de área
         self._selection_mode = enabled
         self.setCursor(Qt.CursorShape.CrossCursor if enabled else Qt.CursorShape.ArrowCursor)
         if not enabled:
@@ -230,7 +272,16 @@ class PDFViewerWidget(QScrollArea):
                 self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
-        elif event.button() == Qt.MouseButton.LeftButton:
+        elif self._tool_mode == "selection" and event.button() == Qt.MouseButton.LeftButton:
+            # Implementar seleção de texto (futuro) ou RubberBand temporário
+            self._selecting = True
+            self._selection_start = event.position().toPoint()
+            if not self._selection_overlay:
+                from PyQt6.QtWidgets import QRubberBand
+                self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
+            self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
+            self._selection_overlay.show()
+        elif self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton:
             self._panning = True
             self._last_mouse_pos = event.position().toPoint()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
@@ -240,14 +291,38 @@ class PDFViewerWidget(QScrollArea):
         if self._selecting:
             self._selecting = False
             end_pos = event.position().toPoint()
-            self._process_selection(self._selection_start, end_pos)
-            # Mantém o RubberBand visível por um momento ou limpa
+            
+            # Se for modo de seleção de texto, mostrar menu contextual
+            if self._tool_mode == "selection":
+                self._show_context_menu(event.globalPosition().toPoint())
+            else:
+                self._process_selection(self._selection_start, end_pos)
+                
             QTimer.singleShot(500, self._clear_selection)
         
         self._panning = False
-        if not self._selection_mode:
+        if self._tool_mode == "selection":
+            self.setCursor(Qt.CursorShape.IBeamCursor)
+        else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(event)
+
+    def _show_context_menu(self, pos: QPoint):
+        menu = QMenu(self)
+        menu.setStyleSheet("QMenu { background-color: #252526; color: #CCCCCC; border: 1px solid #454545; }")
+        
+        copy_action = menu.addAction("📋 Copiar")
+        highlight_action = menu.addAction("🖍️ Realçar")
+        search_action = menu.addAction("🔍 Pesquisar")
+        
+        action = menu.exec(pos)
+        if action == copy_action:
+            log_debug("Context Menu: Copy triggered")
+            # TODO: Integrate with clipboard
+        elif action == highlight_action:
+            log_debug("Context Menu: Highlight triggered")
+        elif action == search_action:
+            log_debug("Context Menu: Search triggered")
 
     def mouseMoveEvent(self, event):
         if self._selecting:
@@ -319,9 +394,16 @@ class PDFViewerWidget(QScrollArea):
         
         self.check_visibility()
 
-    def scroll_to_page(self, visual_index: int):
+    def scroll_to_page(self, visual_index: int, highlights: list = None):
         if 0 <= visual_index < len(self._pages):
-            self.verticalScrollBar().setValue(self._pages[visual_index].pos().y())
+            y = self._pages[visual_index].pos().y()
+            self.verticalScrollBar().setValue(y)
+            
+            if highlights:
+                page = self._pages[visual_index]
+                page.set_highlights(highlights)
+                # Limpar após 2 segundos (efeito temporário estilo VS Code)
+                QTimer.singleShot(2000, lambda: page.set_highlights([]))
 
     def closeEvent(self, event):
         self.clear()

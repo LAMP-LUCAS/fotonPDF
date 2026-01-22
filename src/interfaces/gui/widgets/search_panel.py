@@ -23,6 +23,7 @@ class SearchResultItem(QWidget):
 class SearchPanel(QWidget):
     """Painel lateral de busca textual."""
     result_clicked = pyqtSignal(int, list) # page_index, highlights
+    results_found = pyqtSignal(list) # list[SearchResult]
 
     def __init__(self, search_use_case):
         super().__init__()
@@ -87,6 +88,7 @@ class SearchPanel(QWidget):
                 self.results_list.addItem(item)
                 self.results_list.setItemWidget(item, custom_widget)
             
+            self.results_found.emit(results)
             self.status_label.setText(f"{len(results)} ocorrências encontradas.")
         except Exception as e:
             self.status_label.setText(f"Erro na busca: {str(e)}")

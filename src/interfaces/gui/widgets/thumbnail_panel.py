@@ -80,3 +80,12 @@ class ThumbnailPanel(QListWidget):
     def get_selected_pages(self) -> list[int]:
         """IDs absolutos (UserRole) das páginas selecionadas (legado)."""
         return sorted([item.data(Qt.ItemDataRole.UserRole) for item in self.selectedItems()])
+
+    def set_selected_page(self, index: int):
+        """Marca visualmente a página atual como selecionada."""
+        if 0 <= index < self.count():
+            item = self.item(index)
+            self.setCurrentItem(item)
+            # Garantir que o item visível seja selecionado e não apenas 'focado'
+            item.setSelected(True)
+            self.scrollToItem(item)
