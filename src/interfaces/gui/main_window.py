@@ -481,7 +481,7 @@ class MainWindow(QMainWindow):
             log_exception(f"MainWindow: Erro ao abrir: {e}")
             self.statusBar().showMessage(f"Erro: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Page Change")
     def _on_page_changed(self, index: int):
         """Sincroniza a seleção da sidebar com a página atual do viewer."""
         self.thumbnails.set_selected_page(index)
@@ -514,7 +514,7 @@ class MainWindow(QMainWindow):
         # Habilitar OCR se o motor existir
         self.ocr_area_action.setEnabled(enabled and self._adapter.is_engine_available())
 
-    @safe_callback
+    @safe_ui_callback("Save PDF")
     def _on_save_clicked(self):
         """Sobrescreve o arquivo atual."""
         if not self.state_manager or not self.current_file: return
@@ -524,7 +524,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao salvar: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Save PDF As")
     def _on_save_as_clicked(self):
         """Salva o estado atual em um novo local."""
         if not self.state_manager: return
@@ -533,7 +533,7 @@ class MainWindow(QMainWindow):
             self.state_manager.save(file_path)
             self.statusBar().showMessage(f"Salvo como: {Path(file_path).name}")
 
-    @safe_callback
+    @safe_ui_callback("Extract Pages")
     def _on_extract_clicked(self):
         """Salva as páginas selecionadas em um novo arquivo."""
         if not self.state_manager: return
@@ -552,7 +552,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao extrair: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Export Image")
     def _on_export_image_clicked(self, fmt: str):
         """Exporta a página atual como imagem (High-DPI)."""
         if not self.state_manager: return
@@ -584,7 +584,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Erro ao exportar imagem: {e}")
             log_exception(f"Export: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Export SVG")
     def _on_export_svg_clicked(self):
         """Exporta a página atual como SVG."""
         if not self.state_manager: return
@@ -606,7 +606,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar SVG: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Export Markdown")
     def _on_export_md_clicked(self):
         """Exporta o conteúdo do documento como Markdown."""
         if not self.state_manager: return
@@ -638,7 +638,7 @@ class MainWindow(QMainWindow):
         for f in files:
             self._append_pdf(Path(f))
 
-    @safe_callback
+    @safe_ui_callback("Append PDF")
     def _append_pdf(self, path: Path):
         """Implementação do Merge 2.0 (Incremental)."""
         try:
@@ -745,7 +745,7 @@ class MainWindow(QMainWindow):
         except Exception as e:
             log_exception(f"OCR Detection: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Apply OCR")
     def _on_apply_ocr_clicked(self):
         """Executa o OCR no documento inteiro."""
         if not self.current_file: return
