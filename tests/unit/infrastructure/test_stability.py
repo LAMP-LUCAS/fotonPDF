@@ -38,6 +38,9 @@ class QPixmap:
 class TestPerformance(unittest.TestCase):
     def test_render_engine_caching(self):
         """Valida que o cache LRU do RenderEngine funciona."""
+        # Reset singleton to avoid interference from other tests
+        RenderEngine._instance = None
+        
         # Use MagicMock for Pixmap
         mock_pixmap = MagicMock()
         

@@ -4,20 +4,37 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 # Mock PyQt6 to run in headless environment
-sys.modules['PyQt6.QtWidgets'] = MagicMock()
-sys.modules['PyQt6.QtGui'] = MagicMock()
-sys.modules['PyQt6.QtCore'] = MagicMock()
+class MockQt:
+    def __init__(self):
+        self.patcher = patch.dict('sys.modules', {
+            'PyQt6.QtWidgets': MagicMock(),
+            'PyQt6.QtGui': MagicMock(),
+            'PyQt6.QtCore': MagicMock()
+        })
 
-from src.interfaces.gui.main_window import safe_callback
+    def start(self): self.patcher.start()
+    def stop(self): self.patcher.stop()
+
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 
 class TestResilience(unittest.TestCase):
-    def test_safe_callback_decorator(self):
+    def setUp(self):
+        self.qt_mock = MockQt()
+        self.qt_mock.start()
+
+    def tearDown(self):
+        self.qt_mock.stop()
+    def test_safe_ui_callback_decorator(self):
         """Valida que o decorador captura exceções e evita crash."""
         class MockWindow:
             def __init__(self):
                 self.statusBar = MagicMock()
+                self.bottom_panel = MagicMock()
+                self.window = MagicMock(return_value=self)
             
-            @safe_callback
+            def parentWidget(self): return None
+
+            @safe_ui_callback("Crashing Method")
             def crashing_method(self):
                 raise ValueError("Simulated Crash")
 
@@ -25,9 +42,9 @@ class TestResilience(unittest.TestCase):
         # Não deve levantar exceção
         win.crashing_method()
         
-        # Deve ter logado e mostrado na status bar
-        win.statusBar().showMessage.assert_called()
-        self.assertIn("Simulated Crash", win.statusBar().showMessage.call_args[0][0])
+        # Deve ter logado no bottom panel ou status bar
+        win.bottom_panel.add_log.assert_called()
+        self.assertIn("Simulated Crash", win.bottom_panel.add_log.call_args[0][0])
 
     def test_path_sanitization_exists(self):
         """Verifica se as funções de abertura usam Path.resolve()."""
