@@ -33,17 +33,7 @@ from src.infrastructure.services.settings_service import SettingsService
 from src.application.use_cases.add_annotation import AddAnnotationUseCase
 from src.application.use_cases.get_document_metadata import GetDocumentMetadataUseCase
 
-def safe_callback(func):
-    """Decorador para garantir resiliência em callbacks da UI."""
-    def wrapper(self, *args, **kwargs):
-        try:
-            return func(self, *args, **kwargs)
-        except Exception as e:
-            from src.infrastructure.services.logger import log_exception
-            log_exception(f"UI Error Boundary [{func.__name__}]: {e}")
-            if hasattr(self, 'statusBar'):
-                self.statusBar().showMessage(f"⚠️ Erro em {func.__name__}: {e}")
-    return wrapper
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 
 class MainWindow(QMainWindow):
     def __init__(self, initial_file=None):
@@ -387,7 +377,7 @@ class MainWindow(QMainWindow):
         self.split_shortcut.triggered.connect(self._on_split_clicked)
         self.addAction(self.split_shortcut)
 
-    @safe_callback
+    @safe_ui_callback("Tab Switch")
     def _on_tab_changed(self, file_path):
         """Sincroniza a UI quando o usuário muda de aba."""
         if not file_path: return
@@ -404,9 +394,13 @@ class MainWindow(QMainWindow):
         
         # Sincronizar conexões do visualizador ativo
         if self.viewer:
-            self.viewer.pageChanged.connect(self._on_page_changed, Qt.ConnectionType.UniqueConnection)
-            # Conecta o botão da barra flutuante do visualizador atual ao comando de split
-            self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
+            try:
+                self.viewer.pageChanged.connect(self._on_page_changed, Qt.ConnectionType.UniqueConnection)
+                # Conecta o botão da barra flutuante do visualizador atual ao comando de split
+                self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
+            except (TypeError, RuntimeError):
+                # Ignora se já estiver conectado (padrão de segurança)
+                pass
         
         self.bottom_panel.add_log(f"Switched to: {file_path.name}")
 
@@ -435,6 +429,7 @@ class MainWindow(QMainWindow):
         # Definir marcadores na scrollbar do viewer
         self.viewer.verticalScrollBar().set_markers(positions)
 
+    @safe_ui_callback("Open File")
     def open_file(self, file_path: Path):
         """Abre um documento PDF em uma nova aba."""
         try:
@@ -666,7 +661,7 @@ class MainWindow(QMainWindow):
             log_exception(f"MainWindow: Erro ao anexar: {e}")
             self.statusBar().showMessage(f"Erro ao anexar arquivo: {e}")
 
-    @safe_callback
+    @safe_ui_callback("Rotate Page")
     def _on_rotate_clicked(self, degrees: int):
         # Segurança: Sanitize Path
         if self.current_file:
@@ -701,7 +696,7 @@ class MainWindow(QMainWindow):
         self._on_activity_clicked(1)
         self.search_panel.search_input.setFocus()
 
-    @safe_callback
+    @safe_ui_callback("Split Editor")
     def _on_split_clicked(self):
         """Ativa/Desativa o modo Split Editor Assíncrono para o mesmo documento."""
         editor_group = self.tabs.current_editor()
@@ -797,6 +792,7 @@ class MainWindow(QMainWindow):
         else:
             self.statusBar().showMessage("Modo de Seleção OCR Desativado.")
 
+    @safe_ui_callback("Layout Toggle")
     def _on_layout_toggled(self, checked: bool):
         """Alterna entre visão única e visão dupla."""
         mode = "dual" if checked else "single"
@@ -825,6 +821,7 @@ class MainWindow(QMainWindow):
         elif self.highlight_action.isChecked():
             self._handle_highlight_area(page_index, rect)
 
+    @safe_ui_callback("OCR Area")
     def _handle_ocr_area(self, page_index, rect):
         try:
             self.statusBar().showMessage("Extraindo texto da área selecionada...")

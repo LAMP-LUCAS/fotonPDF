@@ -1,17 +1,17 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSplitter, QFrame, QHBoxLayout, QLabel, QPushButton
 from PyQt6.QtCore import Qt
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback, ResilientWidget
 
-class EditorGroup(QWidget):
+class EditorGroup(ResilientWidget):
     """
     Grupo de editores que suporta o 'Async Split' (mesmo documento, visões independentes).
     Fica dentro de uma Aba no TabContainer.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
-        self.layout.setSpacing(0)
+        # ResilientWidget já cria self.main_layout e self.content_layout
+        self.layout = self.content_layout 
         
         # Banner OCR (Modular)
         self.ocr_banner = QFrame()
@@ -45,6 +45,7 @@ class EditorGroup(QWidget):
         self.current_file = None
         self.metadata = None
 
+    @safe_ui_callback("Load Document")
     def load_document(self, file_path, metadata):
         """Carrega o documento no(s) visualizador(es)."""
         self.current_file = file_path
@@ -53,6 +54,7 @@ class EditorGroup(QWidget):
         if self.viewer_right:
             self.viewer_right.load_document(file_path, metadata)
 
+    @safe_ui_callback("Toggle Async Split")
     def toggle_split(self):
         """Ativa/Desativa o split assíncrono do mesmo documento."""
         if self.viewer_right is None:

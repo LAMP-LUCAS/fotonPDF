@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QStackedWidget, QTextEdit
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QRect
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 
 class BottomPanel(QWidget):
     """
@@ -47,9 +48,17 @@ class BottomPanel(QWidget):
         
         self.add_log("fotonPDF ready. System initialized.")
 
-    def add_log(self, message):
-        self.log_view.append(f"> {message}")
+    @safe_ui_callback("Logging")
+    def add_log(self, message, msg_type="info"):
+        color = "#cccccc"
+        if "⚠️" in message or "error" in message.lower() or msg_type == "error":
+            color = "#f44747" # VS Code Error Red
+        elif "warning" in message.lower() or msg_type == "warning":
+            color = "#cca700" # VS Code Warning Yellow
+            
+        self.log_view.append(f'<span style="color: {color};">> {message}</span>')
 
+    @safe_ui_callback("Bottom Panel Animation")
     def toggle_expand(self):
         self._is_expanded = not self._is_expanded
         

@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 
 class SideBar(QFrame):
     """Container colapsável para os painéis de ferramentas (Miniaturas, Busca, etc)."""
@@ -46,6 +47,7 @@ class SideBar(QFrame):
     def add_panel(self, widget, title):
         self.stack.addWidget(widget)
 
+    @safe_ui_callback("Sidebar Panel Switch")
     def show_panel(self, idx, title):
         if self._is_collapsed:
             self.toggle_collapse()
@@ -54,6 +56,7 @@ class SideBar(QFrame):
             self.stack.setCurrentIndex(idx)
             self.title_label.setText(title.upper())
 
+    @safe_ui_callback("Sidebar Animation")
     def toggle_collapse(self):
         start_val = self.width()
         end_val = 0 if not self._is_collapsed else self._base_width

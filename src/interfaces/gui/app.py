@@ -13,7 +13,16 @@ def hide_console():
         if hWnd:
             user32.ShowWindow(hWnd, 0) # 0 = SW_HIDE
 
+def exception_hook(exctype, value, traceback):
+    """Gancho global para capturar exceções não tratadas e evitar fechamento abrupto."""
+    from src.infrastructure.services.logger import log_exception
+    log_exception(f"Unhandled Exception: {exctype}, {value}")
+    sys.__excepthook__(exctype, value, traceback)
+
 def main(file_path: str = None):
+    # Definir gancho de exceção
+    sys.excepthook = exception_hook
+    
     # Esconder terminal se estivermos no visualizador
     hide_console()
     

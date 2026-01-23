@@ -2,18 +2,18 @@
 
 Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
 
-## 🏁 Sprint Atual: Sprint 9 - Ecossistema & Plugins 🏗️
+## 🏁 Sprint Atual: Sprint 13 - UI Test Hardening (Pytest-Qt) 🧪
 
-**Objetivo:** Tornar o fotonPDF uma plataforma extensível e automatizável.
+**Objetivo:** Garantir a integridade da interface profissional através de testes automatizados de UI.
 
-- **Foco:** Sistema de Plugins, Automação em Lote e Integração com LLMs.
-- **Entregável:** Marketplace de plugins e suporte a automações baseadas em YAML.
+- **Foco:** Configuração do `pytest-qt`, testes de integração das abas e validação das camadas de resiliência.
+- **Entregável:** Suíte de testes "Headless" validando 100% dos fluxos críticos de UI.
 
 ---
 
 ## 🔜 Próximas Sprints
 
-### Sprint 10: Inteligência de Conteúdo (LLM Sync) 🔋
+### Sprint 14: Inteligência de Conteúdo (LLM Sync) 🔋
 
 - **Objetivo:** Integração profunda com modelos de linguagem para resumos e chat sobre PDFs.
 
@@ -22,6 +22,33 @@ Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser d
 ## 📅 Histórico de Sprints Concluídas
 
 ### Fase 2: Interface & Funcionalidade
+
+#### Sprint 12: Resiliência & Tolerância a Falhas ✅
+
+- [x] **UI Error Boundaries**: Implementação do decorador `@safe_ui_callback` para isolamento de falhas.
+- [x] **Global Exception Hook**: Captura de exceções não tratadas no nível da aplicação (PyQt).
+- [x] **Hardenização de Widgets**: Estados de falha resilientes para `EditorGroup` e `SideBar`.
+- [x] **Logs Inteligentes**: Suporte a cores (Red/Yellow) no Painel Inferior para sinalização de erros.
+
+#### Sprint 11: Ultimate VS Code Experience (Tabs & Panels) ✅
+
+- [x] **Multi-Document Tabs**: Sistema de abas profissional para múltiplos arquivos simultâneos.
+- [x] **Async Dual-Split**: Visualização independente de duas partes do mesmo documento.
+- [x] **Auxiliary Panels**: Inclusão de Painel Inferior (Logs) e Barra Lateral Direita (AI Placeholder).
+- [x] **Layout Modular**: Orquestração via sinais para desacoplar componentes da UI.
+
+#### Sprint 10: Dev Experience & UI Controls ✅
+
+- [x] **Hot Reload (Dev Mode)**: Lançador automático que reinicia o app ao detectar mudanças no código.
+- [x] **Layout Toggles**: Botões na StatusBar para ocultar/exibir barras laterais e atividade.
+- [x] **Split Toggle**: Controle direto na Floating NavBar para ativar visualização lado-a-lado.
+
+#### Sprint 9: Ultra-Clean UI/UX Overhaul ✅
+
+- [x] **VS Code Layout**: Estrutura base com Activity Bar, Side Bar e main area modular.
+- [x] **Floating NavBar**: Barra flutuante transparente com controles essenciais de navegação.
+- [x] **Search Visualization**: Marcadores estilo IDE na scrollbar e "peek" highlight temporário.
+- [x] **Context Menu**: Menu popup ao selecionar texto para cópia e busca rápida.
 
 #### Sprint 8: UI Evolution & Modo Profissional ✅
 

@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QTabWidget, QWidget, QVBoxLayout, QTabBar
 from PyQt6.QtCore import Qt, pyqtSignal
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 from src.interfaces.gui.widgets.editor_group import EditorGroup
 
 class TabContainer(QTabWidget):
@@ -36,6 +37,7 @@ class TabContainer(QTabWidget):
             }
         """)
 
+    @safe_ui_callback("Open Tab")
     def add_editor(self, file_path, metadata):
         """Adiciona um novo documento em uma nova aba."""
         # Verificar se já está aberto (opcional, para evitar duplicatas nas abas)
@@ -52,6 +54,7 @@ class TabContainer(QTabWidget):
         self.setCurrentIndex(idx)
         return group
 
+    @safe_ui_callback("Close Tab")
     def _on_tab_close_requested(self, index):
         widget = self.widget(index)
         if widget:

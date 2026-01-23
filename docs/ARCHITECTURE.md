@@ -4,8 +4,8 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
 
 ## 🧬 O Conceito Híbrido
 
-1. **Hexagonal:** Garante que a lógica de "como girar um PDF" seja independente de "qual biblioteca usamos" ou "se foi clicado no Windows ou Linux".
-2. **Modular:** Organiza o código por funcionalidades (Core, Conversão, Automação), facilitando que um dev foque em apenas uma área sem quebrar o resto.
+1. **Hexagonal:** Garante que a lógica de "como girar um PDF" seja independente de "qual biblioteca usamos" ou "se foi clicado no Windows ou Linux". O núcleo (`domain` e `application`) é isolado das portas de entrada e saída.
+2. **Monólito Modular (GUI):** A interface é composta por widgets independentes que não se conhecem diretamente. Eles se comunicam apenas através da `MainWindow` usando o sistema de sinais do Qt (PyQt6), o que permite trocar ou mover componentes sem quebrar o sistema.
 
 ## 📐 Camadas
 
@@ -30,8 +30,12 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
 ### 4. Interfaces (`src/interfaces`)
 
 - Pontos de entrada para o usuário.
-- `ContextMenuItem`: Aciona comandos via Shell.
-- `QuickViewer`: UI de visualização ultra-rápida em PyQt6.
+- **Monolito de Orquestração:** a `MainWindow` atua como o ponto de entrada principal, coordenando a comunicação entre os módulos via sinais.
+- **Componentes Modulares (`src/interfaces/gui/widgets`):**
+  - `TabContainer`: Gerencia o estado de múltiplos documentos abertos.
+  - `SideBar`: Painéis laterais reutilizáveis (Esquerda/Direita).
+  - `BottomPanel`: Gerencia notificações e logs de forma independente.
+  - `EditorGroup`: Encapsula a lógica de visualização e "Async Split".
 
 ## 🔄 Fluxo de Uma Operação
 

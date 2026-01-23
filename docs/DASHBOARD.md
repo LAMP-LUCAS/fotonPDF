@@ -18,9 +18,17 @@ pie title Cobertura da Documentação
 | --- | --- | --- | --- |
 | **Fase 1: Fundação** | 🟢 Completo | ████████████ 100% | Finalizada ✅ |
 | **Fase 2: Interface & Func.** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
+| **Fase 2.1: VS Code Exp.** | 🟢 Completo | ████████████ 100% | 22/01/2026 ✅ |
 | **Fase 3: Ecossistema** | 🏗️ Em Progresso | [--------------------] 0% | Prev. Fev/2026 |
 
-### Sprint 8 (Concluído) ✅
+### Sprint 11 (Concluído) ✅
+
+- [x] Arquitetura Híbrida Sincronizada 🏛️
+- [x] Sistema de Abas Multi-Documento 📑
+- [x] Painéis Auxiliares (Bottom/Right) ▃
+- [x] Async Dual-Split (Mesmo Doc) ◫
+
+### Sprint 10 (Concluído) ✅
 
 - [x] Settings Service (Persistência) 💾
 - [x] Modos de Leitura (Sépia/Noite/Invertido) 👁️
@@ -53,7 +61,7 @@ gantt
 
 ---
 
-**Última atualização:** 2026-01-21  
-**Próxima revisão:** Final da Sprint 9 (Ecossistema)
+**Última atualização:** 2026-01-22  
+**Próxima revisão:** Início da Fase 3
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]
