@@ -39,6 +39,7 @@ Se você deseja apenas usar o software e não é desenvolvedor, acesse:
 - **Integração Nativa:** Menus organizados com prefixo `fotonPDF ▸` para PDFs.
 - **Operações Inteligentes:** Girar, Juntar e Separar com **timestamps automáticos** para evitar sobrescritas.
 - **Visualizador Fóton:** Janela de pré-visualização ultrarrápida (PyQt6) com suporte a abertura direta via CLI.
+- **Resiliência Industrial:** Infraestrutura de "Error Boundaries" que mantém o app estável mesmo sob falhas críticas de UI.
 - **Estabilidade:** Distribuição otimizada em modo diretório para performance máxima.
 
 ---

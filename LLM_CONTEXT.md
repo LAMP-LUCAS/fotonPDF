@@ -14,7 +14,8 @@ Este arquivo serve como a "Memória de Longo Prazo" para qualquer IA assistente 
 2. **Ports & Adapters:** Bibliotecas externas (PyMuPDF, Registry API) devem ser encapsuladas em adaptadores que implementam protocolos definidos no domínio.
 3. **Imutabilidade:** Operações em PDFs devem, por padrão, gerar novos arquivos ou cópias temporárias antes de sobrescrever, garantindo segurança de dados.
 4. **I/O Assíncrono:** Todas as operações de processamento de PDF devem ser executadas em threads separadas para não bloquear a UI.
-5. **Filosofia Senior (Obrigatório):**
+5. **Resiliência de UI (Boundaries):** Todas as callbacks críticas do Qt na `MainWindow` ou widgets complexos devem ser decoradas com `@safe_ui_callback` para garantir que exceções locais não derrubem o processo principal.
+6. **Filosofia Senior (Obrigatório):**
    - **DRY (Don't Repeat Yourself):** Reutilize código, centralize lógicas comuns nos domínios.
    - **CLEAN Code:** Código legível, nomes auto-explicativos e funções com responsabilidade única.
    - **SOLID:** Princípios de design para garantir escalabilidade e facilitar manutenção.

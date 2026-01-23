@@ -19,7 +19,15 @@ pie title Cobertura da Documentação
 | **Fase 1: Fundação** | 🟢 Completo | ████████████ 100% | Finalizada ✅ |
 | **Fase 2: Interface & Func.** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
 | **Fase 2.1: VS Code Exp.** | 🟢 Completo | ████████████ 100% | 22/01/2026 ✅ |
-| **Fase 3: Ecossistema** | 🏗️ Em Progresso | [--------------------] 0% | Prev. Fev/2026 |
+| **Fase 2.2: Resiliência** | 🟢 Completo | ████████████ 100% | 22/01/2026 ✅ |
+| **Fase 3: Ecossistema** | 🏗️ Em Progresso | [░░░░░░░░░░░░░░░░░░░░] 5% | Prev. Fev/2026 |
+
+### Sprint 12 (Concluído) ✅
+
+- [x] UI Error Boundaries (Tolerância a Falhas) 🛡️
+- [x] Global Application Exception Hook 🎣
+- [x] Resilient Widget Placeholders 🏗️
+- [x] Color-Coded Log Diagnostics 📊
 
 ### Sprint 11 (Concluído) ✅
 

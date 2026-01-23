@@ -49,4 +49,4 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 
 ---
 
-### Atualizado em: 2026-01-19
+### Atualizado em: 2026-01-22

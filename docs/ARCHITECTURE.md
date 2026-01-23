@@ -36,6 +36,12 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
   - `SideBar`: Painéis laterais reutilizáveis (Esquerda/Direita).
   - `BottomPanel`: Gerencia notificações e logs de forma independente.
   - `EditorGroup`: Encapsula a lógica de visualização e "Async Split".
+  
+### 5. Resiliência e Tolerância a Falhas (`src/interfaces/gui/utils`)
+
+- **UI Error Boundaries**: O projeto utiliza o decorador `@safe_ui_callback` para envolver funções críticas do Qt. Isso isola falhas, evitando que uma exceção em um widget (como erro de renderização) derrube toda a aplicação.
+- **Global Exception Hook**: Um hook de exceção global (`sys.excepthook`) captura erros não tratados e os direciona para o `BottomPanel`, mantendo a UI responsiva.
+- **Resilient Widgets**: Widgets que herdam de `ResilientWidget` possuem estados de placeholder automáticos para lidar com dados ausentes ou carregamentos falhos.
 
 ## 🔄 Fluxo de Uma Operação
 

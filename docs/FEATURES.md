@@ -42,6 +42,12 @@ Interface gráfica em **PyQt6**, projetada para ser o centro de controle do seu 
 - **Ajuste de Tela**: Os botões de **Largura** e **Altura** são "conscientes do contexto". Eles identificam qual página está mais visível no topo do viewport e ajustam o zoom baseado nas dimensões reais *daquela página específica*.
 - **Suporte Mixed-Size**: Perfeito para documentos que misturam páginas A4 vertical com plantas de engenharia no formato paisagem (A3/A2).
 
+### 2.4 Async Split (Visão Dual Independente)
+
+- **O que faz**: Permite ao usuário visualizar duas regiões distintas do *mesmo* arquivo PDF lado a lado.
+- **Diferencial**: Diferente do "Dual View" tradicional (que foca em documentos diferentes), o Async Split desacopla o scroll e o zoom. Você pode manter o sumário visual da página 1 em uma metade enquanto detalha os termos técnicos da página 90 na outra.
+- **Interface**: Ativável via ícone "Dividir" na Floating NavBar ou atalho direto.
+
 ### 2.3 Extração Visual Premium
 
 - **O que faz:** Cria um novo arquivo PDF contendo apenas as páginas que você selecionou visualmente.
@@ -50,6 +56,21 @@ Interface gráfica em **PyQt6**, projetada para ser o centro de controle do seu 
     2. Clique em **Extrair** na Toolbar.
     3. O sistema compila um novo PDF binário unindo as fontes originais e preservando a nova ordem e rotações aplicadas.
 - **Uso Comum**: Separar páginas de um contrato ou criar um resumo de um relatório extenso.
+
+---
+
+## 🏗️ 4. Infraestrutura de Resiliência (Fault Tolerance)
+
+O fotonPDF foi desenvolvido com uma filosofia de "Crash-Proofing" para garantir que erros locais não interrompam o trabalho do usuário.
+
+### 4.1 UI Error Boundaries (@safe_ui_callback)
+
+- **Implementação**: Decorador centralizado que envolve eventos do Qt.
+- **Comportamento**: Se um erro ocorrer ao girar uma página ou abrir um painel lateral, a exceção é capturada, logada em **Red** no `BottomPanel` e o usuário pode continuar usando outras partes do software sem crash.
+
+### 4.2 Global Exception Hook
+
+- **O que faz**: Captura erros fatais que escapam dos decorators e garante que eles sejam registrados e notificados via logs estruturados, facilitando o diagnóstico técnico remoto.
 
 ---
 
