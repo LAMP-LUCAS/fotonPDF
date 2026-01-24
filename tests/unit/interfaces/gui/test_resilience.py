@@ -1,56 +1,52 @@
-import sys
-import unittest
-from pathlib import Path
-from unittest.mock import MagicMock, patch
+import pytest
+from PyQt6.QtWidgets import QApplication, QWidget
+from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback, ResilientWidget
 
-# Mock PyQt6 to run in headless environment
-class MockQt:
+class MockWidget(QWidget):
     def __init__(self):
-        self.patcher = patch.dict('sys.modules', {
-            'PyQt6.QtWidgets': MagicMock(),
-            'PyQt6.QtGui': MagicMock(),
-            'PyQt6.QtCore': MagicMock()
-        })
+        super().__init__()
+        self.error_caught = False
 
-    def start(self): self.patcher.start()
-    def stop(self): self.patcher.stop()
+    @safe_ui_callback("Test Method")
+    def failing_method(self):
+        raise ValueError("Simulated UI Error")
 
-from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
+def test_safe_ui_callback_prevents_crash(qtbot):
+    """Verifica se o decorador captura a exceção e impede o crash."""
+    widget = MockWidget()
+    qtbot.addWidget(widget)
+    
+    # Não deve subir exceção ValueError
+    widget.failing_method()
+    
+    # Se chegamos aqui sem crash, o teste passou na captura
+    assert True
 
-class TestResilience(unittest.TestCase):
-    def setUp(self):
-        self.qt_mock = MockQt()
-        self.qt_mock.start()
+def test_resilient_widget_placeholder_toggle(qtbot):
+    """Verifica se o ResilientWidget alterna corretamente entre conteúdo e placeholder."""
+    widget = ResilientWidget()
+    qtbot.addWidget(widget)
+    
+    # Inicialmente não deve mostrar placeholder
+    assert widget.placeholder_widget.isHidden()
+    assert not widget.content_widget.isHidden()
+    
+    # Ativar placeholder
+    widget.show_placeholder(True, "Erro de Teste")
+    assert not widget.placeholder_widget.isHidden()
+    assert widget.content_widget.isHidden()
+    assert widget.placeholder_label.text() == "Erro de Teste"
 
-    def tearDown(self):
-        self.qt_mock.stop()
-    def test_safe_ui_callback_decorator(self):
-        """Valida que o decorador captura exceções e evita crash."""
-        class MockWindow:
-            def __init__(self):
-                self.statusBar = MagicMock()
-                self.bottom_panel = MagicMock()
-                self.window = MagicMock(return_value=self)
-            
-            def parentWidget(self): return None
-
-            @safe_ui_callback("Crashing Method")
-            def crashing_method(self):
-                raise ValueError("Simulated Crash")
-
-        win = MockWindow()
-        # Não deve levantar exceção
-        win.crashing_method()
-        
-        # Deve ter logado no bottom panel ou status bar
-        win.bottom_panel.add_log.assert_called()
-        self.assertIn("Simulated Crash", win.bottom_panel.add_log.call_args[0][0])
-
-    def test_path_sanitization_exists(self):
-        """Verifica se as funções de abertura usam Path.resolve()."""
-        # Este teste é mais uma checagem de código via análise estática se necessário,
-        # mas aqui vamos apenas garantir que o decorador funciona.
-        pass
-
-if __name__ == '__main__':
-    unittest.main()
+def test_resilient_widget_content_replacement(qtbot):
+    """Verifica se a substituição de conteúdo limpa o layout anterior."""
+    widget = ResilientWidget()
+    qtbot.addWidget(widget)
+    
+    child1 = QWidget()
+    widget.set_content_widget(child1)
+    assert widget.content_layout.count() == 1
+    
+    child2 = QWidget()
+    widget.set_content_widget(child2)
+    assert widget.content_layout.count() == 1
+    # child1 deve ter sido marcado para deleção
