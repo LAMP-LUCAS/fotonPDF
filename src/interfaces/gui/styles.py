@@ -1,131 +1,168 @@
 def get_main_stylesheet():
     """
     Folha de estilos central do fotonPDF.
-    Define o DNA Visual: Solar Gold (#FFC107) sobre Deep Space (#0F172A).
-    Utiliza conceitos de Glassmorphism e Glow para uma interface Profissional Premium.
+    Tema: Dark Industrial Tech (AEC-Dark)
+    Conceito: Sobriedade de IDE + Urgência Visual de Obra.
     """
     return """
-    /* --- Globais --- */
+    /* --- VARIÁVEIS (Conceituais - aplicadas diretamente) ---
+       BG Canvas: #0F0F11
+       BG Panels: #18181B
+       Surface:   #27272A
+       Accent:    #FFD600 (Safety Yellow)
+       Text:      #FAFAFA
+       Border:    #3F3F46
+    */
+
+    /* --- GLOBALS --- */
     QMainWindow {
-        background-color: #0F172A;
+        background-color: #0F0F11;
     }
 
     QWidget {
-        background-color: #0F172A;
-        color: #E2E8F0;
-        font-family: 'Inter', 'Segoe UI', sans-serif;
-        font-size: 12px;
+        font-family: 'Segoe UI', 'Roboto', sans-serif;
+        font-size: 13px;
+        color: #FAFAFA;
     }
 
-    /* --- Activity Bar (VS Code Pattern) --- */
-    #ActivityBar {
-        background-color: #18191D;
-        border-right: 1px solid #2D3748;
+    /* --- PAINÉIS LATERAIS --- */
+    #SideBar, #InspectorPanel {
+        background-color: #18181B;
+        border-right: 1px solid #3F3F46;
+        border-left: 1px solid #3F3F46;
     }
-
-    #ActivityBar QPushButton {
-        background-color: transparent;
-        border: none;
-        padding: 10px;
-        color: #94A3B8;
-        font-size: 18px;
-    }
-
-    #ActivityBar QPushButton:hover {
-        color: #FFC107;
-        background-color: rgba(255, 193, 7, 0.05);
-    }
-
-    #ActivityBar QPushButton:checked {
-        color: #FFC107;
-        border-left: 2px solid #FFC107;
-        background-color: rgba(255, 193, 7, 0.1);
-    }
-
-    /* --- Top Custom Toolbar --- */
-    #TopBar {
-        background-color: #1E293B;
-        border-bottom: 1px solid #334155;
-    }
-
-    #SearchContainer {
-        background-color: #0F172A;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        color: #94A3B8;
-    }
-
-    #SearchContainer:focus-within {
-        border: 1px solid #FFC107;
-    }
-
-    #SearchInput {
-        background-color: transparent;
-        border: none;
-        color: #F8FAFC;
-        padding: 4px;
-        font-size: 11px;
-    }
-
-    /* --- Sidebars & Splitters --- */
-    #SideBar {
-        background-color: #0F172A;
-        border-right: 1px solid #1E293B;
-        border-left: 1px solid #1E293B;
-    }
-
+    
     QSplitter::handle {
-        background-color: #1E293B;
+        background-color: #0F0F11;
     }
-
     QSplitter::handle:hover {
-        background-color: #FFC107;
+        background-color: #FFD600;
     }
 
-    /* --- Tabs Container --- */
-    QTabWidget::pane {
+    /* --- TOP BAR & BOTÕES --- */
+    #TopBar {
+        background-color: #0F0F11;
+        border-bottom: 1px solid #3F3F46;
+    }
+
+    QPushButton {
+        background-color: #27272A;
+        border: 1px solid #3F3F46;
+        border-radius: 6px;
+        padding: 6px 12px;
+        color: #FAFAFA;
+        font-weight: 500;
+    }
+
+    QPushButton:hover {
+        background-color: #3F3F46;
+        border-color: #52525B;
+    }
+
+    QPushButton:checked, QPushButton[active="true"] {
+        background-color: #2E2E33;
+        border: 1px solid #FFD600;
+        color: #FFD600;
+    }
+
+    /* --- ACTIVITY BAR --- */
+    #ActivityBar {
+        background-color: #18181B;
+        border-right: 1px solid #3F3F46;
+    }
+    #ActivityBar QPushButton {
         border: none;
-        background-color: #09090B;
-    }
-
-    QTabBar::tab {
-        background-color: #1E293B;
-        color: #8E918F;
-        padding: 8px 16px;
-        border-right: 1px solid #0F172A;
-        font-size: 11px;
-    }
-
-    QTabBar::tab:selected {
-        background-color: #09090B;
-        color: #FFFFFF;
-        border-top: 2px solid #FFC107;
-    }
-
-    /* --- Scrollbars (Thin Neon Style) --- */
-    QScrollBar:vertical {
         background: transparent;
-        width: 10px;
+        color: #71717A;
+        border-radius: 0;
+    }
+    #ActivityBar QPushButton:hover {
+        color: #FAFAFA;
+        background: #27272A;
+    }
+    #ActivityBar QPushButton:checked {
+        color: #FFD600;
+        border-left: 2px solid #FFD600;
+    }
+
+    /* --- PESQUISA --- */
+    #SearchContainer {
+        background-color: #27272A;
+        border: 1px solid #3F3F46;
+        border-radius: 8px;
+    }
+    #SearchContainer:focus-within {
+        border: 1px solid #FFD600;
+        background-color: #27272A;
+    }
+    #SearchInput {
+        background: transparent;
+        border: none;
+        color: #FAFAFA;
+        font-size: 13px;
+    }
+
+    /* --- SCROLLBARS (Minimalista) --- */
+    QScrollBar:vertical {
+        background: #18181B;
+        width: 8px;
         margin: 0px;
     }
-
     QScrollBar::handle:vertical {
-        background: #334155;
-        min-height: 20px;
-        border-radius: 5px;
+        background: #3F3F46;
+        min-height: 30px;
+        border-radius: 4px;
     }
-
     QScrollBar::handle:vertical:hover {
-        background: #FFC107;
+        background: #52525B;
+    }
+    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+        height: 0px;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+        background: none;
+    }
+    
+    QSplitter::handle {
+        background-color: #0F0F11;
+        /* create a pseudo-border/highlight for visibility */
+        border: 1px solid #27272A; 
+        margin: 1px;
+    }
+    QSplitter::handle:hover {
+        background-color: #FFD600;
+        border-color: #FFD600;
     }
 
-    /* --- Status Bar --- */
+    /* --- STATUS BAR --- */
     QStatusBar {
-        background-color: #FFC107;
-        color: #0F172A;
+        background-color: #FFD600;
+        color: #18181B;
         font-weight: bold;
-        text-transform: uppercase;
-        font-size: 10px;
+        font-size: 11px;
+        border-top: 1px solid #CCAA00;
+    }
+    QStatusBar QLabel {
+        color: #18181B; /* Contraste preto no amarelo */
+    }
+
+    /* --- TABS --- */
+    QTabWidget::pane {
+        border: none;
+        background: #0F0F11;
+        border-top: 1px solid #3F3F46;
+    }
+    QTabBar::tab {
+        background: #18181B;
+        color: #A1A1AA;
+        padding: 8px 16px;
+        border-right: 1px solid #27272A;
+        font-size: 12px;
+    }
+    QTabBar::tab:selected {
+        background: #0F0F11;
+        color: #FFD600;
+        border-top: 2px solid #FFD600;
     }
 
     /* --- Buttons and Controls --- */
@@ -134,25 +171,27 @@ def get_main_stylesheet():
         padding: 5px 12px;
     }
 
+    /* Reset padding for icon-only buttons to prevent clipping */
     #ToggleBtn {
         background: transparent;
         color: #94A3B8;
-        font-size: 14px;
+        font-size: 16px; /* Aumentado para melhor visibilidade */
+        padding: 0px;    /* Zero padding for centered icon */
+        border: none;    /* Remove default border */
     }
 
     #ToggleBtn:hover {
         color: #FFFFFF;
-        background: rgba(255, 255, 255, 0.05);
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
     }
     
     #ToggleBtn[active="true"] {
-        color: #FFC107;
-        background: rgba(255, 193, 7, 0.05);
+        color: #FFD600;
+        background: rgba(255, 214, 0, 0.1);
     }
-
-    /* --- Placeholders / Resilience --- */
     QLabel#Placeholder {
-        color: #475569;
+        color: #52525B;
         font-style: italic;
     }
     """
