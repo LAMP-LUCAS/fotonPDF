@@ -27,4 +27,15 @@ class ResourceService:
 
     @staticmethod
     def get_logo_ico() -> Path:
-        return ResourceService.get_resource_path("docs/brand/logo.ico")
+        """Retorna o ícone principal da aplicação (ICO/PNG/SVG)."""
+        # Priorizar assets gerados na pasta de documentação/brand
+        ico_path = ResourceService.get_resource_path("docs/brand/logo.ico")
+        if ico_path.exists():
+            return ico_path
+        
+        # Fallback para ícones de recurso interno se existirem
+        internal_png = ResourceService.get_resource_path("src/resources/icons/logo.png")
+        if internal_png.exists():
+            return internal_png
+            
+        return ico_path # Retorna path do ico mesmo que não exista (fallback final)

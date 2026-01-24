@@ -37,118 +37,189 @@ from src.application.use_cases.add_annotation import AddAnnotationUseCase
 from src.application.use_cases.get_document_metadata import GetDocumentMetadataUseCase
 
 from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
+from src.interfaces.gui.state.pdf_state import PDFStateManager
 
 class MainWindow(QMainWindow):
-    def __init__(self, initial_file=None):
+    @property
+    def viewer(self):
+        """Retorna o visualizador principal da aba ativa."""
+        if hasattr(self, 'tabs'):
+            editor = self.tabs.current_editor()
+            return editor.get_viewer() if editor else None
+        return None
+
+    @property
+    def current_editor_group(self):
+        """Retorna o EditorGroup ativo."""
+        if hasattr(self, 'tabs'):
+            return self.tabs.current_editor()
+        return None
+
+    def __init__(self, initial_file=None, settings_connector=None):
         super().__init__()
+        self._settings_connector = settings_connector
         self.setWindowTitle("fotonPDF - Visualizador Profissional")
         self.setMinimumSize(1200, 800)
         
-        # Central Widget
-        self.central_widget = QWidget()
-        self.setCentralWidget(self.central_widget)
-        self.main_layout = QHBoxLayout(self.central_widget)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
-        self.main_layout.setSpacing(0)
+        # Helper for startup logging
+        def _log_stage(stage: str, error: Exception = None):
+            try:
+                import os
+                from datetime import datetime
+                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                    if error:
+                        f.write(f"[{timestamp}] MainWindow.{stage} FAILED: {error}\n")
+                    else:
+                        f.write(f"[{timestamp}] MainWindow.{stage} OK\n")
+            except:
+                pass
         
-        # --- NOVO LAYOUT VS CODE 3.0 ---
-        self.activity_bar = ActivityBar(self)
-        self.side_bar = SideBar(self, initial_width=250)
-        self.side_bar_right = SideBar(self, initial_width=300)
-        self.side_bar_right.set_title("AI CO-PILOT")
-        self.side_bar_right.toggle_collapse() # Inicia fechado
+        # Stage 1: Adapter & Infrastructure
+        try:
+            self._adapter = PyMuPDFAdapter()
+            from src.infrastructure.repositories.sqlite_stage_repository import StageStateRepository
+            self.persistence = StageStateRepository(Path("stage_state.db"))
+            _log_stage("Stage1_Infrastructure")
+        except Exception as e:
+            _log_stage("Stage1_Infrastructure", e)
+            log_exception(f"Stage1 failed: {e}")
+            self._adapter = None
+            self.persistence = None
         
-        # Central Splitter (Editor + Bottom Panel)
-        self.central_splitter = QSplitter(Qt.Orientation.Vertical)
+        # Stage 2: Use Cases
+        try:
+            if self._adapter:
+                self._search_use_case = SearchTextUseCase(self._adapter)
+                self._get_toc_use_case = GetTOCUseCase(self._adapter)
+                self._get_metadata_use_case = GetDocumentMetadataUseCase(self._adapter)
+                self._detect_ocr_use_case = DetectTextLayerUseCase(self._adapter)
+                self._apply_ocr_use_case = ApplyOCRUseCase(self._adapter)
+                self._ocr_area_use_case = OCRAreaExtractionUseCase(self._adapter)
+                self._add_annot_use_case = AddAnnotationUseCase(self._adapter)
+            else:
+                self._search_use_case = self._get_toc_use_case = None
+                self._get_metadata_use_case = self._detect_ocr_use_case = None
+                self._apply_ocr_use_case = self._ocr_area_use_case = None
+                self._add_annot_use_case = None
+            _log_stage("Stage2_UseCases")
+        except Exception as e:
+            _log_stage("Stage2_UseCases", e)
+            log_exception(f"Stage2 failed: {e}")
         
-        # Editor Splitter (Left Sidebar + Editor Tabs + Right Sidebar)
-        self.horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
-        
-        self.main_layout.addWidget(self.activity_bar)
-        self.main_layout.addWidget(self.horizontal_splitter, stretch=1)
-        
-        self.horizontal_splitter.addWidget(self.side_bar)
-        self.horizontal_splitter.addWidget(self.central_splitter)
-        self.horizontal_splitter.addWidget(self.side_bar_right)
+        # Stage 3: Orchestrator (Lazy AI)
+        try:
+            from src.application.services.command_orchestrator import CommandOrchestrator
+            self.orchestrator = CommandOrchestrator(self._adapter) if self._adapter else None
+            _log_stage("Stage3_Orchestrator")
+        except Exception as e:
+            _log_stage("Stage3_Orchestrator", e)
+            log_exception(f"Orchestrator init failed: {e}")
+            self.orchestrator = None
 
-        # Use Cases & Adapter
-        self._adapter = PyMuPDFAdapter()
-        self._search_use_case = SearchTextUseCase(self._adapter)
-        self._get_toc_use_case = GetTOCUseCase(self._adapter)
-        self._get_metadata_use_case = GetDocumentMetadataUseCase(self._adapter)
-        self._detect_ocr_use_case = DetectTextLayerUseCase(self._adapter)
-        self._apply_ocr_use_case = ApplyOCRUseCase(self._adapter)
-        self._ocr_area_use_case = OCRAreaExtractionUseCase(self._adapter)
-        self._add_annot_use_case = AddAnnotationUseCase(self._adapter)
+        # Stage 4: UI State
+        try:
+            self.current_file = None
+            self.state_manager = PDFStateManager()
+            self.navigation_history = []
+            self.history_index = -1
+            self._is_navigating_history = False
+            _log_stage("Stage4_UIState")
+        except Exception as e:
+            _log_stage("Stage4_UIState", e)
+            log_exception(f"UI State init failed: {e}")
 
-        # Components
-        self.tabs = TabContainer()
-        self.bottom_panel = BottomPanel()
-        
-        self.thumbnails = ThumbnailPanel()
-        self.toc_panel = TOCPanel(self._get_toc_use_case)
-        self.search_panel = SearchPanel(self._search_use_case)
-        
-        # Novo: Central de Controle & Gestão
-        from src.interfaces.gui.widgets.control_center import ControlCenterWidget
-        self.control_center = ControlCenterWidget()
+        # Stage 5: UI Setup
+        try:
+            self._setup_ui_v4()
+            _log_stage("Stage5_SetupUI")
+        except Exception as e:
+            _log_stage("Stage5_SetupUI", e)
+            log_exception(f"UI Setup failed: {e}")
+            # Create minimal fallback UI
+            from PyQt6.QtWidgets import QLabel
+            central = QLabel("Erro na criação da interface. Verifique o log.")
+            central.setStyleSheet("color: red; font-size: 16px; padding: 20px;")
+            self.setCentralWidget(central)
+            return  # Skip remaining setup
 
-        # Adicionar painéis à SideBar (Esquerda)
-        self.side_bar.add_panel(self.thumbnails, "Explorer")
-        self.side_bar.add_panel(self.search_panel, "Search")
-        self.side_bar.add_panel(self.toc_panel, "Sumário")
-        self.side_bar.add_panel(self.control_center, "Management")
+        # Stage 6: Menus & Status
+        try:
+            self._setup_menus()
+            self._setup_statusbar()
+            _log_stage("Stage6_MenusStatusbar")
+        except Exception as e:
+            _log_stage("Stage6_MenusStatusbar", e)
+            log_exception(f"Menus/Statusbar failed: {e}")
         
-        # View Switcher (Scroll vs LightTable)
-        self.view_stack = QStackedWidget()
-        self.view_stack.addWidget(self.tabs)  # Index 0: ScrollView
-        self.light_table = LightTableView()  # Index 1: LightTable
-        self.view_stack.addWidget(self.light_table)
+        # Stage 7: Connections
+        try:
+            self._setup_connections_v4()
+            _log_stage("Stage7_Connections")
+        except Exception as e:
+            _log_stage("Stage7_Connections", e)
+            log_exception(f"Connections failed: {e}")
+            if hasattr(self, "bottom_panel"):
+                self.bottom_panel.add_log(f"⚠️ Erro de Conexões: {e}", color="orange")
         
-        # Montar Área Central
-        self.central_splitter.addWidget(self.view_stack)
-        self.central_splitter.addWidget(self.bottom_panel)
-        self.central_splitter.setChildrenCollapsible(False)  # Impede colapso total
-        # Tamanhos iniciais: 90% para visualização, 10% para painel
-        self.central_splitter.setSizes([700, 30])
-        
-        # Apply Visual Identity
-        self.setStyleSheet(get_main_stylesheet())
-        self._setup_window_icon()
+        # Stage 8: Styling
+        try:
+            self.setStyleSheet(get_main_stylesheet())
+            self._setup_window_icon()
+            _log_stage("Stage8_Styling")
+        except Exception as e:
+            _log_stage("Stage8_Styling", e)
+            log_exception(f"Styling failed: {e}")
 
-        # UI Initialization
-        # Use Case & Adapter
-        self._adapter = PyMuPDFAdapter()
-        from src.application.services.command_orchestrator import CommandOrchestrator
-        from src.infrastructure.repositories.sqlite_stage_repository import StageStateRepository
-        self.persistence = StageStateRepository(Path("stage_state.db"))
-        
-        # UI State (Standardized)
-        self.current_file = None
-        self.navigation_history = []
-        self.history_index = -1
-        self._is_navigating_history = False
+        # Stage 9: Final Setup
+        try:
+            self.setAcceptDrops(True)
+            self._load_settings()
+            _log_stage("Stage9_FinalSetup")
+        except Exception as e:
+            _log_stage("Stage9_FinalSetup", e)
+            log_exception(f"Final setup failed: {e}")
 
-        # UI Initialization (Order Corrected)
-        self._setup_ui_v4()
-        self.orchestrator = CommandOrchestrator(self._adapter)
+        # Open initial file if provided
+        if initial_file:
+            QTimer.singleShot(100, lambda: self.open_file(Path(initial_file)))
         
-        self._setup_menus()
-        self._setup_statusbar()
-        self._setup_connections_v4()
-        self._setup_statusbar()
-        self._setup_connections_v4()
-
-        # Drag & Drop Support
-        self.setAcceptDrops(True)
-        
-        # Load User Preferences
-        self._load_settings()
+        _log_stage("__init__COMPLETE")
 
     def _setup_ui_v4(self):
         """Organização modular orientada a plugins e alta performance."""
-        from src.interfaces.gui.widgets.top_bar import TopBarWidget
-        from src.interfaces.gui.widgets.inspector_panel import InspectorPanel
+        import os
+        from datetime import datetime
+        
+        def _log_widget(name: str, error: Exception = None):
+            try:
+                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                    if error:
+                        f.write(f"[{ts}] _setup_ui_v4.{name} FAILED: {error}\n")
+                    else:
+                        f.write(f"[{ts}] _setup_ui_v4.{name} OK\n")
+            except:
+                pass
+        
+        _log_widget("START")
+        
+        # Import widgets with logging
+        try:
+            from src.interfaces.gui.widgets.top_bar import TopBarWidget
+            _log_widget("import TopBarWidget")
+        except Exception as e:
+            _log_widget("import TopBarWidget", e)
+            TopBarWidget = None
+            
+        try:
+            from src.interfaces.gui.widgets.inspector_panel import InspectorPanel
+            _log_widget("import InspectorPanel")
+        except Exception as e:
+            _log_widget("import InspectorPanel", e)
+            InspectorPanel = None
         
         # Central Widget & Main Layout
         self.central_widget = QWidget()
@@ -156,26 +227,51 @@ class MainWindow(QMainWindow):
         self.outer_layout = QVBoxLayout(self.central_widget)
         self.outer_layout.setContentsMargins(0, 0, 0, 0)
         self.outer_layout.setSpacing(0)
+        _log_widget("central_widget")
         
         # 1. Top Bar
-        self.top_bar = TopBarWidget(self)
-        self.top_bar.searchTriggered.connect(self._on_search_triggered)
-        self.top_bar.toggleRequested.connect(self._on_layout_toggle_requested)
-        self.top_bar.viewModeChanged.connect(self._switch_view_mode_v4)
+        try:
+            self.top_bar = TopBarWidget(self) if TopBarWidget else QWidget()
+            self.top_bar.searchTriggered.connect(self._on_search_triggered)
+            self.top_bar.toggleRequested.connect(self._on_layout_toggle_requested)
+            self.top_bar.viewModeChanged.connect(self._switch_view_mode_v4)
+            _log_widget("TopBar")
+        except Exception as e:
+            _log_widget("TopBar", e)
+            self.top_bar = QWidget()
         
         # 2. Body Layout
         self.body_container = QWidget()
         self.body_layout = QHBoxLayout(self.body_container)
         self.body_layout.setContentsMargins(0, 0, 0, 0)
         self.body_layout.setSpacing(0)
+        _log_widget("body_container")
         
-        self.activity_bar = ActivityBar(self)
-        self.side_bar = SideBar(self, initial_width=250)
-        self.side_bar_right = SideBar(self, initial_width=300)
-        self.side_bar_right.set_title("AEC INSPECTOR")
+        try:
+            self.activity_bar = ActivityBar(self)
+            _log_widget("ActivityBar")
+        except Exception as e:
+            _log_widget("ActivityBar", e)
+            self.activity_bar = QWidget()
+            
+        try:
+            self.side_bar = SideBar(self, initial_width=250)
+            _log_widget("SideBar_left")
+        except Exception as e:
+            _log_widget("SideBar_left", e)
+            self.side_bar = QWidget()
+            
+        try:
+            self.side_bar_right = SideBar(self, initial_width=300)
+            self.side_bar_right.set_title("AEC INSPECTOR")
+            _log_widget("SideBar_right")
+        except Exception as e:
+            _log_widget("SideBar_right", e)
+            self.side_bar_right = QWidget()
         
         self.horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.central_splitter = QSplitter(Qt.Orientation.Vertical)
+        _log_widget("splitters")
         
         self.body_layout.addWidget(self.activity_bar)
         self.body_layout.addWidget(self.horizontal_splitter, stretch=1)
@@ -183,48 +279,134 @@ class MainWindow(QMainWindow):
         self.horizontal_splitter.addWidget(self.side_bar)
         self.horizontal_splitter.addWidget(self.central_splitter)
         self.horizontal_splitter.addWidget(self.side_bar_right)
+        _log_widget("body_layout_assembled")
         
         # Components & Tabs
-        self.tabs = TabContainer()
-        self.bottom_panel = BottomPanel()
-        self.inspector = InspectorPanel()
+        try:
+            self.tabs = TabContainer()
+            _log_widget("TabContainer")
+        except Exception as e:
+            _log_widget("TabContainer", e)
+            self.tabs = QWidget()
+            
+        try:
+            self.bottom_panel = BottomPanel()
+            _log_widget("BottomPanel")
+        except Exception as e:
+            _log_widget("BottomPanel", e)
+            self.bottom_panel = QWidget()
+            
+        try:
+            self.inspector = InspectorPanel() if InspectorPanel else QWidget()
+            _log_widget("InspectorPanel")
+        except Exception as e:
+            _log_widget("InspectorPanel", e)
+            self.inspector = QWidget()
         
         # Sidebars setup
-        self.side_bar_right.add_panel(self.inspector, "AEC Inspector")
-        self.side_bar_right.toggle_collapse() # Inicia fechado
+        try:
+            if hasattr(self.side_bar_right, 'add_panel'):
+                self.side_bar_right.add_panel(self.inspector, "AEC Inspector")
+                self.side_bar_right.toggle_collapse()
+            _log_widget("sidebar_right_setup")
+        except Exception as e:
+            _log_widget("sidebar_right_setup", e)
 
         self.view_stack = QStackedWidget()
         self.view_stack.addWidget(self.tabs)
-        self.light_table = LightTableView()
+        _log_widget("view_stack_tabs")
+        
+        try:
+            self.light_table = LightTableView()
+            _log_widget("LightTableView")
+        except Exception as e:
+            _log_widget("LightTableView", e)
+            self.light_table = QWidget()
+            
         self.view_stack.addWidget(self.light_table)
 
         self.central_splitter.addWidget(self.view_stack)
         self.central_splitter.addWidget(self.bottom_panel)
         self.central_splitter.setSizes([700, 30])
+        _log_widget("central_splitter_setup")
         
         # Add to Main Layout
         self.outer_layout.addWidget(self.top_bar)
         self.outer_layout.addWidget(self.body_container, stretch=1)
+        _log_widget("COMPLETE")
 
     def _setup_connections_v4(self):
-        """Conexões modularizadas e resilientes."""
+        """Conexões modularizadas e resilientes com Lazy Loading."""
         self.tabs.fileChanged.connect(self._on_tab_changed)
         self.activity_bar.clicked.connect(self._on_activity_clicked)
         
-        # Sincronizar painéis iniciais
-        from src.application.use_cases.get_toc import GetTOCUseCase
-        from src.application.use_cases.search_text import SearchTextUseCase
-        self.thumbnails = ThumbnailPanel()
-        self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
-        self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
+        # Painéis da sidebar serão carregados sob demanda (Lazy Loading)
+        self.thumbnails = None
+        self.toc_panel = None
+        self.search_panel = None
 
-        self.side_bar.add_panel(self.thumbnails, "Explorer")
-        self.side_bar.add_panel(self.search_panel, "Search")
-        self.side_bar.add_panel(self.toc_panel, "Sumário")
+        # Conectar LightTable se existir o sinal
+        if hasattr(self.light_table, "pageMoved"):
+            self.light_table.pageMoved.connect(self._on_light_table_moved)
 
-        self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
-        self.thumbnails.orderChanged.connect(self._on_pages_reordered)
-        self.light_table.pageMoved.connect(self._on_light_table_moved)
+    def _ensure_panel_loaded(self, name: str):
+        """Garante que um painel da sidebar esteja carregado (Lazy Loading)."""
+        try:
+            if name == "thumbnails" and not self.thumbnails:
+                self.thumbnails = ThumbnailPanel()
+                self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
+                self.thumbnails.orderChanged.connect(self._on_pages_reordered)
+                self.side_bar.add_panel(self.thumbnails, "Explorer")
+            
+            elif name == "search" and not self.search_panel:
+                from src.application.use_cases.search_text import SearchTextUseCase
+                self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
+                self.side_bar.add_panel(self.search_panel, "Search")
+            
+            elif name == "toc" and not self.toc_panel:
+                from src.application.use_cases.get_toc import GetTOCUseCase
+                self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
+                self.side_bar.add_panel(self.toc_panel, "Sumário")
+        except Exception as e:
+            log_exception(f"Erro ao carregar painel {name}: {e}")
+            self.bottom_panel.add_log(f"⚠️ Erro ao carregar painel '{name}': {e}", color="red")
+
+    def _load_settings(self):
+        """Carrega as configurações do usuário via conector hexagonal."""
+        try:
+            if not self._settings_connector:
+                from src.infrastructure.adapters.gui_settings_adapter import GUISettingsAdapter
+                self._settings_connector = GUISettingsAdapter()
+
+            geometry, state = self._settings_connector.load_window_state()
+            if geometry: self.restoreGeometry(geometry)
+            if state: self.restoreState(state)
+                
+            log_debug("MainWindow: Settings carregados via conector.")
+        except Exception as e:
+            log_exception(f"Erro ao carregar settings: {e}")
+
+    def _save_settings(self):
+        """Salva as configurações do usuário via conector hexagonal."""
+        try:
+            if self._settings_connector:
+                self._settings_connector.save_window_state(
+                    self.saveGeometry(), 
+                    self.saveState()
+                )
+            log_debug("MainWindow: Settings salvos via conector.")
+        except Exception as e:
+            log_exception(f"Erro ao salvar settings: {e}")
+
+    def closeEvent(self, event):
+        """Salva configurações ao fechar."""
+        self._save_settings()
+        super().closeEvent(event)
+
+    def _on_light_table_moved(self, info):
+        """Manipula reordenação na Mesa de Luz."""
+        self.bottom_panel.add_log(f"Mesa de Luz: Página movida ({info})")
+        # Logica de reordenação real aqui se info tiver os indices
 
     def _on_search_triggered(self, query):
         """Orquestração inteligente da busca superior."""
@@ -288,46 +470,74 @@ class MainWindow(QMainWindow):
             self.setWindowIcon(QIcon(str(icon_path)))
 
     def _setup_menus(self):
-        menubar = self.menuBar()
+        """Creates a cascading popup menu (no native menubar)."""
+        from PyQt6.QtWidgets import QMenu
         
-        # --- MENU ARQUIVO ---
-        file_menu = menubar.addMenu("&Arquivo")
+        # Hide the native menu bar for Chrome-less UI
+        self.menuBar().setVisible(False)
         
-        open_action = QAction("&Abrir...", self)
+        # Create the master popup menu
+        self.app_menu = QMenu(self)
+        self.app_menu.setObjectName("AppMenu")
+        self.app_menu.setStyleSheet("""
+            QMenu {
+                background-color: #27272A;
+                border: 1px solid #3F3F46;
+                border-radius: 8px;
+                padding: 8px 0;
+            }
+            QMenu::item {
+                padding: 8px 24px;
+                color: #E2E8F0;
+            }
+            QMenu::item:selected {
+                background-color: #3F3F46;
+                color: #FFD600;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #3F3F46;
+                margin: 4px 12px;
+            }
+        """)
+        
+        # --- SUBMENU ARQUIVO ---
+        file_menu = self.app_menu.addMenu("📂 Arquivo")
+        
+        open_action = QAction("Abrir...", self)
         open_action.setShortcut("Ctrl+O")
         open_action.triggered.connect(self._on_open_clicked)
         file_menu.addAction(open_action)
         
-        self.save_action = QAction("&Salvar", self)
+        self.save_action = QAction("Salvar", self)
         self.save_action.setShortcut("Ctrl+S")
         self.save_action.setEnabled(False)
         self.save_action.triggered.connect(self._on_save_clicked)
         file_menu.addAction(self.save_action)
         
-        self.save_as_action = QAction("Salvar &Como...", self)
+        self.save_as_action = QAction("Salvar Como...", self)
         self.save_as_action.setEnabled(False)
         self.save_as_action.triggered.connect(self._on_save_as_clicked)
         file_menu.addAction(self.save_as_action)
         
         file_menu.addSeparator()
         
-        merge_action = QAction("&Unir PDFs...", self)
+        merge_action = QAction("Unir PDFs...", self)
         merge_action.triggered.connect(self._on_merge_clicked)
         file_menu.addAction(merge_action)
         
-        self.extract_action = QAction("&Extrair Páginas...", self)
+        self.extract_action = QAction("Extrair Páginas...", self)
         self.extract_action.setEnabled(False)
         self.extract_action.triggered.connect(self._on_extract_clicked)
         file_menu.addAction(self.extract_action)
         
-        # Submenu Exportar
-        export_menu = file_menu.addMenu("&Exportar")
-        export_menu.addAction("Imagem High-DPI (PNG)").triggered.connect(lambda: self._on_export_image_clicked("png"))
+        export_menu = file_menu.addMenu("Exportar")
+        export_menu.addAction("PNG High-DPI").triggered.connect(lambda: self._on_export_image_clicked("png"))
         export_menu.addAction("SVG").triggered.connect(self._on_export_svg_clicked)
         export_menu.addAction("Markdown").triggered.connect(self._on_export_md_clicked)
         
-        # --- MENU EDITAR ---
-        edit_menu = menubar.addMenu("&Editar")
+        # --- SUBMENU EDITAR ---
+        edit_menu = self.app_menu.addMenu("✏️ Editar")
         
         self.rotate_left_action = QAction("Girar -90°", self)
         self.rotate_left_action.setEnabled(False)
@@ -341,28 +551,28 @@ class MainWindow(QMainWindow):
         
         edit_menu.addSeparator()
         
-        self.highlight_action = QAction("Modo Realçar (Highlight)", self)
+        self.highlight_action = QAction("Modo Realçar", self)
         self.highlight_action.setCheckable(True)
         self.highlight_action.triggered.connect(self._on_highlight_toggled)
         edit_menu.addAction(self.highlight_action)
         
-        # --- MENU VER ---
-        view_menu = menubar.addMenu("&Ver")
+        # --- SUBMENU VER ---
+        view_menu = self.app_menu.addMenu("👁️ Ver")
         
-        zoom_menu = view_menu.addMenu("&Zoom")
+        zoom_menu = view_menu.addMenu("Zoom")
         zoom_menu.addAction("Aumentar").triggered.connect(lambda: self.viewer.zoom_in() if self.viewer else None)
         zoom_menu.addAction("Diminuir").triggered.connect(lambda: self.viewer.zoom_out() if self.viewer else None)
         zoom_menu.addAction("100%").triggered.connect(lambda: self.viewer.real_size() if self.viewer else None)
         
         view_menu.addSeparator()
         
-        self.back_action = QAction("⬅️ Voltar", self)
+        self.back_action = QAction("⬅ Voltar", self)
         self.back_action.setShortcut(QKeySequence.StandardKey.Back)
         self.back_action.setEnabled(False)
         self.back_action.triggered.connect(self._on_back_clicked)
         view_menu.addAction(self.back_action)
         
-        self.forward_action = QAction("➡️ Avançar", self)
+        self.forward_action = QAction("➡ Avançar", self)
         self.forward_action.setShortcut(QKeySequence.StandardKey.Forward)
         self.forward_action.setEnabled(False)
         self.forward_action.triggered.connect(self._on_forward_clicked)
@@ -370,36 +580,35 @@ class MainWindow(QMainWindow):
         
         view_menu.addSeparator()
         
-        self.layout_action = QAction("&Lado a Lado (Páginas)", self)
+        self.layout_action = QAction("Lado a Lado", self)
         self.layout_action.setCheckable(True)
         self.layout_action.triggered.connect(self._on_layout_toggled)
         view_menu.addAction(self.layout_action)
         
-        self.split_action = QAction("&Dividir Editor (Split)", self)
+        self.split_action = QAction("Dividir Editor", self)
         self.split_action.setShortcut("Ctrl+\\")
         self.split_action.triggered.connect(self._on_split_clicked)
         view_menu.addAction(self.split_action)
         
-        reading_menu = view_menu.addMenu("&Modo de Leitura")
+        reading_menu = view_menu.addMenu("Modo Leitura")
         reading_menu.addAction("Padrão").triggered.connect(lambda: self.viewer.set_reading_mode("default") if self.viewer else None)
         reading_menu.addAction("Sépia").triggered.connect(lambda: self.viewer.set_reading_mode("sepia") if self.viewer else None)
         reading_menu.addAction("Noturno").triggered.connect(lambda: self.viewer.set_reading_mode("dark") if self.viewer else None)
-        reading_menu.addAction("Madrugada").triggered.connect(lambda: self.viewer.set_reading_mode("night") if self.viewer else None)
         
-        # --- MENU FERRAMENTAS ---
-        tools_menu = menubar.addMenu("&Ferramentas")
+        # --- SUBMENU FERRAMENTAS ---
+        tools_menu = self.app_menu.addMenu("🛠️ Ferramentas")
         
         pan_action = QAction("✋ Mão (Pan)", self)
         pan_action.triggered.connect(lambda: self.viewer.set_tool_mode("pan") if self.viewer else None)
         tools_menu.addAction(pan_action)
         
-        select_action = QAction("🖱️ Ponteiro (Seleção)", self)
+        select_action = QAction("🖱️ Seleção", self)
         select_action.triggered.connect(lambda: self.viewer.set_tool_mode("selection") if self.viewer else None)
         tools_menu.addAction(select_action)
         
         tools_menu.addSeparator()
         
-        self.ocr_area_action = QAction("🧠 OCR p/ Área", self)
+        self.ocr_area_action = QAction("🧠 OCR por Área", self)
         self.ocr_area_action.setCheckable(True)
         self.ocr_area_action.setEnabled(False)
         self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
@@ -492,10 +701,15 @@ class MainWindow(QMainWindow):
         # Obter metadados via Caso de Uso (Sprint 16: mm + layers)
         metadata = self._get_metadata_use_case.execute(file_path)
         
-        # Sincronizar painéis laterais
-        self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
-        self.toc_panel.set_pdf(file_path)
-        self.inspector.update_metadata(metadata)
+        # Sincronizar painéis laterais (Lazy Sync)
+        if self.thumbnails:
+            self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
+        
+        if self.toc_panel:
+            self.toc_panel.set_pdf(file_path)
+            
+        if self.inspector:
+            self.inspector.update_metadata(metadata)
         
         # Sincronizar conexões do visualizador ativo
         if self.viewer:
@@ -515,10 +729,23 @@ class MainWindow(QMainWindow):
         self.bottom_panel.add_log(f"Synced Meta for: {file_path.name}")
 
     def _on_activity_clicked(self, idx):
-        titles = {0: "EXPLORER", 1: "SEARCH", 2: "SUMÁRIO", 3: "ANNOTATIONS", 4: "AI CONFIG"}
+        titles = {0: "EXPLORER", 1: "SEARCH", 2: "SUMÁRIO", 3: "ANNOTATIONS"}
         
+        # SPECIAL: Settings icon (99) opens the app menu popup
+        if idx == 99:
+            # Position the menu near the settings button in ActivityBar
+            settings_btn = self.activity_bar.group.button(99)
+            if settings_btn:
+                pos = settings_btn.mapToGlobal(settings_btn.rect().topRight())
+                self.app_menu.exec(pos)
+            return
+        
+        # Lazy Loading: Garantir que o painel selecionado esteja carregado
+        if idx == 0: self._ensure_panel_loaded("thumbnails")
+        elif idx == 1: self._ensure_panel_loaded("search")
+        elif idx == 2: self._ensure_panel_loaded("toc")
+
         target_idx = idx
-        if idx == 99: target_idx = 3 # Mapeia config para o painel de IA (ajustar stack se necessário)
         
         # Se clicar no ícone que já está ativo, colapsa/expande a sidebar
         if self.side_bar.stack.currentIndex() == target_idx and not self.side_bar._is_collapsed:
@@ -556,9 +783,16 @@ class MainWindow(QMainWindow):
             # Adicionar ao container de abas
             self.tabs.add_editor(file_path, metadata)
             
+            # Inicializar State Manager (Sprint 10+)
+            self.state_manager.load_base_document(str(file_path))
+
             # Novo: Carregar na Mesa de Luz
             self.light_table.load_document(file_path, metadata)
             
+            # Sincronizar painéis laterais (thumbnails já são carregados via add_editor -> load_document)
+            # Mas vamos forçar a sincronização global aqui
+            self._on_tab_changed(file_path)
+
             # Atualizar UI
             self.setWindowTitle(f"fotonPDF - {file_path.name}")
             self.statusBar().showMessage(f"Documento aberto: {file_path.name}")
@@ -568,31 +802,15 @@ class MainWindow(QMainWindow):
             SettingsService.instance().set("last_file", str(file_path))
             
             self._enable_actions(True)
-            self._check_ocr_needed(file_path)
-            
-        except Exception as e:
-            log_exception(f"MainWindow: Erro ao abrir: {e}")
-            self.statusBar().showMessage(f"Erro: {e}")
-            self.bottom_panel.add_log(f"Error opening file: {str(e)}")
-            
-            # Inicializar painéis da Sprint 6
-            self.toc_panel.set_pdf(file_path)
-            self.search_panel.set_pdf(file_path)
-            
-            # Detecção de OCR (Sprint 7)
-            self._check_ocr_needed(file_path)
-            
-            self.setWindowTitle(f"fotonPDF - {file_path.name}")
-            self.statusBar().showMessage(f"Arquivo carregado: {file_path.name}")
-            self._enable_actions(True)
             
             # Reset History
             self.navigation_history = [0]
             self.history_index = 0
-            self._update_history_buttons()
+            
         except Exception as e:
             log_exception(f"MainWindow: Erro ao abrir: {e}")
             self.statusBar().showMessage(f"Erro: {e}")
+            self.bottom_panel.add_log(f"Error opening file: {str(e)}", color="red")
 
     @safe_ui_callback("Page Change")
     def _on_page_changed(self, index: int):
@@ -748,9 +966,12 @@ class MainWindow(QMainWindow):
             self.open_file(Path(file_path))
 
     def _on_merge_clicked(self):
+        """Abre diálogo para unir múltiplos arquivos."""
         files, _ = QFileDialog.getOpenFileNames(self, "Unir PDFs", "", "Arquivos PDF (*.pdf)")
-        for f in files:
-            self._append_pdf(Path(f))
+        if files:
+            for f in files:
+                self._append_pdf(Path(f))
+            self.statusBar().showMessage(f"{len(files)} arquivos anexados.", 3000)
 
     @safe_ui_callback("Append PDF")
     def _append_pdf(self, path: Path):
