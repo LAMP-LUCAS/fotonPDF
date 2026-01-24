@@ -341,3 +341,6 @@ Ao implementar o **Layout Flex-Grid**, o **Minimapa Semântico**, a navegação 
 28. Get Text Position in PDF using JavaScript | Apryse documentation, acesso a janeiro 22, 2026, [https://docs.apryse.com/web/guides/extraction/text-position](https://docs.apryse.com/web/guides/extraction/text-position)  
 29. How to Build a PDF Viewer with Electron and PDF.js \- Apryse, acesso a janeiro 22, 2026, [https://apryse.com/blog/electron/how-to-build-an-electron-pdf-viewer](https://apryse.com/blog/electron/how-to-build-an-electron-pdf-viewer)  
 30. Architecture Decisions: How I Built a Scalable Electron App with AI | by Javier de la Cueva, acesso a janeiro 22, 2026, [https://medium.com/@javierdelacueva/architecture-decisions-how-i-built-a-scalable-electron-app-with-ai-26f0bda883b0](https://medium.com/@javierdelacueva/architecture-decisions-how-i-built-a-scalable-electron-app-with-ai-26f0bda883b0)
+
+---
+[[../../MAP|← Voltar ao Mapa]]

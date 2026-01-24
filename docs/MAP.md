@@ -25,6 +25,12 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[distribution/CODE_SIGNING_STRATEGY|🔏 Estratégia de Assinatura]]: Segurança e integridade.
 - [[brand/VISUAL_IDENTITY|🎨 Identidade Visual]]: Marca e Logotipo.
 
+## 📊 Relatórios e Insights
+
+- [[reports/comparative_analysis_ui_ux|📊 Análise Comparativa (Visão vs. Realidade)]]
+- [[reports/Ideas/Visualizador PDF_UI_UX Inspirada em VS Code, Obsidian, Cursor|💡 Ideias: UI/UX Inspirada em IDEs]]
+- [[reports/Ideas/Mockup Funcional de Visualizador PDF|🏗️ Mockup Funcional e Arquitetura UX]]
+
 ## 📚 Guias e Tutoriais
 
 - [[guides/NEW_OPERATION|➕ Como adicionar nova operação PDF]]
