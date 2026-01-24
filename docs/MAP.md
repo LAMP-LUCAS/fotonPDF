@@ -37,6 +37,7 @@ Este é o ponto central de navegação para o **Obsidian**. Todos os documentos 
 - [[guides/PLUGIN_SYSTEM|🔌 Criando Plugins]]
 - [[guides/OS_INTEGRATION|🖥️ Detalhes da Integração com SO]]
 - [[guides/CI_CD_STRATEGY|🎡 Estratégia de CI/CD e Releases]]
+- [[guides/AIAD_WORKFLOW|🧠 Workflow de Design Assistido (IA)]]
 
 ## 👥 Guia do Usuário
 

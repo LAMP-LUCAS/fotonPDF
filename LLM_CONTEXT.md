@@ -39,6 +39,7 @@ Sempre que gerar um commit, siga este template rigorosamente:
 2. **Base:** Analise o output de `git status` e `git diff`.
 3. **Detalhamento:** Liste as alterações relevantes.
 4. **Sincronização de Docs:** Sempre após o commit de desenvolvimento do código, realize uma verificação da documentação para registrar, compatibilizar e documentar o avanço do trabalho (ROADMAP, SPRINTS, DASHBOARD).
+5. **Workflow IA-UI (AIAD):** Para tarefas de interface, siga rigorosamente o [[docs/guides/AIAD_WORKFLOW|Guide de Workflow AIAD]], utilizando loops de snapshot e validação via hot-reload.
 
 **Formato:**
 
