@@ -72,13 +72,12 @@ class TopBarWidget(QFrame):
         self.btn_bottom = self._create_toggle_btn("▲", "bottom_panel", "Alternar Painel Inferior")
         self.btn_side_r = self._create_toggle_btn("▤", "sidebar_right", "Alternar SideBar Direita")
         
-        self.aec_tag = QLabel("● AEC-COPILOT")
-        self.aec_tag.setStyleSheet("color: #FFC107; font-weight: bold; font-size: 10px; margin-left: 10px;")
-
+        # Spacer para empurrar tudo para a direita se necessário
+        # self.right_layout.addStretch() 
+        
         self.right_layout.addWidget(self.btn_side_l)
         self.right_layout.addWidget(self.btn_bottom)
         self.right_layout.addWidget(self.btn_side_r)
-        self.right_layout.addWidget(self.aec_tag)
         
         self.main_layout.addWidget(self.right_section)
 

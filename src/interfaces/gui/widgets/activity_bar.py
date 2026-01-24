@@ -5,64 +5,70 @@ class ActivityBar(QWidget):
     """Barra vertical lateral estilo VS Code com estética Neon-AEC Premium."""
     clicked = pyqtSignal(int) # Emite o índice da aba selecionada
 
-    # Mapeamento de ícones (UTF-8 com melhor renderização)
+    # Mapeamento de ícones (UTF-8 conforme concept.html)
     ICONS = {
         0: ("📂", "Explorer"),       # Miniaturas
         1: ("🔎", "Buscar"),          # Busca
-        2: ("🗂️", "Sumário"),         # TOC
-        3: ("🖍️", "Anotações"),       # Highlights
+        2: ("📚", "Sumário"),         # TOC (atualizado para 📚 conforme concept)
+        3: ("🖊️", "Anotações"),       # Highlights
         99: ("⚙️", "Configurações"),  # Settings
     }
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("ActivityBar")
-        self.setFixedWidth(48)
+        self.setFixedWidth(48) # Matches concept.html
         
-        # Estilo Premium VS Code Dark+
+        # Estilo alinhado com concept.html
         self.setStyleSheet("""
             QWidget#ActivityBar {
-                background-color: #252526;
-                border-right: 1px solid #1e1e1e;
+                background-color: #18181a;
+                border-right: 1px solid #2b2b2b;
             }
             QPushButton {
                 background-color: transparent;
                 border: none;
-                color: #858585;
-                font-size: 18px;
-                padding: 10px;
-                margin: 2px 4px;
-                border-radius: 4px;
+                color: #8e918f;
+                font-size: 20px;
+                padding: 0px;
+                margin: 0px;
+                border-radius: 6px;
             }
             QPushButton:hover {
-                background-color: #2a2d2e;
                 color: #ffffff;
+                background-color: #2d2d2e;
             }
             QPushButton:checked {
                 color: #ffffff;
-                background-color: #37373d;
+                border-left: 2px solid #FFC107;
+                border-radius: 0px;
             }
         """)
         
         self.layout = QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 8, 0, 8)
-        self.layout.setSpacing(8)
+        self.layout.setContentsMargins(0, 12, 0, 12) # Matches concept padding
+        self.layout.setSpacing(12) # Matches concept gap
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # --- Logo da Marca ---
         from src.infrastructure.services.resource_service import ResourceService
         self.logo_label = QLabel()
-        logo_path = ResourceService.get_logo_svg() # ou ico convertido
-        if logo_path.exists():
-            # Nota: Carregar SVG no Qt requer QtSvg, por simplicidade usamos texto/glow se não houver
-            from PyQt6.QtGui import QPixmap
-            # Pixmap placeholder para demo se fitz renderizar png do logo
-            self.logo_label.setText("🔥") 
-            self.logo_label.setStyleSheet("font-size: 24px; margin-bottom: 5px; color: #FFC107;")
-        
         self.logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._add_separator()
+        
+        logo_path = ResourceService.get_logo_ico()
+        if logo_path.exists():
+            from PyQt6.QtGui import QPixmap
+            pixmap = QPixmap(str(logo_path))
+            if not pixmap.isNull():
+                scaled = pixmap.scaled(28, 28, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.logo_label.setPixmap(scaled)
+            else:
+                self.logo_label.setText("🔥")
+        else:
+            self.logo_label.setText("🔥")
+
         self.layout.addWidget(self.logo_label)
+        self._add_separator()
         
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
@@ -80,14 +86,14 @@ class ActivityBar(QWidget):
     def _add_separator(self):
         line = QFrame()
         line.setFrameShape(QFrame.Shape.HLine)
-        line.setStyleSheet("background-color: #2D3748; max-height: 1px; margin: 0 10px;")
+        line.setStyleSheet("background-color: #2b2b2b; max-height: 1px; margin: 5px 8px;")
         self.layout.addWidget(line)
 
     def _add_action(self, idx):
         icon, tooltip = self.ICONS.get(idx, ("❓", "Desconhecido"))
         btn = QPushButton(icon)
         btn.setCheckable(True)
-        btn.setFixedSize(40, 40)
+        btn.setFixedSize(32, 32) # Matches concept.html .activity-icon
         btn.setToolTip(tooltip)
         btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.group.addButton(btn, idx)
