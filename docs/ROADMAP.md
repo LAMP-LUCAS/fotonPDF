@@ -32,7 +32,8 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 - [ ] **Automação de Estilo (Linting)**: Integrar `Ruff` ao pipeline para garantir padronização automática.
 - [ ] **Checagem de Tipos Estática**: Implementar `MyPy` para aumentar a robustez do código backend.
 - [ ] **Certificação Profissional**: Migrar de certificados auto-assinados para Sigstore ou CA (Certum/SignPath).
-- [ ] **Testes de UI Automatizados**: Implementar verificações básicas de interface via GitHub Actions (Windows Runner).
+- [x] **Testes de UI Automatizados**: Implementada suíte inicial para widgets críticos (TopBar, Canvas).
+- [x] **Estabilização de Testes**: Infraestrutura centralizada e mocks de SO implementados.
 
 ## 🏃 Status da Sprint Atual
 

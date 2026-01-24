@@ -18,7 +18,15 @@ pie title Cobertura da Documentação
 | **Fase 1: Fundação** | 🟢 Completo | ████████████ 100% | Finalizada ✅ |
 | **Fase 2: Interface & Func.** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
 | **Fase 3: Ecossistema** | 🟢 Completo | ████████████ 100% | 23/01/2026 ✅ |
-| **Fase 4: Plugins** | 🏗️ Em Progresso | [░░░░░░░░░░░░░░░░░░░░] 5% | Prev. Fev/2026 |
+| **Fase 4: Plugins** | 🏗️ Em Progresso | [██░░░░░░░░░░░░░░░░░░] 10% | Prev. Fev/2026 |
+| **Q&A: Cobertura 90%** | 🟢 Completo | ████████████ 100% | 24/01/2026 ✅ |
+
+### Sprint 20 (Concluído) ✅
+
+- [x] Stabilized Test Infrastructure 🧪
+- [x] Windows Registry Mock Adapter 🛠️
+- [x] UI Widget Unit Tests (TopBar, Canvas) 🎨
+- [x] 90%+ Coverage Achievement 🚀
 
 ### Sprint 12 (Concluído) ✅
 
@@ -67,7 +75,7 @@ gantt
 
 ---
 
-**Última atualização:** 2026-01-22  
-**Próxima revisão:** Início da Fase 3
+**Última atualização:** 2026-01-24  
+**Próxima revisão:** Início da Fase 4
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]
