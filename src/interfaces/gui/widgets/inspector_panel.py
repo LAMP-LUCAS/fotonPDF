@@ -12,31 +12,63 @@ class InspectorPanel(ResilientWidget):
 
     def __init__(self):
         super().__init__()
-        self._setup_ui()
+        self._ui_initialized = False
+        # Não chamamos _setup_ui aqui para garantir Lazy Loading
+        self.show_placeholder(True, "Selecione um documento para inspecionar")
+
+    def _initialize_ui_lazy(self):
+        """ Inicializa a UI real apenas quando necessário. """
+        if self._ui_initialized:
+            return
+        
+        try:
+            self._setup_ui()
+            self._ui_initialized = True
+        except Exception as e:
+            log_exception(f"Erro ao inicializar UI do Inspector: {e}")
+            self.show_placeholder(True, f"Erro ao carregar painel: {e}", is_error=True)
 
     def _setup_ui(self):
+        import os
+        from datetime import datetime
+        def _trace(msg):
+            try:
+                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                    f.write(f"[{ts}] InspectorPanel._setup_ui: {msg}\n")
+            except:
+                pass
+        
+        _trace("START")
+        
         # Container principal com scroll
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setStyleSheet("background: transparent; border: none;")
+        _trace("QScrollArea OK")
         
         self.content = QWidget()
         self.content_layout = QVBoxLayout(self.content)
         self.content_layout.setContentsMargins(15, 15, 15, 15)
         self.content_layout.setSpacing(20)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        _trace("content layout OK")
 
         # --- SEÇÃO 1: PROPRIEDADES AEC ---
         self.prop_group = self._create_group("DIMENSÕES E FORMATO")
+        _trace("prop_group OK")
         
         self.container_format, self.lbl_format = self._create_info_item("Formato", "---")
         self.container_dims, self.lbl_dims = self._create_info_item("Dimensões (mm)", "---")
         self.container_scale, self.lbl_scale = self._create_info_item("Escala Detectada", "N/A")
+        _trace("info items OK")
         
         self.prop_group.layout().addWidget(self.container_format)
         self.prop_group.layout().addWidget(self.container_dims)
         self.prop_group.layout().addWidget(self.container_scale)
         self.content_layout.addWidget(self.prop_group)
+        _trace("prop_group added")
 
         # --- SEÇÃO 2: CAMADAS (OCG) ---
         self.layers_group = self._create_group("CAMADAS TÉCNICAS")
@@ -47,10 +79,16 @@ class InspectorPanel(ResilientWidget):
         
         self.layers_group.layout().addWidget(self.layers_container)
         self.content_layout.addWidget(self.layers_group)
+        _trace("layers_group OK")
 
         self.scroll.setWidget(self.content)
+        _trace("scroll.setWidget OK")
+        
         self.set_content_widget(self.scroll)
+        _trace("set_content_widget OK")
+        
         self.show_placeholder(True, "Selecione um documento para inspecionar")
+        _trace("COMPLETE")
 
     def _create_group(self, title):
         group = QFrame()
@@ -59,7 +97,15 @@ class InspectorPanel(ResilientWidget):
         layout.setContentsMargins(12, 12, 12, 12)
         
         lbl_title = QLabel(title)
-        lbl_title.setStyleSheet("color: #FFC107; font-weight: bold; font-size: 10px; margin-bottom: 8px;")
+        # Typography: CAPS, Bold, 10px, Letter-Spacing: 1px
+        lbl_title.setStyleSheet("""
+            color: #71717A; 
+            font-weight: bold; 
+            font-size: 10px; 
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        """)
         layout.addWidget(lbl_title)
         return group
 
@@ -81,6 +127,10 @@ class InspectorPanel(ResilientWidget):
 
     def update_metadata(self, metadata: dict):
         """Atualiza a UI com dados reais do documento."""
+        # Lazy Loading: Garante que a UI esteja criada
+        self._initialize_ui_lazy()
+        if not self._ui_initialized: return
+
         self.show_placeholder(False)
         
         # Simplesmente pegamos a primeira página para o formato principal
