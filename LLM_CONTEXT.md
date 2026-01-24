@@ -16,10 +16,12 @@ Este arquivo serve como a "Memória de Longo Prazo" para qualquer IA assistente 
 4. **I/O Assíncrono:** Todas as operações de processamento de PDF devem ser executadas em threads separadas para não bloquear a UI.
 5. **Resiliência de UI (Boundaries):** Todas as callbacks críticas do Qt na `MainWindow` ou widgets complexos devem ser decoradas com `@safe_ui_callback` para garantir que exceções locais não derrubem o processo principal.
 6. **Filosofia Senior (Obrigatório):**
-   - **DRY (Don't Repeat Yourself):** Reutilize código, centralize lógicas comuns nos domínios.
-   - **CLEAN Code:** Código legível, nomes auto-explicativos e funções com responsabilidade única.
-   - **SOLID:** Princípios de design para garantir escalabilidade e facilitar manutenção.
-   - **Centros de Verdade:** Centralize definições e lógicas críticas em locais únicos. Exemplo: `src/__init__.py` é o único centro de verdade para a versão da aplicação, validado pelo pipeline de CD.
+    - **DRY (Don't Repeat Yourself):** Reutilize código, centralize lógicas comuns nos domínios.
+    - **CLEAN Code:** Código legível, nomes auto-explicativos e funções com responsabilidade única.
+    - **SOLID:** Princípios de design para garantir escalabilidade e facilitar manutenção.
+    - **Centros de Verdade:** Centralize definições e lógicas críticas em locais únicos. Exemplo: `src/__init__.py` é o único centro de verdade para a versão da aplicação, validado pelo pipeline de CD.
+    - **Precisão Geométrica (AEC):** Todas as medidas visíveis ao usuário devem ser processadas em Milímetros (mm). O `GeometryService` é o mediador obrigatório entre coordenadas de PDF (Points) e a interface.
+    - **Identidade de Marca (UI/UX):** O branding (Solar Gold, Deep Space) e o uso proeminente da logo (`docs/brand/logo.svg`) devem ser reforçados em todos os componentes principais de interface (Top Toolbar, Splash Screen).
 
 ## 📝 Documentação e Rastreamento (Crucial)
 

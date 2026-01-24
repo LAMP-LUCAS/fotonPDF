@@ -217,17 +217,40 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         return output_path
 
     def get_document_metadata(self, pdf_path: Path) -> dict:
-        """Extrai metadados técnicos (páginas, dimensões) via PyMuPDF."""
+        """Extrai metadados técnicos (páginas, dimensões e formato AEC) via PyMuPDF."""
+        from src.domain.services.geometry_service import GeometryService
+        
         metadata = {
             "page_count": 0,
-            "pages": [] # list of (width, height)
+            "pages": [], # list of {width, height, format}
+            "layers": self.get_layers(pdf_path)
         }
         with fitz.open(str(pdf_path)) as doc:
             metadata["page_count"] = doc.page_count
             for page in doc:
                 rect = page.rect
-                metadata["pages"].append((rect.width, rect.height))
+                fmt = GeometryService.identify_aec_format(rect.width, rect.height)
+                metadata["pages"].append({
+                    "width_pt": rect.width,
+                    "height_pt": rect.height,
+                    "width_mm": GeometryService.points_to_mm(rect.width),
+                    "height_mm": GeometryService.points_to_mm(rect.height),
+                    "format": fmt
+                })
         return metadata
+
+    def get_layers(self, pdf_path: Path) -> list[dict]:
+        """Extrai grupos de conteúdo opcional (OCG/Layers) usando PyMuPDF."""
+        with fitz.open(str(pdf_path)) as doc:
+            ocgs = doc.get_ocgs()
+            return [{"id": ocg_id, "name": config["name"], "visible": config["on"]} 
+                    for ocg_id, config in ocgs.items()]
+
+    def set_layer_visibility(self, pdf_path: Path, layer_id: int, visible: bool) -> None:
+        """Altera a visibilidade de uma camada diretamente no documento."""
+        with fitz.open(str(pdf_path)) as doc:
+            doc.set_ocg(layer_id, on=visible)
+            doc.saveIncremental()
 
     def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
         """Renderiza uma página e retorna (bytes, width, height, stride)."""

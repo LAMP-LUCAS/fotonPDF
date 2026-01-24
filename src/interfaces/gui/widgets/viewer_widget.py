@@ -241,7 +241,12 @@ class PDFViewerWidget(QScrollArea):
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
         self.check_visibility()
 
-    areaSelected = pyqtSignal(int, tuple) # page_index, (x0, y0, x1, y1) em pontos PDF
+    selectionChanged = pyqtSignal(tuple) # (x0, y0, x1, y1) em pontos PDF
+
+    def refresh_current_view(self):
+        """Força a renderização das páginas no viewport (usado após mudar visibilidade de layers)."""
+        for page in self._pages:
+            page.render_page(zoom=self._zoom, mode=self._mode, force=True)
 
     def set_tool_mode(self, mode: str):
         """Alterna entre 'pan' e 'selection'."""
@@ -364,7 +369,7 @@ class PDFViewerWidget(QScrollArea):
                 pdf_x1 = max(local_x, local_x_end) / self._zoom
                 pdf_y1 = max(local_y, local_y_end) / self._zoom
                 
-                self.areaSelected.emit(i, (pdf_x0, pdf_y0, pdf_x1, pdf_y1))
+                self.selectionChanged.emit((pdf_x0, pdf_y0, pdf_x1, pdf_y1))
                 break
 
     def wheelEvent(self, event):

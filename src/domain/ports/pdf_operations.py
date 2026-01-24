@@ -70,3 +70,13 @@ class PDFOperationsPort(ABC):
     def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
         """Renderiza uma página e retorna (bytes, width, height, stride)."""
         pass
+
+    @abstractmethod
+    def get_layers(self, pdf_path: Path) -> list[dict]:
+        """Retorna a lista de camadas (OCG) do documento."""
+        pass
+
+    @abstractmethod
+    def set_layer_visibility(self, pdf_path: Path, layer_id: int, visible: bool) -> None:
+        """Altera a visibilidade de uma camada específica."""
+        pass

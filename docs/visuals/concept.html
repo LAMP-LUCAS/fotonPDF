@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>fotonPDF - UI Concept Design v4 (Final Refinement)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-darker: #0F172A;
+            /* Deep Space */
+            --bg-sidebar: #18181a;
+            --bg-editor: #09090a;
+            --accent-neon: #FFC107;
+            /* Solar Gold */
+            --accent-glow: rgba(255, 193, 7, 0.4);
+            --accent-secondary: #38BDF8;
+            /* Photon Blue */
+            --text-main: #e3e3e3;
+            --text-secondary: #8e918f;
+            --border-color: #2b2b2b;
+            --toolbar-bg: #18181a;
+            --item-hover: #2d2d2e;
+            --item-selected: #37373d;
+            --glass-bg: rgba(30, 30, 31, 0.85);
+            --search-bg: #232325;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-darker);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* --- Header / Top Toolbar --- */
+        .top-toolbar {
+            height: 48px;
+            background-color: var(--toolbar-bg);
+            border-bottom: 1px solid var(--border-color);
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr;
+            /* Centralization strategy */
+            align-items: center;
+            padding: 0 12px;
+            z-index: 100;
+        }
+
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .top-center {
+            display: flex;
+            justify-content: center;
+        }
+
+        .top-right {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: #232325;
+            border-radius: 8px;
+            padding: 3px;
+        }
+
+        .toggle-btn {
+            padding: 5px 14px;
+            font-size: 11px;
+            font-weight: 500;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            color: var(--text-secondary);
+        }
+
+        .toggle-btn.active {
+            background: var(--item-selected);
+            color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+        }
+
+        .search-bar-container {
+            width: 100%;
+            max-width: 480px;
+            height: 32px;
+            background: var(--search-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            cursor: text;
+            transition: all 0.2s;
+        }
+
+        .search-bar-container:focus-within {
+            border-color: var(--accent-neon);
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .search-bar-container input {
+            background: transparent;
+            border: none;
+            color: white;
+            font-size: 12px;
+            flex: 1;
+            outline: none;
+        }
+
+        .search-bar-container .icon {
+            color: var(--text-secondary);
+            margin-right: 10px;
+            font-size: 14px;
+        }
+
+        .layout-toggles {
+            display: flex;
+            gap: 6px;
+        }
+
+        .layout-btn {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .layout-btn:hover {
+            background: var(--item-hover);
+            color: white;
+        }
+
+        .layout-btn.active {
+            color: var(--accent-neon);
+            background: rgba(0, 229, 255, 0.05);
+        }
+
+        .aec-status {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent-neon);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-left: 10px;
+            border-left: 1px solid var(--border-color);
+        }
+
+        /* --- Main Layout --- */
+        .main-container {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .activity-bar {
+            width: 48px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            gap: 12px;
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .activity-icon:hover {
+            color: white;
+            background-color: var(--item-hover);
+        }
+
+        .activity-icon.active {
+            color: white;
+            border-left: 2px solid var(--accent-neon);
+        }
+
+        .sidebar {
+            width: 260px;
+            background-color: var(--bg-sidebar);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: width 0.3s ease, opacity 0.2s;
+            overflow: hidden;
+        }
+
+        .sidebar.right {
+            border-right: none;
+            border-left: 1px solid var(--border-color);
+        }
+
+        .sidebar-header {
+            padding: 14px 18px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .thumbnail-item {
+            background: #232325;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .thumbnail-item:hover {
+            border-color: #444;
+        }
+
+        .thumbnail-item.active {
+            border-color: var(--accent-neon);
+            background: #2d2d30;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .thumbnail-item .mock-page {
+            height: 140px;
+            background: white;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .thumbnail-item .page-num {
+            font-size: 10px;
+            margin-top: 8px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        .editor-area {
+            flex: 1;
+            background-color: var(--bg-editor);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .canvas-stage {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle, #1a1a1c 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+
+        /* Minimap */
+        .minimap {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            width: 140px;
+            height: 200px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            z-index: 50;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            width: 100%;
+            height: 50px;
+            background: rgba(0, 229, 255, 0.1);
+            border: 1.5px solid var(--accent-neon);
+            top: 30px;
+        }
+
+        /* AI Composer */
+        .ai-composer {
+            position: absolute;
+            bottom: 60px;
+            right: 30px;
+            width: 400px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(24px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+            z-index: 900;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border-top: 3px solid var(--accent-neon);
+        }
+
+        .composer-header {
+            padding: 14px 18px;
+            font-size: 12px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--accent-neon);
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .composer-chat {
+            height: 280px;
+            padding: 20px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #ddd;
+        }
+
+        .composer-input {
+            background: #000;
+            padding: 16px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 12px;
+        }
+
+        .composer-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: white;
+            outline: none;
+            font-size: 13px;
+        }
+
+        /* Bottom Panel */
+        .bottom-panel {
+            height: 38px;
+            background-color: var(--bg-sidebar);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .panel-header {
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 18px;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .panel-content {
+            flex: 1;
+            background: #050505;
+            font-family: 'JetBrains Mono', monospace;
+            padding: 20px;
+            font-size: 12px;
+            color: #aaa;
+            display: none;
+            overflow-y: auto;
+        }
+
+        /* Command Palette */
+        .command-palette {
+            position: absolute;
+            top: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-20px);
+            width: 550px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(28px);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .command-palette.active {
+            display: flex;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .palette-input {
+            width: 100%;
+            height: 56px;
+            background: transparent;
+            border: none;
+            padding: 0 24px;
+            color: white;
+            font-size: 15px;
+            outline: none;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .palette-results {
+            padding: 12px 0;
+        }
+
+        .palette-item {
+            padding: 12px 24px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .palette-item:hover {
+            background: var(--item-hover);
+            color: var(--accent-neon);
+        }
+
+        /* AEC Pages Simulation */
+        .movable-page {
+            position: absolute;
+            width: 220px;
+            height: 310px;
+            background: white;
+            border-radius: 6px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            border: 2.5px solid transparent;
+            overflow: hidden;
+            cursor: grab;
+        }
+
+        .movable-page:active {
+            cursor: grabbing;
+            border-color: var(--accent-neon);
+            z-index: 1000;
+        }
+
+        .page-content-aec {
+            padding: 20px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .aec-line {
+            height: 5px;
+            background: #eee;
+            border-radius: 2px;
+        }
+
+        .status-bar {
+            height: 26px;
+            background-color: var(--accent-neon);
+            display: flex;
+            align-items: center;
+            padding: 0 15px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #000;
+            justify-content: space-between;
+        }
+    </style>
+</head>
+
+<body onkeydown="handleGlobalKey(event)">
+
+    <!-- Command Palette Overlay -->
+    <div class="command-palette" id="cmdPalette">
+        <input type="text" class="palette-input" placeholder="O que você deseja fazer hoje?" id="cmdInput">
+        <div class="palette-results">
+            <div class="palette-item"><span>📄 Abrir: Planta_Baixa_A0.pdf</span> <span style="opacity:0.5">Ctrl+P</span>
+            </div>
+            <div class="palette-item"><span>🗂️ Alternar modo "Mesa de Luz"</span> <span style="opacity:0.5">M</span>
+            </div>
+            <div class="palette-item"><span>🔍 Pesquisa Semântica AEC</span> <span style="opacity:0.5">S</span></div>
+            <div class="palette-item"><span>🤖 Perguntar ao CoPilot</span> <span style="opacity:0.5">Enter</span></div>
+        </div>
+    </div>
+
+    <header class="top-toolbar">
+        <div class="top-left">
+            <div class="view-toggle">
+                <div class="toggle-btn active" id="btnScroll" onclick="switchMode('scroll')">📄 Scroll</div>
+                <div class="toggle-btn" id="btnTable" onclick="switchMode('table')">🗂️ Mesa de Luz</div>
+            </div>
+        </div>
+
+        <div class="top-center">
+            <div class="search-bar-container" onclick="document.getElementById('universalSearch').focus()">
+                <span class="icon">🔍</span>
+                <input type="text" placeholder="Pesquisar documento ou comandos (Ctrl + P)" id="universalSearch">
+            </div>
+        </div>
+
+        <div class="top-right">
+            <div class="layout-toggles">
+                <div class="layout-btn active" id="btnSideL" onclick="toggleSidebar('mainSidebar')"
+                    title="Sidebar Esquerda">▥</div>
+                <div class="layout-btn active" id="btnBottom" onclick="toggleBottomPanel()" title="Painel Inferior">▲
+                </div>
+                <div class="layout-btn active" id="btnSideR" onclick="toggleSidebar('rightSidebar')"
+                    title="Sidebar Direita">▤</div>
+            </div>
+            <div class="aec-status">
+                <span style="animation: pulse 2s infinite">●</span> AEC CO-PILOT
+            </div>
+        </div>
+    </header>
+
+    <div class="main-container">
+        <nav class="activity-bar">
+            <!-- Brand Identity -->
+            <div
+                style="padding: 10px 0; margin-bottom: 5px; border-bottom: 1px solid var(--border-color); width: 100%; display: flex; justify-content: center;">
+                <img src="../brand/logo.svg"
+                    style="width: 28px; height: 28px; filter: drop-shadow(0 0 5px var(--accent-glow));"
+                    alt="fotonPDF Logo">
+            </div>
+
+            <div class="activity-icon active">📂</div>
+            <div class="activity-icon">🔎</div>
+            <div class="activity-icon">📚</div>
+            <div class="activity-icon">🖊️</div>
+            <div style="flex:1"></div>
+            <div class="activity-icon">⚙️</div>
+        </nav>
+
+        <aside class="sidebar" id="mainSidebar">
+            <div class="sidebar-header">Explorer</div>
+            <div class="sidebar-content">
+                <div class="thumbnail-item active">
+                    <div class="mock-page"></div>
+                    <div class="page-num">Página 1: Planta Principal</div>
+                </div>
+                <div class="thumbnail-item">
+                    <div class="mock-page" style="background:#f5f5f5"></div>
+                    <div class="page-num">Página 2: Detalhes Pilares</div>
+                </div>
+            </div>
+        </aside>
+
+        <main class="editor-area">
+            <div class="canvas-stage" id="canvasStage">
+                <div class="minimap" id="minimap">
+                    <div class="minimap-viewport"></div>
+                    <div style="padding:15px; opacity:0.3; height:100%; display:flex; flex-direction:column; gap:10px;">
+                        <div style="height:20px; background:#444"></div>
+                        <div style="height:60px; background:#444"></div>
+                        <div style="height:40px; background:#444"></div>
+                    </div>
+                </div>
+
+                <div id="scrollView"
+                    style="width: 100%; height: 100%; overflow-y: auto; padding: 60px; display: flex; flex-direction: column; align-items: center;">
+                    <div
+                        style="width:640px; height:900px; background:white; margin-bottom:40px; border-radius:4px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); display:flex; flex-direction:column; padding:40px;">
+                        <div style="height:20px; width:40%; background:#eee; margin-bottom:40px;"></div>
+                        <div style="flex:1; border: 1px dashed #ccc; background:#fafafa;"></div>
+                        <div style="height:10px; width:60%; background:#eee; margin-top:20px;"></div>
+                    </div>
+                </div>
+
+                <div id="lightTableView" style="display: none; width:100%; height:100%">
+                    <div class="movable-page" style="left: 100px; top: 100px;">
+                        <div class="page-content-aec">
+                            <div class="aec-line" style="width:40%"></div>
+                            <div style="flex:1; border:1px solid #eee; margin:10px 0;"></div>
+                            <div class="aec-line" style="width:80%"></div>
+                        </div>
+                    </div>
+                    <div class="movable-page" style="left: 380px; top: 150px;">
+                        <div class="page-content-aec">
+                            <div class="aec-line" style="width:30%"></div>
+                            <div style="flex:1; border:1px solid #eee; margin:10px 0;"></div>
+                            <div class="aec-line" style="width:60%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="ai-composer" id="aiComposer">
+                    <div class="composer-header"><span>✦</span> AEC RESEARCH AGENT</div>
+                    <div class="composer-chat" id="chat">
+                        <div
+                            style="background:rgba(0,229,255,0.08); padding:15px; border-radius:8px; border-left:4px solid var(--accent-neon);">
+                            <strong style="color:var(--accent-neon)">AEC-CoPilot:</strong><br>
+                            Identifiquei que a Planta Principal (Pág 1) utiliza a norma NBR 6118:2014. Notei uma
+                            divergência no cálculo de armadura do pilar P12. Deseja que eu gere o relatório comparativo?
+                        </div>
+                    </div>
+                    <div class="composer-input">
+                        <input type="text" placeholder="Pergunte sobre as plantas ou normas...">
+                        <span style="cursor:pointer; font-size:18px">➤</span>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="bottom-panel" id="bottomPanel">
+                <div class="panel-header" onclick="toggleBottomPanel()">⌄ Notificações & Logs de Sistema</div>
+                <div class="panel-content" id="panelContent">
+                    > [INFO] Engine inicializada com sucesso.<br>
+                    > [WARN] Camada 'Estrutural' possui 3 conflitos de geometria.<br>
+                    > [OCR] Texto indexado na página 1.
+                </div>
+            </footer>
+        </main>
+
+        <aside class="sidebar right" id="rightSidebar">
+            <div class="sidebar-header">Inspector</div>
+            <div class="sidebar-content" style="padding:20px; font-size:12px; line-height:2;">
+                <div style="border-bottom: 1px solid #222; margin-bottom:15px; padding-bottom:10px;">
+                    <strong style="color:white; display:block;">PROPRIEDADES</strong>
+                    Formato: A0 AEC<br>
+                    Escala: 1:50<br>
+                    Data: 23/01/2026
+                </div>
+                <div>
+                    <strong style="color:white; display:block;">COMENTÁRIOS</strong>
+                    <div style="background:#222; padding:10px; border-radius:4px; margin-top:8px;">
+                        "Revisar detalhamento de ferragem" - Lucas
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <footer class="status-bar">
+        <div>PRONTO - Planta_Baixa_A0.pdf</div>
+        <div>ZOOM: 120% | LAYER: ESTRUTURAL | AEC-MODE: ANALYTICAL</div>
+    </footer>
+
+    <script>
+        function switchMode(mode) {
+            const btnS = document.getElementById('btnScroll');
+            const btnT = document.getElementById('btnTable');
+            const scroll = document.getElementById('scrollView');
+            const table = document.getElementById('lightTableView');
+            const minimap = document.getElementById('minimap');
+
+            if (mode === 'scroll') {
+                btnS.classList.add('active'); btnT.classList.remove('active');
+                scroll.style.display = 'flex'; table.style.display = 'none';
+                minimap.style.display = 'block';
+            } else {
+                btnT.classList.add('active'); btnS.classList.remove('active');
+                scroll.style.display = 'none'; table.style.display = 'block';
+                minimap.style.display = 'none';
+                initDraggable();
+            }
+        }
+
+        function toggleSidebar(id) {
+            const sb = document.getElementById(id);
+            const btn = id === 'mainSidebar' ? document.getElementById('btnSideL') : document.getElementById('btnSideR');
+            if (sb.style.width === '0px') {
+                sb.style.width = '260px'; sb.style.opacity = '1'; btn.classList.add('active');
+            } else {
+                sb.style.width = '0px'; sb.style.opacity = '0'; btn.classList.remove('active');
+            }
+        }
+
+        let isBottomOpen = false;
+        function toggleBottomPanel() {
+            const p = document.getElementById('bottomPanel');
+            const c = document.getElementById('panelContent');
+            const btn = document.getElementById('btnBottom');
+            if (isBottomOpen) {
+                p.style.height = '38px'; c.style.display = 'none'; btn.classList.remove('active');
+            } else {
+                p.style.height = '200px'; c.style.display = 'block'; btn.classList.add('active');
+            }
+            isBottomOpen = !isBottomOpen;
+        }
+
+        function togglePalette() {
+            const pal = document.getElementById('cmdPalette');
+            pal.classList.toggle('active');
+            if (pal.classList.contains('active')) setTimeout(() => document.getElementById('cmdInput').focus(), 150);
+        }
+
+        function handleGlobalKey(e) {
+            if (e.ctrlKey && e.key === 'p') { e.preventDefault(); togglePalette(); }
+            if (e.key === 'Escape') document.getElementById('cmdPalette').classList.remove('active');
+        }
+
+        document.getElementById('universalSearch').addEventListener('keydown', (e) => { if (e.key === 'Enter') togglePalette(); });
+
+        function initDraggable() {
+            const pages = document.querySelectorAll('#lightTableView .movable-page');
+            pages.forEach(page => {
+                let dragging = false; let sx, sy;
+                page.onmousedown = (e) => { dragging = true; sx = e.clientX - page.offsetLeft; sy = e.clientY - page.offsetTop; page.style.transition = 'none'; };
+                document.onmousemove = (e) => { if (!dragging) return; page.style.left = (e.clientX - sx) + 'px'; page.style.top = (e.clientY - sy) + 'px'; };
+                document.onmouseup = () => dragging = false;
+            });
+        }
+    </script>
+</body>
+
+</html>

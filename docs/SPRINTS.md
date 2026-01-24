@@ -1,27 +1,46 @@
-# 🏃 Gerenciamento de Sprints
+## 🏁 Sprint Atual: Sprint 19 - Plugin SDK & Extensibilidade 🧩
 
-Este documento detalha o **micro-gerenciamento** das fases, com o que deve ser desenvolvido em cada intervalo de tempo menor (Sprint).
-
-## 🏁 Sprint Atual: Sprint 13 - UI Test Hardening (Pytest-Qt) 🧪
-
-**Objetivo:** Garantir a integridade da interface profissional através de testes automatizados de UI.
-
-- **Foco:** Configuração do `pytest-qt`, testes de integração das abas e validação das camadas de resiliência.
-- **Entregável:** Suíte de testes "Headless" validando 100% dos fluxos críticos de UI.
-
----
-
-## 🔜 Próximas Sprints
-
-### Sprint 14: Inteligência de Conteúdo (LLM Sync) 🔋
-
-- **Objetivo:** Integração profunda com modelos de linguagem para resumos e chat sobre PDFs.
+**Objetivo:** Documentar a API de interface e permitir o carregamento dinâmico de novas abas e painéis por plugins.
 
 ---
 
 ## 📅 Histórico de Sprints Concluídas
 
-### Fase 2: Interface & Funcionalidade
+### Fase 3: Ecossistema & Inteligência AEC
+
+#### Sprint 18: Gestão do Aplicativo & Control Center ✅
+
+- [x] **Control Center**: Hub centralizado para telemetria, configurações e atualizações.
+- [x] **Real-time Health**: Monitoramento de CPU/RAM via `psutil` integrado à UI.
+- [x] **Lifecycle Hub**: Gestão visual de atualizações via GitHub release.
+
+#### Sprint 17: Inteligência AEC (Multi-Provider) ✅
+
+- [x] **Multi-Provider Brain**: Integração universal via `LiteLLM` (Ollama, OpenAI, Gemini).
+- [x] **Smart Shell**: Tradução de linguagem natural para comandos estruturados via `Instructor`.
+- [x] **AI Settings**: Painel de gestão de modelos e chaves de API.
+
+#### Sprint 16: UI Refactor: Geometria & Camadas ✅
+
+- [x] **AEC Inspector**: Sidebar direita para identificação de formatos (A0-A4) e metadados.
+- [x] **Layer Control**: Manipulação direta de camadas OCG (elétrica, hidráulica, etc).
+- [x] **Metric Telemetry**: Exibição de coordenadas e dimensões em milímetros (mm).
+- [x] **Stage Persistence**: Salvamento automático de layouts na Mesa de Luz em SQLite.
+
+#### Sprint 15: UI Refactor: Layout & Branding ✅
+
+- [x] **TopBar Modular**: Barra superior centralizada e desacoplada da MainWindow.
+- [x] **Visual Identity**: Injeção da paleta Solar Gold e Logo oficial.
+- [x] **Resilient UI**: Panels (Thumbnail, TOC) refatorados com placeholders e handlers de erro.
+- [x] **Smart Shell**: Conexão do CommandOrchestrator à barra de busca global.
+
+#### Sprint 14: Geometria Física & Paridade AEC ✅
+
+#### Sprint 13: UI Test Hardening (Pytest-Qt) ✅
+
+- [x] **Configuração Pytest-Qt**: Ambiente de testes automatizados para PyQt6.
+- [x] **Smoke Tests de UI**: Validação de abertura de janelas e carregamento de widgets.
+- [x] **Headless CI**: Preparação para execução de testes no pipeline do GitHub.
 
 #### Sprint 12: Resiliência & Tolerância a Falhas ✅
 

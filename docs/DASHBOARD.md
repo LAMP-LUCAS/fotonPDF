@@ -7,9 +7,8 @@
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': { 'primaryColor':'#4CAF50'}}}%%
 pie title Cobertura da Documentação
-    "Completos" : 22
-    "Pendentes (Fase 1)" : 0
-    "Pendentes (Fase 3)" : 4
+    "Completos" : 25
+    "Pendentes (Fase 4)" : 1
 ```
 
 ## 🚦 Semáforo de Progresso
@@ -18,9 +17,8 @@ pie title Cobertura da Documentação
 | --- | --- | --- | --- |
 | **Fase 1: Fundação** | 🟢 Completo | ████████████ 100% | Finalizada ✅ |
 | **Fase 2: Interface & Func.** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
-| **Fase 2.1: VS Code Exp.** | 🟢 Completo | ████████████ 100% | 22/01/2026 ✅ |
-| **Fase 2.2: Resiliência** | 🟢 Completo | ████████████ 100% | 22/01/2026 ✅ |
-| **Fase 3: Ecossistema** | 🏗️ Em Progresso | [░░░░░░░░░░░░░░░░░░░░] 5% | Prev. Fev/2026 |
+| **Fase 3: Ecossistema** | 🟢 Completo | ████████████ 100% | 23/01/2026 ✅ |
+| **Fase 4: Plugins** | 🏗️ Em Progresso | [░░░░░░░░░░░░░░░░░░░░] 5% | Prev. Fev/2026 |
 
 ### Sprint 12 (Concluído) ✅
 

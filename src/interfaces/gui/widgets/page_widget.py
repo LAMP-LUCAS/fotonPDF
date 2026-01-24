@@ -21,10 +21,10 @@ class PageWidget(QLabel):
         self._rendered = False
         self._highlights = [] # list[QRectF] em pontos PDF
 
-    def render_page(self, zoom=None, rotation=None, mode=None):
+    def render_page(self, zoom=None, rotation=None, mode=None, force=False):
         """Solicita renderização usando sua própria origem."""
         try:
-            should_render = False
+            should_render = force
             
             if zoom is not None and abs(self.zoom - zoom) > 0.001:
                 should_render = True

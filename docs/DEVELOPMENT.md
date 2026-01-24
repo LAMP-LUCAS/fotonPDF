@@ -51,6 +51,14 @@ pytest
   - `docs:` para alterações na documentação.
   - `refactor:` para melhorias de código sem mudança de comportamento.
 
+## 🎨 Análise Visual (GUI)
+
+Para garantir a qualidade da interface e evitar regressões visuais:
+
+1. **Snapshots Automáticos:** Ao rodar o `development_view.py`, o sistema captura automaticamente o estado inicial da UI em `docs/visuals/captures`.
+2. **Registro de Evolução:** Sempre compare os novos snapshots com os anteriores para validar mudanças de layout e estilo.
+3. **Padrão de Nomenclatura:** Os arquivos são salvos como `{nome}_{timestamp}.png`.
+
 ## 🔗 Referências
 
 - [[ARCHITECTURE|Entenda a estrutura de pastas]]

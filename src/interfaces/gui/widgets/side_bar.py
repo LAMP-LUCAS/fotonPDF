@@ -3,7 +3,7 @@ from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty
 from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 
 class SideBar(QFrame):
-    """Container colapsável para os painéis de ferramentas (Miniaturas, Busca, etc)."""
+    """Container colapsável para os painéis de ferramentas estilo Obsidian."""
     def __init__(self, parent=None, initial_width=300):
         super().__init__(parent)
         self.setObjectName("SideBar")
@@ -11,19 +11,33 @@ class SideBar(QFrame):
         self.setFixedWidth(initial_width)
         self._is_collapsed = False
         
+        # Estilo Obsidian/VS Code
+        self.setStyleSheet("""
+            QFrame#SideBar {
+                background-color: #252526;
+                border-right: 1px solid #2d2d2d;
+            }
+            QLabel#SideBarTitle {
+                font-weight: bold;
+                color: #cccccc;
+                font-size: 11px;
+                letter-spacing: 1px;
+            }
+        """)
+        
         self.layout = QVBoxLayout(self)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.layout.setSpacing(0)
         
-        # Header
+        # Header (Slimmer)
         self.header = QWidget()
         self.header.setFixedHeight(35)
-        self.header.setStyleSheet("background-color: #252526; border-bottom: 1px solid #333;")
+        self.header.setStyleSheet("background-color: #252526; border-bottom: 1px solid #2d2d2d;")
         h_layout = QHBoxLayout(self.header)
         h_layout.setContentsMargins(15, 0, 10, 0)
         
-        self.title_label = QLabel("SIDEBAR")
-        self.title_label.setStyleSheet("font-weight: bold; color: #BBBBBB; font-size: 11px;")
+        self.title_label = QLabel("EXPLORER")
+        self.title_label.setObjectName("SideBarTitle")
         
         h_layout.addWidget(self.title_label)
         h_layout.addStretch()
@@ -57,7 +71,7 @@ class SideBar(QFrame):
             self.title_label.setText(title.upper())
 
     @safe_ui_callback("Sidebar Animation")
-    def toggle_collapse(self):
+    def toggle_collapse(self, checked=None):
         start_val = self.width()
         end_val = 0 if not self._is_collapsed else self._base_width
         
