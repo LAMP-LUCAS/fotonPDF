@@ -60,14 +60,21 @@ Arquivos alterados:
 - **Tipagem:** Python Type Hints são OBRIGATÓRIOS em todas as funções públicas.
 - **Logs:** Usar o módulo `logging` estruturado (JSON format).
 
-## 📂 Estrutura de Diretórios
+- `scripts/`: Ferramentas auxiliares (Build, Icons, Signing, UI Capture).
+- `scripts/hot_reload.py`: **Ferramenta Primária de Dev**. Use para validar mudanças na GUI.
+- `scripts/dev_gui_view.py` e `scripts/dev_mocks.py`: Infraestrutura de design e testes visuais (Mocks).
+- `scripts/capture_concept.py`: Utilitário para capturar screenshots do mockup HTML.
 
-- `src/domain`: Entidades puras e protocolos (Portas).
-- `src/application`: Casos de uso e orquestração (ex: `UpdateService`).
-- `src/infrastructure`: Implementações concretas (Adapters de Registro, Notificação e PDF).
-- `src/interfaces`: UI, CLI e integração com Menu de Contexto (Setup e Uninstall Wizards).
+## 🚀 Como Executar e Validar (Para LLMs)
 
-## 🔗 Navegação e Referências
+Para testar mudanças na interface ou lógica, use sempre o hot-reload:
+
+1. **Validar Design/UI:** `python scripts/hot_reload.py --mode mock`
+2. **Validar Fluxo Real:** `python scripts/hot_reload.py --mode app`
+3. **Capturar Referência Visual (Mockup):** `python scripts/capture_concept.py`
+
+> [!IMPORTANT]
+> O hot-reload abre a interface imediatamente e reinicia ao detectar mudanças. Sempre use esta ferramenta para comprovar que suas alterações não quebraram a renderização ou o comportamento da MainWindow.
 
 - **🗺️ Mapa da Documentação:** [[docs/MAP|MAP.md]] (MOC Central)
 - **🏗️ Arquitetura Detalhada:** [[docs/ARCHITECTURE|ARCHITECTURE.md]]

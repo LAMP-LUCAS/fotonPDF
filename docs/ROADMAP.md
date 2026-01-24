@@ -24,6 +24,16 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 **Objetivo:** Abertura da API de interface para extensões de terceiros.
 
+## 🛠️ Infraestrutura Técnica & Qualidade (Contínuo)
+
+**Objetivo:** Fortalecer a base tecnológica, automação e segurança do sistema.
+
+- [x] **Cache de Dependências**: Implementado no GitHub Actions para acelerar CI/CD.
+- [ ] **Automação de Estilo (Linting)**: Integrar `Ruff` ao pipeline para garantir padronização automática.
+- [ ] **Checagem de Tipos Estática**: Implementar `MyPy` para aumentar a robustez do código backend.
+- [ ] **Certificação Profissional**: Migrar de certificados auto-assinados para Sigstore ou CA (Certum/SignPath).
+- [ ] **Testes de UI Automatizados**: Implementar verificações básicas de interface via GitHub Actions (Windows Runner).
+
 ## 🏃 Status da Sprint Atual
 
 - **Sprint 16: UI Refactor: Geometria & Camadas** [x] 100%

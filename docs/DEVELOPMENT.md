@@ -51,13 +51,58 @@ pytest
   - `docs:` para alterações na documentação.
   - `refactor:` para melhorias de código sem mudança de comportamento.
 
+## 🛠️ Ferramentas de Desenvolvimento (`/scripts`)
+
+O fotonPDF possui uma suíte de scripts para acelerar o desenvolvimento e garantir a qualidade visual.
+
+### 1. Hot-Reload Centralizado
+
+A ferramenta principal de desenvolvimento é o `hot_reload.py`. Ela permite visualizar mudanças em tempo real sem reiniciar o processo manualmente.
+
+**Como usar:**
+
+```bash
+# Modo Design (Mockup com dados fakes) - Recomendado para UI/UX
+python scripts/hot_reload.py --mode mock
+
+# Modo App (Aplicação real com lógica completa)
+python scripts/hot_reload.py --mode app
+```
+
+- **Início Imediato:** A interface abre logo que o comando é executado.
+- **Monitoramento:** Reinicia automaticamente ao detectar mudanças em `.py`, `.qss` ou `.json`.
+- **Exclusões:** Ignora pastas de cache e metadados (`docs/`, `.git/`, `build/`, etc.) para evitar loops.
+
+### 2. Visão de Mockup e Dados Fake
+
+- **`scripts/dev_gui_view.py`**: Ponto de entrada para a interface de design.
+- **`scripts/dev_mocks.py`**: Centraliza os dados de teste (TOC, resultados de busca, etc.), garantindo que os mocks sejam consistentes.
+
+### 3. Build e Distribuição
+
+- **`build_exe.py`**: Gera o executável via PyInstaller.
+- **`sign_exe.py`**: Aplica assinaturas digitais (essencial para integridade no Windows).
+- **`generate_icons.py`**: Atualiza o `.ico` a partir do `.svg` da marca.
+
+### 4. Captura de Mockup UI
+
+O script `capture_concept.py` automatiza a geração de referências visuais a partir do design conceitual em HTML.
+
+**Como usar:**
+
+```bash
+python scripts/capture_concept.py
+```
+
+- **Resultado:** Salva uma imagem em `docs/visuals/captures/concept_mockup.png`.
+- **Dependência:** Utiliza a biblioteca `playwright`. Se não estiver instalada, o script tentará instalá-la automaticamente.
+
 ## 🎨 Análise Visual (GUI)
 
 Para garantir a qualidade da interface e evitar regressões visuais:
 
-1. **Snapshots Automáticos:** Ao rodar o `development_view.py`, o sistema captura automaticamente o estado inicial da UI em `docs/visuals/captures`.
-2. **Registro de Evolução:** Sempre compare os novos snapshots com os anteriores para validar mudanças de layout e estilo.
-3. **Padrão de Nomenclatura:** Os arquivos são salvos como `{nome}_{timestamp}.png`.
+1. **Snapshots Automáticos:** Ao rodar no modo de desenvolvimento (`--mode mock`), o sistema captura snapshots da UI em `docs/visuals/captures`.
+2. **Registro de Evolução:** Compare os novos snapshots para validar mudanças de layout.
 
 ## 🔗 Referências
 

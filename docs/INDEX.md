@@ -69,9 +69,20 @@
 | [[docs/guides/NEW_OPERATION\|NEW_OPERATION.md]] | Como adicionar nova operação | ✅ Completo |
 | [[docs/guides/PLUGIN_SYSTEM\|PLUGIN_SYSTEM.md]] | Criar plugins para fotonPDF | ✅ Completo |
 | [[OS_INTEGRATION\|OS_INTEGRATION.md]] | Integração Windows/Linux | ✅ Completo |
-| [[CI_CD_STRATEGY\|CI_CD_STRATEGY.md]] | Automação e Releases | ✅ Completo |
-| `CREATING_CONVERTER.md` | Adicionar novo conversor | ⏳ Pendente |
+| `CI_CD_STRATEGY.md` | Automação e Releases | ✅ Completo |
 | `TESTING_GUIDE.md` | Estratégias de teste | ⏳ Pendente |
+
+## 🛠️ Automação e Scripts (`scripts/`)
+
+| Arquivo | Propósito | Status |
+| :--- | :--- | :--- |
+| [[scripts/hot_reload.py\|hot_reload.py]] | Ferramenta principal de Hot-Reload (App/Mock) | ✅ Completo |
+| [[scripts/dev_gui_view.py\|dev_gui_view.py]] | Janela de desenvolvimento com Mocks | ✅ Completo |
+| [[scripts/dev_mocks.py\|dev_mocks.py]] | Gerador de dados fakes para design | ✅ Completo |
+| [[scripts/capture_concept.py\|capture_concept.py]] | Captura screenshot do mockup conceitual | ✅ Novo |
+| [[scripts/build_exe.py\|build_exe.py]] | Script de geração do executável | ✅ Completo |
+| [[scripts/sign_exe.py\|sign_exe.py]] | Script de assinatura digital | ✅ Completo |
+| [[scripts/generate_icons.py\|generate_icons.py]] | Gerador de arquivos .ico | ✅ Completo |
 
 ## 👥 Guia do Usuário (`docs/user/`)
 
