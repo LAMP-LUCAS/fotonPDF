@@ -68,8 +68,7 @@ class CommandOrchestrator:
             if "270" in cmd_text:
                 degrees = 270
             use_case = RotatePDFUseCase(self.pdf_port)
-            pdf_doc = PDFDocument.from_path(pdf_path)
-            new_path = use_case.execute(pdf_doc, degrees)
+            new_path = use_case.execute(pdf_path, degrees)
             return {"type": "command", "action": "rotate", "message": f"Documento rotacionado em {degrees}°", "path": str(new_path)}
         return {"type": "error", "message": "Comando literal não encontrado."}
 

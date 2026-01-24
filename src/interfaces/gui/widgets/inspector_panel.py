@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLabel, QScrollArea,
                              QCheckBox, QFrame, QHBoxLayout)
 from PyQt6.QtCore import Qt, pyqtSignal
 from src.interfaces.gui.utils.ui_error_boundary import ResilientWidget
+from src.infrastructure.services.logger import log_error, log_debug
 
 class InspectorPanel(ResilientWidget):
     """
@@ -25,51 +26,35 @@ class InspectorPanel(ResilientWidget):
             self._setup_ui()
             self._ui_initialized = True
         except Exception as e:
-            log_exception(f"Erro ao inicializar UI do Inspector: {e}")
+            log_error(f"Erro ao inicializar UI do Inspector: {e}")
             self.show_placeholder(True, f"Erro ao carregar painel: {e}", is_error=True)
 
     def _setup_ui(self):
-        import os
-        from datetime import datetime
-        def _trace(msg):
-            try:
-                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                    f.write(f"[{ts}] InspectorPanel._setup_ui: {msg}\n")
-            except:
-                pass
-        
-        _trace("START")
-        
         # Container principal com scroll
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setStyleSheet("background: transparent; border: none;")
-        _trace("QScrollArea OK")
         
+        print("DEBUG: creating QWidget content")
         self.content = QWidget()
+        print("DEBUG: content created")
         self.content_layout = QVBoxLayout(self.content)
+        print("DEBUG: content_layout created")
         self.content_layout.setContentsMargins(15, 15, 15, 15)
         self.content_layout.setSpacing(20)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        _trace("content layout OK")
-
-        # --- SEÇÃO 1: PROPRIEDADES AEC ---
+ 
         self.prop_group = self._create_group("DIMENSÕES E FORMATO")
-        _trace("prop_group OK")
         
         self.container_format, self.lbl_format = self._create_info_item("Formato", "---")
         self.container_dims, self.lbl_dims = self._create_info_item("Dimensões (mm)", "---")
         self.container_scale, self.lbl_scale = self._create_info_item("Escala Detectada", "N/A")
-        _trace("info items OK")
         
         self.prop_group.layout().addWidget(self.container_format)
         self.prop_group.layout().addWidget(self.container_dims)
         self.prop_group.layout().addWidget(self.container_scale)
         self.content_layout.addWidget(self.prop_group)
-        _trace("prop_group added")
-
+ 
         # --- SEÇÃO 2: CAMADAS (OCG) ---
         self.layers_group = self._create_group("CAMADAS TÉCNICAS")
         self.layers_container = QWidget()
@@ -79,16 +64,10 @@ class InspectorPanel(ResilientWidget):
         
         self.layers_group.layout().addWidget(self.layers_container)
         self.content_layout.addWidget(self.layers_group)
-        _trace("layers_group OK")
-
+ 
         self.scroll.setWidget(self.content)
-        _trace("scroll.setWidget OK")
-        
         self.set_content_widget(self.scroll)
-        _trace("set_content_widget OK")
-        
         self.show_placeholder(True, "Selecione um documento para inspecionar")
-        _trace("COMPLETE")
 
     def _create_group(self, title):
         group = QFrame()

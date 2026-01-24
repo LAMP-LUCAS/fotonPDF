@@ -88,38 +88,16 @@ class ResilientWidget(QWidget):
             self.placeholder_label.setText(message)
 
     def set_content_widget(self, widget):
-        import os
-        from datetime import datetime
-        from PyQt6.QtWidgets import QApplication
-        from PyQt6.QtCore import QCoreApplication, QTimer
-        
-        def _trace(msg):
-            try:
-                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                    f.write(f"[{ts}] set_content_widget: {msg}\n")
-            except:
-                pass
-        
-        _trace("START")
-        
-        # Clear previous content safely
-        while self.content_layout.count():
-            item = self.content_layout.takeAt(0)
+        """ 
+        Define o widget de conteúdo real de forma segura.
+        Limpa o layout anterior antes de adicionar o novo.
+        """
+        # Clear previous content safely - reverse order is safer for layout items
+        count = self.content_layout.count()
+        for i in reversed(range(count)):
+            item = self.content_layout.takeAt(i)
             if item and item.widget():
                 item.widget().deleteLater()
         
-        # Defer adding the new widget to the next event loop iteration
-        # This prevents blocking during complex layout calculations
-        def _add_async():
-            try:
-                _trace("async: calling addWidget")
-                self.content_layout.addWidget(widget)
-                _trace("async: addWidget success")
-            except Exception as e:
-                _trace(f"async: FATAL ERROR: {e}")
-        
-        QTimer.singleShot(0, _add_async)
-        _trace("scheduled async addWidget")
-        _trace("COMPLETE")
+        # Add new widget synchronously for stability
+        self.content_layout.addWidget(widget)
