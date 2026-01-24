@@ -4,17 +4,31 @@ from src.domain.ports.pdf_operations import PDFOperationsPort
 from src.application.use_cases.search_text import SearchTextUseCase
 from src.application.use_cases.rotate_pdf import RotatePDFUseCase
 from src.domain.entities.pdf import PDFDocument
+from src.infrastructure.services.logger import log_debug, log_error
 
 class CommandOrchestrator:
     """
     Orquestrador de comandos unificado para a Barra de Busca Superior.
     Distingue entre buscas de texto e execução de ações do sistema.
+    
+    IMPORTANTE: A inicialização da IA é LAZY para não bloquear a GUI.
     """
     
     def __init__(self, pdf_port: PDFOperationsPort):
         self.pdf_port = pdf_port
-        from src.application.services.intelligence_core import IntelligenceCore
-        self.ai = IntelligenceCore()
+        self._ai = None  # Lazy initialized
+
+    @property
+    def ai(self):
+        """Acesso lazy ao IntelligenceCore."""
+        if self._ai is None:
+            try:
+                from src.application.services.intelligence_core import IntelligenceCore
+                self._ai = IntelligenceCore()
+                log_debug("CommandOrchestrator: IntelligenceCore carregado.")
+            except Exception as e:
+                log_error(f"CommandOrchestrator: Erro ao carregar IA: {e}")
+        return self._ai
 
     def execute(self, query: str, active_pdf_path: Optional[Path] = None) -> Dict[str, Any]:
         """
@@ -46,10 +60,13 @@ class CommandOrchestrator:
         """Processa comandos específicos rápidos."""
         cmd_text = cmd_text.lower()
         if cmd_text.startswith("girar") or cmd_text.startswith("rotate"):
-            if not pdf_path: return {"type": "error", "message": "Carregue um PDF para girar."}
+            if not pdf_path:
+                return {"type": "error", "message": "Carregue um PDF para girar."}
             degrees = 90
-            if "180" in cmd_text: degrees = 180
-            if "270" in cmd_text: degrees = 270
+            if "180" in cmd_text:
+                degrees = 180
+            if "270" in cmd_text:
+                degrees = 270
             use_case = RotatePDFUseCase(self.pdf_port)
             pdf_doc = PDFDocument.from_path(pdf_path)
             new_path = use_case.execute(pdf_doc, degrees)
@@ -58,9 +75,15 @@ class CommandOrchestrator:
 
     def _handle_ai_translation(self, cmd_text: str, pdf_path: Optional[Path]) -> Dict[str, Any]:
         """Usa a IA para traduzir linguagem natural em comandos do sistema."""
+        if self.ai is None:
+            return {"type": "error", "message": "Serviço de IA não disponível."}
+        
         from src.application.services.ai_command_schema import CommandSchema
         try:
             provider = self.ai.get_provider()
+            if provider is None:
+                return {"type": "error", "message": "Provider de IA não inicializado."}
+                
             prompt = f"O usuário deseja executar: '{cmd_text}'. "
             prompt += "Traduza isso para um comando do sistema fotonPDF."
             
@@ -75,7 +98,6 @@ class CommandOrchestrator:
                 action = data.get("action")
                 param = data.get("parameter")
                 
-                # Executa a ação mapeada
                 if action == "rotate":
                     return self._handle_literal_command(f"rotate {param if param else ''}", pdf_path)
                 

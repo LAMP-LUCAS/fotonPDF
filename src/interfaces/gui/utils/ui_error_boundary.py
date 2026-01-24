@@ -48,13 +48,23 @@ class ResilientWidget(QWidget):
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Container para o placeholder
+        # Container para o placeholder / Erro
         self.placeholder_widget = QWidget()
         self.placeholder_layout = QVBoxLayout(self.placeholder_widget)
         self.placeholder_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.placeholder_layout.setSpacing(10)
+        
+        self.error_icon = QLabel("⚠️")
+        self.error_icon.setStyleSheet("font-size: 24px;")
+        self.error_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.error_icon.hide() # Oculto por padrão
         
         self.placeholder_label = QLabel("Recurso indisponível")
-        self.placeholder_label.setStyleSheet("color: #858585; font-size: 11px;")
+        self.placeholder_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
+        self.placeholder_label.setWordWrap(True)
+        self.placeholder_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.placeholder_layout.addWidget(self.error_icon)
         self.placeholder_layout.addWidget(self.placeholder_label)
         
         self.main_layout.addWidget(self.content_widget)
@@ -62,16 +72,54 @@ class ResilientWidget(QWidget):
         
         self.show_placeholder(False)
 
-    def show_placeholder(self, visible=True, message=None):
+    def show_placeholder(self, visible=True, message=None, is_error=False):
+        """ Mostra o estado de placeholder ou erro. """
         self.content_widget.setVisible(not visible)
         self.placeholder_widget.setVisible(visible)
+        
+        if is_error:
+            self.error_icon.show()
+            self.placeholder_label.setStyleSheet("color: #F87171; font-weight: bold; font-size: 11px;")
+        else:
+            self.error_icon.hide()
+            self.placeholder_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
+            
         if message:
             self.placeholder_label.setText(message)
 
     def set_content_widget(self, widget):
-        # Limpa layout anterior
+        import os
+        from datetime import datetime
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtCore import QCoreApplication, QTimer
+        
+        def _trace(msg):
+            try:
+                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
+                    f.write(f"[{ts}] set_content_widget: {msg}\n")
+            except:
+                pass
+        
+        _trace("START")
+        
+        # Clear previous content safely
         while self.content_layout.count():
             item = self.content_layout.takeAt(0)
-            if item.widget():
+            if item and item.widget():
                 item.widget().deleteLater()
-        self.content_layout.addWidget(widget)
+        
+        # Defer adding the new widget to the next event loop iteration
+        # This prevents blocking during complex layout calculations
+        def _add_async():
+            try:
+                _trace("async: calling addWidget")
+                self.content_layout.addWidget(widget)
+                _trace("async: addWidget success")
+            except Exception as e:
+                _trace(f"async: FATAL ERROR: {e}")
+        
+        QTimer.singleShot(0, _add_async)
+        _trace("scheduled async addWidget")
+        _trace("COMPLETE")
