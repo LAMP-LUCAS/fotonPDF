@@ -23,7 +23,7 @@ def notify_error(msg: str):
 
 @click.group()
 def cli():
-    """fotonPDF - O toolkit de PDFs mais rápido do mundo! 🚀"""
+    """fotonPDF - O toolkit de PDFs mais rápido do mundo!"""
     pass
 
 @cli.command()
@@ -160,7 +160,7 @@ def view(path: Path | None):
     try:
         from src.interfaces.gui.app import main
         
-        click.echo("🚀 Abrindo Visualizador Fóton...")
+        click.echo("  [OK] Abrindo Visualizador...")
         main(file_path=str(path) if path else None)
         
     except Exception as e:
