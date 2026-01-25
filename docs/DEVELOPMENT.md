@@ -37,11 +37,15 @@ Bem-vindo ao desenvolvimento do **fotonPDF**. Este documento define os padrões 
 - **Integração:** Testam os `Adapters` contra arquivos PDF reais em `tests/test_data`.
 - **E2E:** Testam a integração com o explorador de arquivos (simulação de registro/desktop entries).
 
-Executar testes:
+Executar testes (garantindo que o código em `src` seja encontrado):
 
 ```bash
+$env:PYTHONPATH = ".;src"
 pytest
 ```
+
+> [!TIP]
+> O projeto utiliza o arquivo `tests/conftest.py` como **Fábrica Central de Mocks**. Fixtures para `pdf_document`, `mock_settings` e `mock_ai_provider` devem ser reutilizadas em vez de redeclaradas.
 
 ## 🔄 Workflow de Git
 

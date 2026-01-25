@@ -24,6 +24,12 @@ MANIFEST
 # Documentação
 docs/visuals/captures/
 
+# Test results
+test_results.txt
+test_results.log
+coverage_report.txt
+build_log.txt
+
 # Virtual Environments
 .env
 .venv

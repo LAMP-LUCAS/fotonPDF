@@ -48,6 +48,9 @@ Siga os padrões do projeto ([[docs/DEVELOPMENT|Guia de Desenvolvimento]]).
 
 ```bash
 pytest                        # Todos os testes
+# Recomendado (com PYTHONPATH):
+# $env:PYTHONPATH = ".;src"; pytest
+
 pytest tests/unit            # Apenas unitários
 pytest --cov=src             # Com cobertura
 ```
@@ -88,7 +91,7 @@ mypy src/
 
 ### Estrutura de Commits
 
-```
+```text
 tipo(escopo): descrição curta
 
 Descrição detalhada do que foi feito e por quê.
@@ -110,8 +113,12 @@ Closes #123
 ### Estrutura
 
 - `tests/unit/`: Testes rápidos, sem I/O
-- `tests/integration/`: Testes com bibliotecas reais
-- `tests/e2e/`: Testes de ponta a ponta
+- `tests/integration/`: Testes com bibliotecas reais e integração de adaptadores
+- `tests/gui/`: Testes de unidade e integridade para widgets PyQt6
+- `tests/e2e/`: Testes de ponta a ponta (instalação e fluxos do SO)
+
+> [!NOTE]
+> Testes de GUI que dependem de renderização complexa (como Shadow Effects) são ignorados automaticamente em ambientes **Headless** (CI/CD) para evitar deadlocks, mas devem ser validados localmente.
 
 ### Exemplo de Teste
 

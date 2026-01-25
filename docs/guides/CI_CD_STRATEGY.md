@@ -24,6 +24,7 @@ Toda vez que você abrir um PR para `main` ou `develop`:
 
 1. **Testes**: O GitHub cria uma máquina virtual Windows.
 2. **Verificação**: Roda `pytest` em todos os módulos.
+   * *Nota: Testes de interface pesados são detectados e ignorados em ambiente Headless para garantir estabilidade do runner.*
 3. **Status**: O PR só pode ser mesclado se os testes passarem.
 
 ### 📦 Nova Release (CD)
