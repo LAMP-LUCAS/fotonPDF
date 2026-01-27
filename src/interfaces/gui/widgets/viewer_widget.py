@@ -117,14 +117,18 @@ class PDFViewerWidget(QScrollArea):
             try:
                 for i in range(start_idx, end_idx):
                     try:
-                        page_widget = PageWidget(str(path), i)
+                        w_pt, h_pt = 0, 0
+                        if i < len(page_info):
+                            page_meta = page_info[i]
+                            w_pt = page_meta.get("width_pt", 0)
+                            h_pt = page_meta.get("height_pt", 0)
+                            self._page_sizes.append(page_meta)
+                        else:
+                            self._page_sizes.append({"width_pt": 595, "height_pt": 842})
+                            
+                        page_widget = PageWidget(str(path), i, width_pt=w_pt, height_pt=h_pt)
                         self.layout.addWidget(page_widget)
                         self._pages.append(page_widget)
-                        
-                        if i < len(page_info):
-                            self._page_sizes.append(page_info[i])
-                        else:
-                            self._page_sizes.append((595.0, 842.0))
                     except Exception as e:
                         log_error(f"Viewer: Erro ao criar widget da página {i}: {e}")
                 
@@ -173,9 +177,12 @@ class PDFViewerWidget(QScrollArea):
         # O self.get_current_page_index() já faz uma busca.
         current_idx = self.get_current_page_index()
         
-        # Margem de segurança (buffer) mais conservadora (400px)
-        buffer = 400 
+        # Margem de segurança (buffer) baseada na complexidade
         complexity = self._hints.get("complexity", "STANDARD")
+        buffer = 800 if complexity in ("HEAVY", "ULTRA_HEAVY") else 400 
+        
+        # Throttling agressivo para HEAVY: se estiver rodando, pular este ciclo?
+        # Por enquanto, mantemos o logic padrão mas com buffers maiores.
         
         for i in range(current_idx, len(self._pages)):
             page = self._pages[i]
@@ -247,6 +254,10 @@ class PDFViewerWidget(QScrollArea):
 
     def set_zoom(self, zoom: float):
         self._zoom = max(0.1, min(zoom, 10.0))
+        # Atualizar o tamanho de layout de todas as páginas IMEDIATAMENTE
+        # Isso evita que o scroll pule e garante que o QScrollArea saiba o novo tamanho do container
+        for page in self._pages:
+            page.update_layout_size(self._zoom)
         self.check_visibility()
 
     def zoom_in(self): self.set_zoom(self._zoom * 1.2)

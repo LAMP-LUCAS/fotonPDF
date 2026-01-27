@@ -31,8 +31,8 @@ class RenderTask(QRunnable):
         try:
             current_zoom = self.zoom
             
-            # Limite de segurança para evitar QImage gigantesca (> 4k)
-            MAX_RES = 4096
+            # Limite de segurança para evitar QImage gigantesca (> 5k)
+            MAX_RES = 5120
             
             # OBTER HANDLE DO POOL (Single-Open Thread-Safe)
             doc_handle = self.acquire_handle(self.session_id)

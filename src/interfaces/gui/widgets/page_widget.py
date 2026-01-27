@@ -9,19 +9,39 @@ from src.infrastructure.services.telemetry_service import TelemetryService
 class PageWidget(QLabel):
     """Widget de página que conhece sua própria origem (Source Path/Index)."""
 
-    def __init__(self, source_path: str, source_index: int, parent=None):
+    def __init__(self, source_path: str, source_index: int, width_pt=0, height_pt=0, parent=None):
         super().__init__(parent)
         self.source_path = source_path
         self.source_index = source_index
+        self.width_pt = width_pt
+        self.height_pt = height_pt
         self.zoom = 1.0
         self.rotation = 0
         self.mode = "default"
         
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("background-color: white; border: 1px solid #111;")
-        self.setMinimumHeight(400) # Placeholder
+        
+        # Inicializar com tamanho fixo se dimensões conhecidas
+        if width_pt > 0 and height_pt > 0:
+            self.setFixedSize(int(width_pt * self.zoom), int(height_pt * self.zoom))
+        else:
+            self.setMinimumHeight(400) # Fallback
+            
         self._rendered = False
         self._highlights = [] # list[QRectF] em pontos PDF
+        self._base_pixmap = None
+
+    def update_layout_size(self, zoom: float):
+        """Define o tamanho físico do widget ANTES da renderização para estabilizar o scroll."""
+        self.zoom = zoom
+        if self.width_pt > 0 and self.height_pt > 0:
+            new_w = int(self.width_pt * zoom)
+            new_h = int(self.height_pt * zoom)
+            if self.size() != (new_w, new_h):
+                self.setFixedSize(new_w, new_h)
+                # Se o zoom mudou, o cache antigo é inválido
+                self._base_pixmap = None
 
     def render_page(self, zoom=None, rotation=None, mode=None, force=False, clip=None, priority=0):
         """Solicita renderização. Suporta 'clip' para Tiling em arquivos pesados."""
@@ -30,7 +50,7 @@ class PageWidget(QLabel):
             
             if zoom is not None and abs(self.zoom - zoom) > 0.001:
                 should_render = True
-                self.zoom = zoom
+                self.update_layout_size(zoom)
             
             if rotation is not None and self.rotation != rotation:
                 should_render = True
@@ -43,8 +63,8 @@ class PageWidget(QLabel):
             if not should_render and self._rendered and clip is None:
                 return
             
-            # Se for um clip novo, marcamos como carregando (visual feedback)
-            if not self._rendered:
+            # Feedback visual de carregamento
+            if not self._rendered and self._base_pixmap is None:
                 self.setStyleSheet("background-color: #2D2D2D; border: 1px solid #444;")
 
             # O RenderEngine gerencia a fila
@@ -71,19 +91,24 @@ class PageWidget(QLabel):
                 
             if clip is None:
                 # Renderização Completa
-                self.setPixmap(pixmap)
-                self.setFixedSize(pixmap.size())
+                self._base_pixmap = pixmap
+                self.setPixmap(self._base_pixmap)
             else:
                 # Renderização de Tile (Bloco)
-                # Se ainda não temos um pixmap base, criamos um vazio
-                if self.pixmap() is None or self.pixmap().size() != self.size():
-                    # Estimar tamanho total se necessário ou usar o atual
-                    pass 
+                # Se ainda não temos um pixmap base do tamanho certo, criamos um vazio
+                if self._base_pixmap is None or self._base_pixmap.size() != self.size():
+                    self._base_pixmap = QPixmap(self.size())
+                    bg = QColor(255, 255, 255) if mode == "default" else QColor(30, 30, 30)
+                    self._base_pixmap.fill(bg)
                 
-                # Para simplificar na Sprint atual e garantir 0 travamento:
-                # Se for um clip, nós apenas atualizamos a imagem.
-                self.setPixmap(pixmap)
-                # Em versões futuras: usar QPainter para compor tiles no pixmap base
+                # Compor o tile no pixmap base na posição correta
+                painter = QPainter(self._base_pixmap)
+                tx = int(clip[0] * zoom)
+                ty = int(clip[1] * zoom)
+                painter.drawPixmap(tx, ty, pixmap)
+                painter.end()
+                
+                self.setPixmap(self._base_pixmap)
             
             # Se for a primeira página, registrar o TTU (Time to Usability)
             if self.source_index == 0:
