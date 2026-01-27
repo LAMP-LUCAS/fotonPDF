@@ -614,11 +614,12 @@ class PDFViewerWidget(QScrollArea):
     def mouseMoveEvent(self, event):
         if self._selecting:
             self._selection_overlay.setGeometry(
-                min(self._selection_start.x(), event.position().x()),
-                min(self._selection_start.y(), event.position().y()),
-                abs(self._selection_start.x() - event.position().x()),
-                abs(self._selection_start.y() - event.position().y())
+                int(min(self._selection_start.x(), event.position().x())),
+                int(min(self._selection_start.y(), event.position().y())),
+                int(abs(self._selection_start.x() - event.position().x())),
+                int(abs(self._selection_start.y() - event.position().y()))
             )
+
         elif self._panning:
             delta = event.position().toPoint() - self._last_mouse_pos
             self._last_mouse_pos = event.position().toPoint()
