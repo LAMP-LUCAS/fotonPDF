@@ -465,13 +465,15 @@ class PDFViewerWidget(QScrollArea):
             page.render_page(zoom=self._zoom, mode=self._mode, force=True)
 
     def set_tool_mode(self, mode: str):
-        """Alterna entre 'pan' e 'selection'."""
+        """Alterna entre 'pan', 'selection' e 'zoom_area'."""
         self._tool_mode = mode
         if hasattr(self, 'nav_hub'):
             self.nav_hub.set_tool(mode)
             
         if mode == "selection":
             self.setCursor(Qt.CursorShape.IBeamCursor)
+        elif mode == "zoom_area":
+            self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             self.setCursor(Qt.CursorShape.OpenHandCursor)
 
@@ -508,6 +510,15 @@ class PDFViewerWidget(QScrollArea):
                 self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
+        elif self._tool_mode == "zoom_area" and event.button() == Qt.MouseButton.LeftButton:
+            # RubberBand para Zoom por Área
+            self._selecting = True
+            self._selection_start = event.position().toPoint()
+            if not self._selection_overlay:
+                from PyQt6.QtWidgets import QRubberBand
+                self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
+            self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
+            self._selection_overlay.show()
         elif self._tool_mode == "selection" and event.button() == Qt.MouseButton.LeftButton:
             # Implementar seleção de texto (futuro) ou RubberBand temporário
             self._selecting = True
@@ -528,20 +539,58 @@ class PDFViewerWidget(QScrollArea):
             self._selecting = False
             end_pos = event.position().toPoint()
             
+            # Zoom por Área: calcular zoom para encaixar a seleção no viewport
+            if self._tool_mode == "zoom_area":
+                self._apply_zoom_to_selection(self._selection_start, end_pos)
+                self._clear_selection()
             # Se for modo de seleção de texto, mostrar menu contextual
-            if self._tool_mode == "selection":
+            elif self._tool_mode == "selection":
                 self._show_context_menu(event.globalPosition().toPoint())
+                QTimer.singleShot(500, self._clear_selection)
             else:
                 self._process_selection(self._selection_start, end_pos)
-                
-            QTimer.singleShot(500, self._clear_selection)
+                QTimer.singleShot(500, self._clear_selection)
         
         self._panning = False
         if self._tool_mode == "selection":
             self.setCursor(Qt.CursorShape.IBeamCursor)
+        elif self._tool_mode == "zoom_area":
+            self.setCursor(Qt.CursorShape.CrossCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
         super().mouseReleaseEvent(event)
+
+    def _apply_zoom_to_selection(self, start: QPoint, end: QPoint):
+        """Calcula e aplica o zoom para que a área selecionada caiba no viewport."""
+        # Dimensões da seleção
+        sel_w = abs(end.x() - start.x())
+        sel_h = abs(end.y() - start.y())
+        
+        if sel_w < 20 or sel_h < 20:
+            return  # Seleção muito pequena, ignorar
+        
+        # Centro da seleção (coordenadas do widget)
+        center_x = (start.x() + end.x()) // 2
+        center_y = (start.y() + end.y()) // 2
+        
+        # Dimensões do viewport
+        vp_w = self.viewport().width()
+        vp_h = self.viewport().height()
+        
+        # Fator de zoom necessário para encaixar a seleção
+        zoom_factor_w = vp_w / sel_w
+        zoom_factor_h = vp_h / sel_h
+        zoom_factor = min(zoom_factor_w, zoom_factor_h) * 0.9  # 90% para margem
+        
+        # Novo zoom = zoom_atual * fator
+        new_zoom = self._zoom * zoom_factor
+        new_zoom = max(0.1, min(new_zoom, 10.0))
+        
+        # Aplicar zoom focado no centro da seleção
+        self.set_zoom(new_zoom, focus_pos=QPoint(center_x, center_y))
+        
+        # Retornar para modo Pan após o zoom
+        self.set_tool_mode("pan")
 
     def _show_context_menu(self, pos: QPoint):
         menu = QMenu(self)

@@ -166,9 +166,14 @@ class LightTableView(QGraphicsView):
         if mode == "selection":
             self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
             self.setCursor(Qt.CursorShape.ArrowCursor)
+        elif mode == "zoom_area":
+            self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+            self.setCursor(Qt.CursorShape.CrossCursor)
+            self._zoom_area_active = True
         else:
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
             self.setCursor(Qt.CursorShape.OpenHandCursor)
+            self._zoom_area_active = False
 
     def zoom_in(self): self.set_zoom(self._zoom * 1.25)
     def zoom_out(self): self.set_zoom(self._zoom / 1.25)
@@ -247,6 +252,19 @@ class LightTableView(QGraphicsView):
             self.setCursor(Qt.CursorShape.OpenHandCursor if self._tool_mode == "pan" else Qt.CursorShape.ArrowCursor)
             event.accept()
             return
+        
+        # Zoom por Área: aplica fitInView na área selecionada pelo RubberBand
+        if getattr(self, '_zoom_area_active', False) and self.rubberBandRect():
+            rect = self.mapToScene(self.rubberBandRect()).boundingRect()
+            if rect.width() > 10 and rect.height() > 10:
+                self.fitInView(rect, Qt.AspectRatioMode.KeepAspectRatio)
+                self._zoom = self.transform().m11()
+                self._quality_timer.start(300)
+            # Voltar para modo Pan após o zoom
+            self.set_tool_mode("pan")
+            event.accept()
+            return
+        
         super().mouseReleaseEvent(event)
 
     def resizeEvent(self, event):
