@@ -7,10 +7,12 @@ class PageItem(QGraphicsPixmapItem):
     """Representa uma página PDF individual na Mesa de Luz."""
     moved = pyqtSignal(int, float, float) # page_idx, x, y
 
-    def __init__(self, page_index, source_path):
+    def __init__(self, page_index, source_path, width_pt=595, height_pt=842):
         super().__init__()
         self.page_index = page_index
         self.source_path = source_path
+        self.width_pt = width_pt
+        self.height_pt = height_pt
         
         # Estilo base
         self.setFlag(QGraphicsPixmapItem.GraphicsItemFlag.ItemIsMovable)
@@ -18,10 +20,28 @@ class PageItem(QGraphicsPixmapItem):
         self.setFlag(QGraphicsPixmapItem.GraphicsItemFlag.ItemSendsGeometryChanges)
         
         # Render inicial placeholder
+        self.update_render(0.3)
+
+    def _on_render_finished(self, pix):
+        """Aplica o pixmap e ajusta a escala local para manter as dimensões em pontos."""
+        if pix.isNull(): return
+        self.setPixmap(pix)
+        
+        # Ajustar escala interna para que o pixmap caiba exatamente no retângulo de pontos (PT)
+        # Isso garante que a posição na cena não mude e o item seja estável
+        sx = self.width_pt / pix.width()
+        sy = self.height_pt / pix.height()
+        self.setTransform(QTransform().scale(sx, sy))
+
+    def update_render(self, zoom):
+        """Solicita uma renderização condizente com o zoom atual."""
         from src.interfaces.gui.state.render_engine import RenderEngine
+        # Limitar o zoom para evitar sobrecarga (Mesa de Luz costuma ser visão geral)
+        target_zoom = max(0.3, min(zoom, 1.5))
+        
         RenderEngine.instance().request_render(
-            source_path, page_index, 0.3, 0, 
-            lambda idx, pix, z, r, m, c: self.setPixmap(pix)
+            self.source_path, self.page_index, target_zoom, 0, 
+            lambda idx, pix, z, r, m, c: self._on_render_finished(pix)
         )
 
     def itemChange(self, change, value):
@@ -46,7 +66,12 @@ class LightTableView(QGraphicsView):
         self.scene.setBackgroundBrush(QColor("#0F172A"))
         
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+        
+        # Zoom focado no mouse
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         
         self.setStyleSheet("border: none; background-color: #0F172A;")
         
@@ -59,12 +84,19 @@ class LightTableView(QGraphicsView):
         self._tool_mode = "pan"
         self._panning = False
         self._last_mouse_pos = QPointF()
+        
+        # Timer para renderização de alta qualidade após zoom/pan
+        self._quality_timer = QTimer(self)
+        self._quality_timer.setSingleShot(True)
+        self._quality_timer.timeout.connect(self._refresh_quality)
 
     def load_document(self, path, metadata):
         """Carrega os itens da cena de forma progressiva para evitar travamento da GUI."""
         self.scene.clear()
         page_count = metadata.get("page_count", 0)
-        spacing = 350
+        page_info = metadata.get("pages", [])
+        
+        spacing = 400
         cols = 3
         batch_size = 10
         
@@ -76,7 +108,12 @@ class LightTableView(QGraphicsView):
             end_idx = min(current_start + batch_size, page_count)
             
             for i in range(current_start, end_idx):
-                item = PageItem(i, str(path))
+                w_pt, h_pt = 595, 842
+                if i < len(page_info):
+                    w_pt = page_info[i].get("width_pt", 595)
+                    h_pt = page_info[i].get("height_pt", 842)
+                    
+                item = PageItem(i, str(path), width_pt=w_pt, height_pt=h_pt)
                 row, col = i // cols, i % cols
                 item.setPos(col * spacing, row * spacing)
                 self.scene.addItem(item)
@@ -112,7 +149,20 @@ class LightTableView(QGraphicsView):
         old_zoom = self._zoom
         self._zoom = max(0.05, min(zoom, 5.0))
         factor = self._zoom / old_zoom
+        # Usar o mecanismo interno do QGraphicsView para manter o foco no mouse
         self.scale(factor, factor)
+        
+        # Programar atualização de qualidade
+        self._quality_timer.start(300)
+
+    def _refresh_quality(self):
+        """Atualiza a renderização dos itens visíveis com base no zoom atual."""
+        visible_rect = self.mapToScene(self.viewport().rect()).boundingRect()
+        for item in self.scene.items():
+            if isinstance(item, PageItem):
+                # Se o item está visível no viewport, atualizar qualidade
+                if item.sceneBoundingRect().intersects(visible_rect):
+                    item.update_render(self._zoom)
 
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
@@ -138,12 +188,18 @@ class LightTableView(QGraphicsView):
         super().keyPressEvent(event)
 
     def mousePressEvent(self, event):
-        if event.button() == Qt.MouseButton.MiddleButton or (self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton):
+        # Pan prioritário se:
+        # 1. Botão do meio (sempre)
+        # 2. Botão esquerdo E ferramenta 'Pan' ativa
+        if event.button() == Qt.MouseButton.MiddleButton or \
+           (self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton):
             self._panning = True
             self._last_mouse_pos = event.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
             event.accept()
             return
+
+        # Modo Seleção: Deixar o QGraphicsView lidar com RubberBand e movimento de itens
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event):

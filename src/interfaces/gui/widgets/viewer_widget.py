@@ -241,15 +241,14 @@ class PDFViewerWidget(QScrollArea):
                 # Posicionar a navbar no fundo central
                 self._update_nav_pos()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self._update_nav_pos()
-
-    def _update_nav_pos(self):
-        if self.nav_bar.isVisible():
-            x = (self.width() - self.nav_bar.width()) // 2
-            y = self.height() - self.nav_bar.height() - 30
-            self.nav_bar.move(x, y)
+    def get_current_page_index(self) -> int:
+        """Retorna o índice da página mais visível no topo do viewport."""
+        viewport_top = self.verticalScrollBar().value()
+        for i, page in enumerate(self._pages):
+            # Se o fundo da página estiver abaixo do topo do viewport, ela é a atual
+            if page.pos().y() + page.height() > viewport_top + 10:
+                return i
+        return 0
 
     def _setup_nav_bar_connections(self):
         self.nav_bar.zoomIn.connect(self.zoom_in)
@@ -258,12 +257,36 @@ class PDFViewerWidget(QScrollArea):
         self.nav_bar.nextPage.connect(self.next_page)
         self.nav_bar.prevPage.connect(self.prev_page)
 
-    def set_zoom(self, zoom: float):
-        self._zoom = max(0.1, min(zoom, 10.0))
-        # Atualizar o tamanho de layout de todas as páginas IMEDIATAMENTE
-        # Isso evita que o scroll pule e garante que o QScrollArea saiba o novo tamanho do container
-        for page in self._pages:
-            page.update_layout_size(self._zoom)
+    def set_zoom(self, zoom: float, focus_pos=None):
+        old_zoom = self._zoom
+        new_zoom = max(0.1, min(zoom, 10.0))
+        if abs(old_zoom - new_zoom) < 0.001: return
+        
+        # Posição do scroll atual
+        scroll_x = self.horizontalScrollBar().value()
+        scroll_y = self.verticalScrollBar().value()
+        
+        # Se um ponto de foco foi fornecido (ex: cursor do mouse)
+        if focus_pos:
+            # Posição relativa ao conteúdo (em escala 1.0 teórica)
+            rel_x = (focus_pos.x() + scroll_x) / old_zoom
+            rel_y = (focus_pos.y() + scroll_y) / old_zoom
+            
+            self._zoom = new_zoom
+            for page in self._pages:
+                page.update_layout_size(self._zoom)
+            
+            # Forçar atualização de layout do container para que o scrollArea saiba o novo tamanho
+            self.container.adjustSize()
+            
+            # Recalcular scroll para manter o ponto rel_x, rel_y sob o focus_pos
+            self.horizontalScrollBar().setValue(int(rel_x * self._zoom - focus_pos.x()))
+            self.verticalScrollBar().setValue(int(rel_y * self._zoom - focus_pos.y()))
+        else:
+            self._zoom = new_zoom
+            for page in self._pages:
+                page.update_layout_size(self._zoom)
+                
         self.check_visibility()
 
     def zoom_in(self): self.set_zoom(self._zoom * 1.2)
@@ -427,7 +450,7 @@ class PDFViewerWidget(QScrollArea):
         if mode == "selection":
             self.setCursor(Qt.CursorShape.IBeamCursor)
         else:
-            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -559,8 +582,8 @@ class PDFViewerWidget(QScrollArea):
 
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
-            if event.angleDelta().y() > 0: self.zoom_in()
-            else: self.zoom_out()
+            factor = 1.2 if event.angleDelta().y() > 0 else 1.0 / 1.2
+            self.set_zoom(self._zoom * factor, focus_pos=event.position())
             event.accept()
         else:
             super().wheelEvent(event)
