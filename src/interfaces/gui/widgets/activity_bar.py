@@ -5,14 +5,15 @@ class ActivityBar(QWidget):
     """Barra vertical lateral estilo VS Code com estética Neon-AEC Premium."""
     clicked = pyqtSignal(int) # Emite o índice da aba selecionada
 
-    # Mapeamento de ícones (UTF-8 conforme concept.html)
+    # Mapeamento de ícones (Nomenclatura genérica e universal)
     ICONS = {
-        0: ("📂", "Explorer"),       # Miniaturas
-        1: ("🔎", "Buscar"),          # Busca
-        2: ("📚", "Sumário"),         # TOC (atualizado para 📚 conforme concept)
-        3: ("🖊️", "Anotações"),       # Highlights
-        99: ("⚙️", "Configurações"),  # Settings
+        0: ("📂", "Páginas"),          # Miniaturas / Navegador de Páginas
+        1: ("🔎", "Pesquisar"),         # Busca Textual
+        2: ("📚", "Índice"),            # TOC / Sumário
+        3: ("🖊️", "Notas"),             # Anotações do Usuário
+        99: ("⚙️", "Ajustes"),          # Configurações
     }
+
 
     def __init__(self, parent=None):
         super().__init__(parent)

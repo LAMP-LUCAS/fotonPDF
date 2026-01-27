@@ -377,6 +377,7 @@ class MainWindow(QMainWindow):
         self.thumbnails = None
         self.toc_panel = None
         self.search_panel = None
+        self.annotations_panel = None
 
         # Conectar LightTable se existir o sinal
         if hasattr(self.light_table, "pageMoved"):
@@ -389,20 +390,30 @@ class MainWindow(QMainWindow):
                 self.thumbnails = ThumbnailPanel()
                 self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
                 self.thumbnails.orderChanged.connect(self._on_pages_reordered)
-                self.side_bar.add_panel(self.thumbnails, "Explorer")
+                self.side_bar.add_panel(self.thumbnails, "Páginas")
             
             elif name == "search" and not self.search_panel:
                 from src.application.use_cases.search_text import SearchTextUseCase
                 self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
-                self.side_bar.add_panel(self.search_panel, "Search")
+                self.side_bar.add_panel(self.search_panel, "Pesquisar")
             
             elif name == "toc" and not self.toc_panel:
                 from src.application.use_cases.get_toc import GetTOCUseCase
                 self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
-                self.side_bar.add_panel(self.toc_panel, "Sumário")
+                self.side_bar.add_panel(self.toc_panel, "Índice")
+            
+            elif name == "annotations" and not self.annotations_panel:
+                from src.interfaces.gui.widgets.annotations_panel import AnnotationsPanel
+                self.annotations_panel = AnnotationsPanel()
+                self.annotations_panel.annotationClicked.connect(
+                    lambda page, aid: self.viewer.scroll_to_page(page) if self.viewer else None
+                )
+                self.side_bar.add_panel(self.annotations_panel, "Notas")
+                
         except Exception as e:
             log_exception(f"Erro ao carregar painel {name}: {e}")
             self.bottom_panel.add_log(f"⚠️ Erro ao carregar painel '{name}': {e}", color="red")
+
 
     def _load_settings(self):
         """Carrega as configurações do usuário via conector hexagonal."""
@@ -889,12 +900,17 @@ class MainWindow(QMainWindow):
             # Sincronizar painéis laterais (Lazy Sync)
             # Cada um em seu bloco try-except para evitar cascade failure
             
+            # FORÇA carregamento do ThumbnailPanel se ainda não foi carregado
+            if not self.thumbnails:
+                self._ensure_panel_loaded("thumbnails")
+            
             if self.thumbnails:
                 try:
                     self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
                 except Exception as e:
                     log_exception(f"MainWindow: Falha ao atualizar Thumbnails: {e}")
             log_debug("MainWindow [TAB_CHANGED]: [2/5] Thumbnails OK.")
+
             
             if self.toc_panel:
                 try:
@@ -959,12 +975,12 @@ class MainWindow(QMainWindow):
              # Não propagar para evitar crash da GUI
 
     def _on_activity_clicked(self, idx):
-        # Fail-safe: Se side_bar ou activity_bar forem dummy widgets, ignorar
+        # Fail-safe: Se side_bar ou activity_bar forem dummy widgets, mostrar fallback visual
         if not hasattr(self.side_bar, 'stack') or not hasattr(self.activity_bar, 'group'):
-            self.bottom_panel.add_log(f"⚠️ Recurso da Sidebar desativado no modo de diagnóstico. Impossível focar aba {idx}.")
+            self.bottom_panel.add_log(f"ℹ️ Sidebar desativada. Ative-a em Ajustes > Inicialização.")
             return
 
-        titles = {0: "EXPLORER", 1: "SEARCH", 2: "SUMÁRIO", 3: "ANNOTATIONS"}
+        titles = {0: "PÁGINAS", 1: "PESQUISAR", 2: "ÍNDICE", 3: "NOTAS"}
         
         # SPECIAL: Settings icon (99) opens the app menu popup
         if idx == 99:
@@ -979,6 +995,7 @@ class MainWindow(QMainWindow):
         if idx == 0: self._ensure_panel_loaded("thumbnails")
         elif idx == 1: self._ensure_panel_loaded("search")
         elif idx == 2: self._ensure_panel_loaded("toc")
+        elif idx == 3: self._ensure_panel_loaded("annotations")
 
         target_idx = idx
         
@@ -987,6 +1004,7 @@ class MainWindow(QMainWindow):
             self.side_bar.toggle_collapse()
         else:
             self.side_bar.show_panel(target_idx, titles.get(target_idx, "SIDEBAR"))
+
 
     def _on_search_results_found(self, results):
         """Atualiza os marcadores na barra de rolagem."""
