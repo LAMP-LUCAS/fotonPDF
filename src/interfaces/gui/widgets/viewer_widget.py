@@ -256,6 +256,17 @@ class PDFViewerWidget(QScrollArea):
         self.nav_bar.resetZoom.connect(self.reset_zoom)
         self.nav_bar.nextPage.connect(self.next_page)
         self.nav_bar.prevPage.connect(self.prev_page)
+        self.nav_bar.fitWidth.connect(self.fit_width)
+        self.nav_bar.fitHeight.connect(self.fit_height)
+        self.nav_bar.fitPage.connect(self.fit_page)
+        self.nav_bar.setTool.connect(self.set_tool_mode)
+        
+        # Conectar Visão Geral à troca de modo na MainWindow (via sinal ou callback)
+        try:
+            main_window = self.window()
+            if hasattr(main_window, "_switch_view_mode_v4"):
+                self.nav_bar.viewAll.connect(lambda: main_window._switch_view_mode_v4("table"))
+        except: pass
 
     def set_zoom(self, zoom: float, focus_pos=None):
         old_zoom = self._zoom
@@ -324,6 +335,18 @@ class PDFViewerWidget(QScrollArea):
             orig_h = 842.0
             
         available_h = self.viewport().height() - 100
+        self.set_zoom(available_h / orig_h)
+
+    def fit_height(self):
+        """Ajusta o zoom para que a altura da página ocupe todo o viewport."""
+        if not self._pages: return
+        idx = self.get_current_page_index()
+        if idx < len(self._page_sizes):
+            orig_h = self._page_sizes[idx].get("height_pt", 842.0)
+        else:
+            orig_h = 842.0
+        
+        available_h = self.viewport().height() - 40
         self.set_zoom(available_h / orig_h)
 
     def keyPressEvent(self, event):

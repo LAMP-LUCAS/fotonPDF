@@ -539,6 +539,16 @@ class MainWindow(QMainWindow):
     def _switch_view_mode_v4(self, mode):
         idx = 0 if mode == "scroll" else 1
         self.view_stack.setCurrentIndex(idx)
+        
+        # Sincronizar NavBar Moderna com a visão ativa
+        if mode == "table" and hasattr(self.light_table, "setup_nav_bar"):
+            # A navbar é interna ao visualizador (viewer_left), mas podemos 
+            # compartilhá-la ou usar a do viewer_left como mestre.
+            # Aqui, vinculamos a barra do visualizador atual à lógica da mesa.
+            viewer = self.viewer # PDFViewerWidget ativo
+            if viewer and hasattr(viewer, "nav_bar"):
+                self.light_table.setup_nav_bar(viewer.nav_bar)
+        
         # Garantir que o visualizador receba foco para atalhos de teclado funcionarem
         if self.view_stack.currentWidget():
             self.view_stack.currentWidget().setFocus()
@@ -938,6 +948,11 @@ class MainWindow(QMainWindow):
                 try:
                     self.bottom_panel.add_log(f"Synced Meta for: {file_path.name}")
                 except: pass
+                
+            # Sincronizar o contador de páginas na mesa de luz no início da sessão
+            if hasattr(self, 'light_table') and hasattr(self.light_table, 'update_page'):
+                 current_idx = self.viewer.get_current_page_index() if self.viewer else 0
+                 self.light_table.update_page(current_idx, metadata.get("page_count", 0))
 
         except Exception as e:
              log_exception(f"MainWindow: Erro Crítico em _on_tab_changed: {e}")
@@ -1073,6 +1088,14 @@ class MainWindow(QMainWindow):
 
         if self._is_navigating_history:
             return
+            
+        # Sincronizar o contador de páginas na mesa de luz também
+        if hasattr(self, 'light_table') and hasattr(self.light_table, 'update_page'):
+             page_count = 0
+             group = self.tabs.current_editor()
+             if group and group.metadata:
+                 page_count = group.metadata.get("page_count", 0)
+             self.light_table.update_page(index, page_count)
             
     def _on_selection_changed(self, rect_pts: tuple):
         """Converte seleção em pontos para milímetros e atualiza telemetria."""

@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QGraphicsView, QGraphicsScene, QGraphicsRectItem, QG
 from PyQt6.QtCore import Qt, QPointF, QRectF, pyqtSignal, QTimer
 from PyQt6.QtGui import QPainter, QColor, QPen, QBrush, QFont, QPixmap, QTransform
 from src.interfaces.gui.widgets.nav_hub import NavHub
+from src.interfaces.gui.widgets.floating_navbar import ModernNavBar
 
 class PageItem(QGraphicsPixmapItem):
     """Representa uma página PDF individual na Mesa de Luz."""
@@ -80,6 +81,11 @@ class LightTableView(QGraphicsView):
         self.nav_hub.toolChanged.connect(self._on_hub_tool_changed)
         self.nav_hub.hide()
         
+        # Modern NavBar (Universal)
+        self.nav_bar = ModernNavBar(self)
+        self.nav_bar.show()
+        self.setup_nav_bar(self.nav_bar)
+        
         self._zoom = 1.0
         self._tool_mode = "pan"
         self._panning = False
@@ -130,6 +136,29 @@ class LightTableView(QGraphicsView):
         elif action == "select": self.set_tool_mode("selection")
         elif action == "zoom_in": self.zoom_in()
         elif action == "zoom_out": self.zoom_out()
+
+    def setup_nav_bar(self, nav_bar):
+        """Conecta os sinais da barra de navegação moderna."""
+        nav_bar.zoomIn.connect(self.zoom_in)
+        nav_bar.zoomOut.connect(self.zoom_out)
+        nav_bar.resetZoom.connect(self.reset_zoom)
+        nav_bar.setTool.connect(self.set_tool_mode)
+        nav_bar.viewAll.connect(self.viewport_to_overview)
+        
+        # Conectar Visão de Scroll à troca de modo na MainWindow
+        try:
+            main_window = self.window()
+            if hasattr(main_window, "_switch_view_mode_v4"):
+                nav_bar.viewAll.disconnect() # Limpar conexão de overview se for voltar p/ scroll
+                nav_bar.viewAll.connect(lambda: main_window._switch_view_mode_v4("scroll"))
+        except: pass
+
+    def viewport_to_overview(self):
+        """Enquadra todas as páginas na visão atual."""
+        if self.scene.items():
+            self.fitInView(self.scene.itemsBoundingRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            # Atualizar zoom interno baseado na escala atual
+            self._zoom = self.transform().m11()
 
     def set_tool_mode(self, mode: str):
         self._tool_mode = mode
@@ -222,5 +251,18 @@ class LightTableView(QGraphicsView):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if hasattr(self, "nav_hub"):
+        self._update_nav_pos()
+
+    def _update_nav_pos(self):
+        # NavHub centralizado na base
+        if hasattr(self, "nav_hub") and self.nav_hub.isVisible():
             self.nav_hub.move((self.width() - self.nav_hub.width()) // 2, self.height() - 80)
+        
+        # ModernNavBar centralizada na base
+        if hasattr(self, "nav_bar"):
+            self.nav_bar.move((self.width() - self.nav_bar.width()) // 2, self.height() - 60)
+
+    def update_page(self, current, total):
+        """Sincroniza o contador de páginas na barra."""
+        if hasattr(self, "nav_bar"):
+            self.nav_bar.update_page(current, total)
