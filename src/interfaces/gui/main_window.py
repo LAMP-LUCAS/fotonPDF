@@ -539,8 +539,26 @@ class MainWindow(QMainWindow):
     def _switch_view_mode_v4(self, mode):
         idx = 0 if mode == "scroll" else 1
         self.view_stack.setCurrentIndex(idx)
+        # Garantir que o visualizador receba foco para atalhos de teclado funcionarem
+        if self.view_stack.currentWidget():
+            self.view_stack.currentWidget().setFocus()
+            
         self.bottom_panel.add_log(f"🔄 Modo de visualização alterado para: {mode.upper()}")
     
+    def keyPressEvent(self, event):
+        """Atalhos globais da aplicação."""
+        if event.modifiers() == Qt.KeyboardModifier.ShiftModifier and event.key() == Qt.Key.Key_N:
+            # Toggle global do NavHub no visualizador ativo
+            widget = self.view_stack.currentWidget()
+            if hasattr(widget, "nav_hub"):
+                if widget.nav_hub.isVisible(): widget.nav_hub.hide()
+                else: widget.nav_hub.show()
+                if hasattr(widget, "_update_nav_pos"):
+                    widget._update_nav_pos()
+            return
+            
+        super().keyPressEvent(event)
+
     def _switch_view_mode(self, index):
         """Alterna entre ScrollView e LightTable."""
         self.view_stack.setCurrentIndex(index)
@@ -895,6 +913,9 @@ class MainWindow(QMainWindow):
                     # Conectar seleção à telemetria (MM)
                     self.viewer.selectionChanged.connect(self._on_selection_changed, Qt.ConnectionType.UniqueConnection)
                     self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
+                    
+                    # Focar visualizador para atalhos imediatos
+                    self.viewer.setFocus()
                 except (TypeError, RuntimeError): 
                     pass
                 except Exception as e:

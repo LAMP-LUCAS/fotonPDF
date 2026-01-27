@@ -5,6 +5,7 @@ from src.interfaces.gui.widgets.page_widget import PageWidget
 from src.infrastructure.services.logger import log_debug, log_warning, log_error, log_exception
 from src.interfaces.gui.state.render_engine import RenderEngine
 from src.interfaces.gui.widgets.floating_navbar import FloatingNavBar
+from src.interfaces.gui.widgets.nav_hub import NavHub
 from src.interfaces.gui.widgets.marker_scrollbar import MarkerScrollBar
 
 class PDFViewerWidget(QScrollArea):
@@ -30,6 +31,11 @@ class PDFViewerWidget(QScrollArea):
         self.nav_bar = FloatingNavBar(self)
         self.nav_bar.hide()
         self._setup_nav_bar_connections()
+        
+        # Navigation Hub (SteeringWheel)
+        self.nav_hub = NavHub(self)
+        self.nav_hub.toolChanged.connect(self._on_hub_tool_changed)
+        self.nav_hub.hide()
         
         self._pages: list[PageWidget] = []
         self._page_sizes: list[tuple[float, float]] = [] 
@@ -248,9 +254,9 @@ class PDFViewerWidget(QScrollArea):
     def _setup_nav_bar_connections(self):
         self.nav_bar.zoomIn.connect(self.zoom_in)
         self.nav_bar.zoomOut.connect(self.zoom_out)
-        self.nav_bar.resetZoom.connect(self.real_size)
-        self.nav_bar.nextPage.connect(lambda: self.scroll_to_page(self.get_current_page_index() + 1))
-        self.nav_bar.prevPage.connect(lambda: self.scroll_to_page(self.get_current_page_index() - 1))
+        self.nav_bar.resetZoom.connect(self.reset_zoom)
+        self.nav_bar.nextPage.connect(self.next_page)
+        self.nav_bar.prevPage.connect(self.prev_page)
 
     def set_zoom(self, zoom: float):
         self._zoom = max(0.1, min(zoom, 10.0))
@@ -262,41 +268,80 @@ class PDFViewerWidget(QScrollArea):
 
     def zoom_in(self): self.set_zoom(self._zoom * 1.2)
     def zoom_out(self): self.set_zoom(self._zoom / 1.2)
+    def reset_zoom(self): self.set_zoom(1.0)
 
-    def get_current_page_index(self) -> int:
-        """Retorna o índice da página mais visível no topo do viewport."""
-        viewport_top = self.verticalScrollBar().value()
-        for i, page in enumerate(self._pages):
-            # Se o fundo da página estiver abaixo do topo do viewport, ela é a atual
-            if page.pos().y() + page.height() > viewport_top + 10:
-                return i
-        return 0
+    def next_page(self):
+        idx = self.get_current_page_index()
+        self.scroll_to_page(idx + 1)
+
+    def prev_page(self):
+        idx = self.get_current_page_index()
+        self.scroll_to_page(idx - 1)
 
     def fit_width(self):
+        """Ajusta o zoom para que a página ocupe toda a largura disponível."""
         if not self._pages: return
         idx = self.get_current_page_index()
-        
+        # Usar dimensões da página atual ou da primeira como fallback
         if idx < len(self._page_sizes):
-            orig_w, _ = self._page_sizes[idx]
+            orig_w = self._page_sizes[idx].get("width_pt", 595.0)
         else:
             orig_w = 595.0
+            
+        available_w = self.viewport().width() - 100
+        self.set_zoom(available_w / orig_w)
 
-        available_width = self.viewport().width() - 80 # Margens
-        self.set_zoom(available_width / orig_w)
-
-    def fit_height(self):
+    def fit_page(self):
+        """Ajusta o zoom para que a página caiba inteira no viewport vertical."""
         if not self._pages: return
         idx = self.get_current_page_index()
-        
         if idx < len(self._page_sizes):
-            _, orig_h = self._page_sizes[idx]
+            orig_h = self._page_sizes[idx].get("height_pt", 842.0)
         else:
             orig_h = 842.0
+            
+        available_h = self.viewport().height() - 100
+        self.set_zoom(available_h / orig_h)
 
-        available_height = self.viewport().height() - 80
-        self.set_zoom(available_height / orig_h)
+    def keyPressEvent(self, event):
+        """Atalhos universais estilo Okular."""
+        key = event.key()
+        mod = event.modifiers()
+        
+        if mod == Qt.KeyboardModifier.NoModifier:
+            if key == Qt.Key.Key_Space or key == Qt.Key.Key_PageDown:
+                self.next_page()
+            elif key == Qt.Key.Key_Backspace or key == Qt.Key.Key_PageUp:
+                self.prev_page()
+            elif key == Qt.Key.Key_P:
+                self.set_tool_mode("pan")
+            elif key == Qt.Key.Key_S:
+                self.set_tool_mode("selection")
+            elif key == Qt.Key.Key_N:
+                # Toggle NavHub
+                if self.nav_hub.isVisible(): self.nav_hub.hide()
+                else: self.nav_hub.show()
+                self._update_nav_pos()
+            else:
+                super().keyPressEvent(event)
+        
+        elif mod == Qt.KeyboardModifier.ControlModifier:
+            if key == Qt.Key.Key_Plus or key == Qt.Key.Key_Equal: self.zoom_in()
+            elif key == Qt.Key.Key_Minus: self.zoom_out()
+            elif key == Qt.Key.Key_0: self.reset_zoom()
+            elif key == Qt.Key.Key_1: self.fit_width()
+            elif key == Qt.Key.Key_2: self.fit_page()
+            else: super().keyPressEvent(event)
+        else:
+            super().keyPressEvent(event)
 
-    def real_size(self): self.set_zoom(1.0)
+    def _on_hub_tool_changed(self, action):
+        if action == "pan": self.set_tool_mode("pan")
+        elif action == "select": self.set_tool_mode("selection")
+        elif action == "zoom_in": self.zoom_in()
+        elif action == "zoom_out": self.zoom_out()
+        elif action == "fit_width": self.fit_width()
+        elif action == "fit_page": self.fit_page()
 
     def refresh_page(self, visual_idx: int, rotation: int = 0):
         """Força a renderização de uma página específica pela sua posição atual."""
@@ -376,10 +421,25 @@ class PDFViewerWidget(QScrollArea):
     def set_tool_mode(self, mode: str):
         """Alterna entre 'pan' e 'selection'."""
         self._tool_mode = mode
+        if hasattr(self, 'nav_hub'):
+            self.nav_hub.set_tool(mode)
+            
         if mode == "selection":
             self.setCursor(Qt.CursorShape.IBeamCursor)
         else:
             self.setCursor(Qt.CursorShape.ArrowCursor)
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self._update_nav_pos()
+
+    def _update_nav_pos(self):
+        # NavBar centralizada no topo
+        if hasattr(self, "nav_bar") and self.nav_bar.isVisible():
+            self.nav_bar.move((self.width() - self.nav_bar.width()) // 2, 20)
+        # NavHub centralizado na base
+        if hasattr(self, "nav_hub") and self.nav_hub.isVisible():
+            self.nav_hub.move((self.width() - self.nav_hub.width()) // 2, self.height() - 80)
 
     def set_selection_mode(self, enabled: bool):
         # Legado para OCR de área
