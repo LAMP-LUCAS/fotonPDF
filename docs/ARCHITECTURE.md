@@ -36,6 +36,39 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
   - `SideBar`: Painéis laterais reutilizáveis (Esquerda/Direita).
   - `BottomPanel`: Gerencia notificações e logs de forma independente.
   - `EditorGroup`: Encapsula a lógica de visualização e "Async Split".
+
+## 🎨 Anatomia da Interface (Skeleton)
+
+O fotonPDF segue uma estrutura canônica de "IDE de Engenharia", organizando elementos em camadas lógicas para reduzir a carga cognitiva.
+
+```mermaid
+graph TD
+    TOP[Top Bar: Busca Universal & Modos]
+    subgraph Body
+        ACT[Activity Bar]
+        SIDE_L[Side Bar Left: Miniaturas/TOC]
+        CENTER[Viewport Central: Tabs ou Mesa de Luz]
+        SIDE_R[Side Bar Right: AEC Inspector]
+    end
+    BOT[Bottom Panel: Logs & Telemetria]
+    FLOAT[Floating: ModernNavBar & NavHub]
+
+    TOP --> Body
+    Body --> BOT
+    ACT --- SIDE_L
+    SIDE_L --- CENTER
+    CENTER --- SIDE_R
+```
+
+### Elementos Estruturais e seu "Abrigo"
+
+1. **Top Bar (`TopBarWidget`)**: Abriga a Busca Universal (Command Palette), alternadores de modo (Scroll/Mesa) e controles globais de layout.
+2. **Activity Bar**: Localizada na extrema esquerda, abriga os ícones de contexto que definem qual painel será exibido na SideBar Left.
+3. **Side Bar Left**: Abriga o conteúdo auxiliar (Miniaturas, Sumário, Ferramentas de Busca).
+4. **Central Viewport**: O coração da renderização. Suporta múltiplos documentos via abas ou a **Mesa de Luz Profissional** (Light Table).
+5. **Side Bar Right (AEC Inspector)**: Abriga dados técnicos profundos, propriedades de camadas e inspeção de metadados BIM/CAD.
+6. **Bottom Panel**: Abriga logs de sistema em tempo real e telemetria de performance (TTU, Render Time).
+7. **Elementos Flutuantes**: Orbitam a área central. A **ModernNavBar** controla navegação e zoom, enquanto o **NavHub** (volante) gerencia a troca de ferramentas de interação.
   
 ### 5. Resiliência e Tolerância a Falhas (`src/interfaces/gui/utils`)
 
