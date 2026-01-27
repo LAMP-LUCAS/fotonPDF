@@ -77,5 +77,8 @@ Desktop.ini
 
 # Project specific
 *.log
+logs/
+pytest_*.txt
+tests_failed*.txt
 tmp/
 .obsidian/workspace.json
