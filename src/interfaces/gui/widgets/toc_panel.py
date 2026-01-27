@@ -5,19 +5,20 @@ from src.infrastructure.services.logger import log_debug, log_exception
 
 class AsyncTOCWorker(QThread):
     """Worker para extrair o sumário em background."""
-    finished = pyqtSignal(list)
+    finished = pyqtSignal(list, int) # items, session_id
     error = pyqtSignal(str)
 
-    def __init__(self, use_case, pdf_path):
+    def __init__(self, use_case, pdf_path, session_id):
         super().__init__()
         self.use_case = use_case
         self.pdf_path = pdf_path
+        self.session_id = session_id
 
     def run(self):
         try:
-            log_debug(f"TOCWorker: Extraindo de {self.pdf_path.name}")
+            log_debug(f"TOCWorker [S{self.session_id}]: Extraindo de {self.pdf_path.name}")
             items = self.use_case.execute(self.pdf_path)
-            self.finished.emit(items)
+            self.finished.emit(items, self.session_id)
         except Exception as e:
             log_exception(f"TOCWorker Error: {e}")
             self.error.emit(str(e))
@@ -31,6 +32,7 @@ class TOCPanel(ResilientWidget):
         self._get_toc_use_case = get_toc_use_case
         self._pdf_path = None
         self._worker = None
+        self._current_session = 0
         
         # Widget interno da árvore
         self.tree = QTreeWidget()
@@ -54,20 +56,25 @@ class TOCPanel(ResilientWidget):
             self.show_placeholder(True, "Nenhum documento carregado")
             return
             
-        # Cancelar worker anterior se existir
-        if self._worker and self._worker.isRunning():
-            self._worker.terminate()
-            self._worker.wait()
+        self._current_session += 1
+        
+        # REMOVIDO: worker.terminate() (Inscuro). Usamos verificação de ID na volta.
+        # if self._worker and self._worker.isRunning(): ...
 
         self.tree.clear()
         self.show_placeholder(True, "Carregando Sumário...")
         
-        self._worker = AsyncTOCWorker(self._get_toc_use_case, self._pdf_path)
+        self._worker = AsyncTOCWorker(self._get_toc_use_case, self._pdf_path, self._current_session)
         self._worker.finished.connect(self._on_toc_ready)
         self._worker.error.connect(lambda e: self.show_placeholder(True, f"Erro: {e}"))
         self._worker.start()
 
-    def _on_toc_ready(self, items):
+    def _on_toc_ready(self, items, session_id):
+        # Validação de Sessão: Ignorar se um novo arquivo já foi carregado
+        if session_id != self._current_session:
+            log_debug(f"TOCPanel: Ignorando resultado de sessão antiga (R:{session_id} != C:{self._current_session})")
+            return
+            
         if not items:
             self.show_placeholder(True, "Este documento não possui Sumário técnico.")
             return

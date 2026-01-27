@@ -10,6 +10,7 @@ class ThumbnailPanel(ResilientWidget):
 
     def __init__(self):
         super().__init__()
+        self._current_session = 0
         
         # O widget base do ResilientWidget agora é um QListWidget
         self.list = QListWidget()
@@ -34,19 +35,24 @@ class ThumbnailPanel(ResilientWidget):
         self.show_placeholder(True, "Nenhuma página carregada")
 
     def load_thumbnails(self, path: str, page_count: int):
+        self._current_session += 1
         self.list.clear()
         if page_count == 0:
             self.show_placeholder(True, "O documento está vazio.")
             return
             
         self.show_placeholder(False)
-        self.append_thumbnails(path, page_count)
+        self.append_thumbnails(path, page_count, self._current_session)
 
-    def append_thumbnails(self, path: str, page_count: int):
+    def append_thumbnails(self, path: str, page_count: int, session_id: int):
         """Adiciona miniaturas de forma progressiva em lotes para manter a GUI ativa."""
         batch_size = 20
         
         def process_batch(current_start):
+            # Cancelamento por sessão: se o ID mudou, abortar este lote
+            if session_id != self._current_session:
+                return
+                
             if current_start >= page_count:
                 return
                 
@@ -64,7 +70,7 @@ class ThumbnailPanel(ResilientWidget):
                 # Solicitar render (O motor já é assíncrono)
                 engine.request_render(
                     path, i, 0.2, 0, 
-                    lambda p_idx, pix, z, r, m, it=item: self._on_thumbnail_ready(it, pix)
+                    lambda p_idx, pix, z, r, m, it=item, sid=session_id: self._on_thumbnail_ready(it, pix, sid)
                 )
             
             self.list.setUpdatesEnabled(True)
@@ -75,8 +81,10 @@ class ThumbnailPanel(ResilientWidget):
 
         process_batch(0)
 
-    def _on_thumbnail_ready(self, item, pixmap):
-        if item: item.setIcon(QIcon(pixmap))
+    def _on_thumbnail_ready(self, item, pixmap, session_id):
+        # Proteção final: só atualizar se ainda for a mesma sessão
+        if session_id == self._current_session and item:
+            item.setIcon(QIcon(pixmap))
 
     def _on_item_clicked(self, item):
         self.pageSelected.emit(self.list.row(item))

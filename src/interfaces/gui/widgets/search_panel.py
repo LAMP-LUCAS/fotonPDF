@@ -1,7 +1,8 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QLineEdit, QListWidget, 
                              QListWidgetItem, QLabel, QHBoxLayout, QPushButton)
-from PyQt6.QtCore import pyqtSignal, Qt
+from PyQt6.QtCore import pyqtSignal, Qt, QThread
 from src.domain.entities.navigation import SearchResult
+from src.infrastructure.services.logger import log_debug, log_exception
 
 class SearchResultItem(QWidget):
     """Widget customizado para exibir um resultado de busca com snippet."""
@@ -20,6 +21,26 @@ class SearchResultItem(QWidget):
         layout.addWidget(title)
         layout.addWidget(snippet)
 
+class SearchWorker(QThread):
+    """Worker para busca textual em background."""
+    finished = pyqtSignal(list, int) # results, session_id
+    error = pyqtSignal(str)
+
+    def __init__(self, use_case, pdf_path, query, session_id):
+        super().__init__()
+        self.use_case = use_case
+        self.pdf_path = pdf_path
+        self.query = query
+        self.session_id = session_id
+
+    def run(self):
+        try:
+            results = self.use_case.execute(self.pdf_path, self.query)
+            self.finished.emit(results, self.session_id)
+        except Exception as e:
+            log_exception(f"SearchWorker Error: {e}")
+            self.error.emit(str(e))
+
 class SearchPanel(QWidget):
     """Painel lateral de busca textual."""
     result_clicked = pyqtSignal(int, list) # page_index, highlights
@@ -29,6 +50,8 @@ class SearchPanel(QWidget):
         super().__init__()
         self._search_use_case = search_use_case
         self._pdf_path = None
+        self._worker = None
+        self._current_session = 0
         
         self.layout = QVBoxLayout(self)
         
@@ -57,7 +80,10 @@ class SearchPanel(QWidget):
         self.layout.addWidget(self.status_label)
 
     def set_pdf(self, path):
+        if self._pdf_path == path:
+            return
         self._pdf_path = path
+        self._current_session += 1
         self.clear()
 
     def clear(self):
@@ -66,32 +92,38 @@ class SearchPanel(QWidget):
         self.status_label.setText("")
 
     def perform_search(self):
-        if not self._pdf_path or not self.search_input.text():
+        query = self.search_input.text().strip()
+        if not self._pdf_path or not query:
             return
             
+        # Cancelar worker anterior (verificação de ID na volta)
         self.results_list.clear()
         self.status_label.setText("Buscando...")
         
-        try:
-            results = self._search_use_case.execute(self._pdf_path, self.search_input.text())
+        self._worker = SearchWorker(self._search_use_case, self._pdf_path, query, self._current_session)
+        self._worker.finished.connect(self._on_search_finished)
+        self._worker.error.connect(lambda e: self.status_label.setText(f"Erro: {e}"))
+        self._worker.start()
+
+    def _on_search_finished(self, results, session_id):
+        if session_id != self._current_session:
+            return
             
-            if not results:
-                self.status_label.setText("Nenhum resultado encontrado.")
-                return
-                
-            for res in results:
-                item = QListWidgetItem(self.results_list)
-                custom_widget = SearchResultItem(res)
-                item.setSizeHint(custom_widget.sizeHint())
-                item.setData(Qt.ItemDataRole.UserRole, res)
-                
-                self.results_list.addItem(item)
-                self.results_list.setItemWidget(item, custom_widget)
+        if not results:
+            self.status_label.setText("Nenhum resultado encontrado.")
+            return
             
-            self.results_found.emit(results)
-            self.status_label.setText(f"{len(results)} ocorrências encontradas.")
-        except Exception as e:
-            self.status_label.setText(f"Erro na busca: {str(e)}")
+        for res in results:
+            item = QListWidgetItem(self.results_list)
+            custom_widget = SearchResultItem(res)
+            item.setSizeHint(custom_widget.sizeHint())
+            item.setData(Qt.ItemDataRole.UserRole, res)
+            
+            self.results_list.addItem(item)
+            self.results_list.setItemWidget(item, custom_widget)
+        
+        self.results_found.emit(results)
+        self.status_label.setText(f"{len(results)} ocorrências encontradas.")
 
     def _on_item_clicked(self, item):
         res = item.data(Qt.ItemDataRole.UserRole)

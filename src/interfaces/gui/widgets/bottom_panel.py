@@ -39,13 +39,13 @@ class BottomPanel(QWidget):
         # Último Log (Visível apenas quando colapsado)
         self.summary_log = QLabel("")
         self.summary_log.setStyleSheet("color: #E2E8F0; font-family: 'Consolas', monospace; font-size: 11px; margin-left: 10px; background-color: transparent;")
-        self.summary_log.hide() # Inicialmente expandido
+        self.summary_log.show() # Inicialmente colapsado
         
         # Engineering Telemetry (MM)
         self.telemetry = QLabel("W: 0.0mm | H: 0.0mm | X: 0.0mm | Y: 0.0mm")
         self.telemetry.setStyleSheet("color: #FFC107; font-family: 'JetBrains Mono'; font-size: 10px; background-color: transparent;")
         
-        self.btn_toggle = QPushButton("⌄")
+        self.btn_toggle = QPushButton("⌃")
         self.btn_toggle.setObjectName("ToggleBtn") # Usa estilo novo
         self.btn_toggle.clicked.connect(self.toggle_expand)
         
@@ -58,6 +58,7 @@ class BottomPanel(QWidget):
         # Área de Conteúdo (Stack)
         self.content_stack = QStackedWidget()
         self.content_stack.setStyleSheet("background-color: #1e1e1e; border-top: 1px solid #252525;")
+        self.content_stack.hide() # Inicialmente colapsado
         
         self.log_view = QTextEdit()
         self.log_view.setReadOnly(True)
@@ -87,8 +88,13 @@ class BottomPanel(QWidget):
         self.summary_log.setStyleSheet(f"color: {text_color}; font-family: 'Consolas', monospace; font-size: 11px; margin-left: 10px; background-color: transparent;")
 
     def update_telemetry(self, w_mm, h_mm, x_mm, y_mm):
-        """Atualiza milímetros em tempo real."""
-        self.telemetry.setText(f"W: {w_mm}mm | H: {h_mm}mm | X: {x_mm}mm | Y: {y_mm}mm")
+        """Atualiza milímetros em tempo real. Se x ou y forem -1, indica apenas tamanho da página."""
+        if x_mm == -1 or y_mm == -1:
+            self.telemetry.setText(f"PAGE: {w_mm:.1f}x{h_mm:.1f}mm")
+            self.telemetry.setStyleSheet("color: #94A3B8; font-family: 'JetBrains Mono'; font-size: 10px; background-color: transparent;")
+        else:
+            self.telemetry.setText(f"SEL: {w_mm:.1f}x{h_mm:.1f}mm | X: {x_mm:.1f} Y: {y_mm:.1f}")
+            self.telemetry.setStyleSheet("color: #FFC107; font-family: 'JetBrains Mono'; font-size: 10px; background-color: transparent;")
 
     @safe_ui_callback("Bottom Panel Animation")
     def toggle_expand(self, checked=None):

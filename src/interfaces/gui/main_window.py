@@ -175,6 +175,12 @@ class MainWindow(QMainWindow):
         try:
             self.setAcceptDrops(True)
             self._load_settings()
+            
+            # Garantir que a SideBar esquerda inicie colapsada (conforme pedido do usuário)
+            # Usamos singleShot para evitar conflito com a restauração de geometria/estado no startup
+            if hasattr(self, 'side_bar') and self.side_bar:
+                QTimer.singleShot(500, self.side_bar.toggle_collapse)
+            
             StartupLogger.log("Stage9_FinalSetup")
         except Exception as e:
             StartupLogger.log("Stage9_FinalSetup", e)
@@ -1030,7 +1036,20 @@ class MainWindow(QMainWindow):
         """Sincroniza a seleção da sidebar com a página atual do viewer."""
         if self.thumbnails and hasattr(self.thumbnails, 'set_selected_page'):
             self.thumbnails.set_selected_page(index)
-        
+            
+        # Atualizar telemetria com as dimensões da página atual (sem seleção ativa)
+        if hasattr(self, 'bottom_panel') and self.tabs:
+            editor = self.tabs.current_editor()
+            if editor and editor.metadata:
+                pages = editor.metadata.get("pages", [])
+                if 0 <= index < len(pages):
+                    page_meta = pages[index]
+                    self.bottom_panel.update_telemetry(
+                        page_meta.get("width_mm", 0),
+                        page_meta.get("height_mm", 0),
+                        -1, -1 # Indica sem seleção
+                    )
+
         if self._is_navigating_history:
             return
             
