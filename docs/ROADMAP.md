@@ -37,10 +37,11 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 
 ## 🏃 Status da Sprint Atual
 
-- **Sprint 16: UI Refactor: Geometria & Camadas** [x] 100%
-- **Sprint 17: Inteligência AEC (Multi-Provider)** [x] 100%
 - **Sprint 18: Gestão do Aplicativo & Control Center** [x] 100%
 - **Sprint 19: Plugin SDK & Extensibilidade** [/] 5%
+- **Sprint 20: Estabilização de Testes** [x] 100%
+- **Sprint 21: Navegação Universal Premium** [x] 100%
+- **Sprint 22: Consolidação e Lançamento** [/] Em Progresso
 
 ---
 [[MAP|← Voltar ao Mapa]]

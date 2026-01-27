@@ -1,10 +1,24 @@
-## 🏁 Sprint Atual: Sprint 19 - Plugin SDK & Extensibilidade 🧩
+# 🏃 Gerenciamento de Sprints
 
-**Objetivo:** Documentar a API de interface e permitir o carregamento dinâmico de novas abas e painéis por plugins.
+## 🏁 Sprint Atual: Sprint 22 - Consolidação e Lançamento 🚀
+
+**Objetivo:** Validar build, implementar Zoom por Área, e preparar merge para `develop`.
 
 ---
 
 ## 📅 Histórico de Sprints Concluídas
+
+### Fase 3.5: Navegação Premium e UX Avançada
+
+#### Sprint 21: Navegação Universal Premium ✅
+
+- [x] **ModernNavBar**: Barra flutuante com transparência dinâmica (30%/90%) e submenus colapsáveis.
+- [x] **NavHub**: Widget de controle circular para troca rápida de ferramentas.
+- [x] **Atalhos Okular**: Integração completa com `+`, `-`, `0`, `Backspace`, `Space`, `N`.
+- [x] **Zoom Focado no Mouse**: Ponto sob o cursor permanece fixo durante zoom (Scroll e Mesa).
+- [x] **Mesa de Luz Hi-Res**: Renderização dinâmica de alta qualidade ao aproximar o zoom.
+- [x] **Suporte A0/A1**: Dimensões fixas e Tiling Inteligente para grandes formatos.
+- [x] **Correções de Estabilidade**: Fim do "pulo" de layout e restauração de movimentação de páginas.
 
 ### Fase 3: Ecossistema & Inteligência AEC
 

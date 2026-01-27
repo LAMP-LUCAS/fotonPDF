@@ -36,26 +36,57 @@ Interface gráfica em **PyQt6**, projetada para ser o centro de controle do seu 
 
 - **Implementação**: Localizada em `src/interfaces/gui/state/render_engine.py`. Utiliza `QThreadPool` com limite de concorrência (2 threads) para evitar que o Windows esgote recursos ao abrir PDFs massivos.
 - **Estabilidade**: Cada página é renderizada em uma tarefa isolada. Se uma página estiver corrompida, o visualizador continua operando normalmente para as demais.
+- **Grandes Formatos**: Para páginas de alta resolução (A0/A1), o motor aplica **Tiling Inteligente**, dividindo a renderização em quadrantes para manter a memória sob controle. O limite `MAX_RES` é de **5120px** por dimensão.
 
 ### 2.2 Navegação Adaptativa
 
 - **Ajuste de Tela**: Os botões de **Largura** e **Altura** são "conscientes do contexto". Eles identificam qual página está mais visível no topo do viewport e ajustam o zoom baseado nas dimensões reais *daquela página específica*.
 - **Suporte Mixed-Size**: Perfeito para documentos que misturam páginas A4 vertical com plantas de engenharia no formato paisagem (A3/A2).
 
+### 2.3 Sistema de Navegação Universal 🎮
+
+O fotonPDF implementa um sistema de navegação de classe mundial, projetado para produtividade máxima e conforto visual.
+
+#### ModernNavBar (Barra Flutuante Inteligente)
+
+- **Transparência Dinâmica**: A barra opera em **30% de opacidade** quando ociosa, subindo para **90%** ao interagir. Isso minimiza a poluição visual enquanto mantém os controles sempre acessíveis.
+- **Submenus Colapsáveis**: Agrupa ações relacionadas em menus elegantes:
+  - **🛠 Ferramentas**: Mover (Pan), Seleção de Texto, Zoom por Área.
+  - **🔍 Zoom**: Zoom +/-, 100%, Ajustar Largura/Altura, Ver Página Inteira, Visão Geral (Mesa).
+- **Atalhos Estilo Okular**: Integração completa com o teclado para navegação rápida sem depender do mouse.
+
+| Atalho | Ação |
+| --- | --- |
+| `+` / `Ctrl+=` | Zoom In |
+| `-` / `Ctrl+-` | Zoom Out |
+| `0` / `Ctrl+0` | Reset Zoom (100%) |
+| `Backspace` | Página Anterior |
+| `Space` | Próxima Página |
+| `N` | Mostrar/Esconder NavHub |
+
+#### NavHub (Volante de Controle)
+
+- **Acesso**: Tecla `N` ou comando na `ModernNavBar`.
+- **Funções**: Widget circular flutuante no canto inferior central que permite trocar rapidamente entre ferramentas (Pan, Seleção) e controlar zoom.
+- **Sincronização**: O cursor do mouse reflete automaticamente a ferramenta ativa (Mão para Pan, Seta para Seleção).
+
 ### 2.4 Async Split (Visão Dual Independente)
 
 - **O que faz**: Permite ao usuário visualizar duas regiões distintas do *mesmo* arquivo PDF lado a lado.
 - **Diferencial**: Diferente do "Dual View" tradicional (que foca em documentos diferentes), o Async Split desacopla o scroll e o zoom. Você pode manter o sumário visual da página 1 em uma metade enquanto detalha os termos técnicos da página 90 na outra.
-- **Interface**: Ativável via ícone "Dividir" na Floating NavBar ou atalho direto.
+- **Interface**: Ativável via ícone "◫" na Floating NavBar ou atalho direto.
 
-### 2.3 Extração Visual Premium
+### 2.5 Mesa de Luz Profissional (`LightTableView`) 📐
 
-- **O que faz:** Cria um novo arquivo PDF contendo apenas as páginas que você selecionou visualmente.
-- **Processo**:
-    1. Selecione as páginas desejadas na sidebar (ordenadas como desejar).
-    2. Clique em **Extrair** na Toolbar.
-    3. O sistema compila um novo PDF binário unindo as fontes originais e preservando a nova ordem e rotações aplicadas.
-- **Uso Comum**: Separar páginas de um contrato ou criar um resumo de um relatório extenso.
+A Mesa de Luz é um modo de visualização inspirado em softwares de engenharia civil e arquitetura, onde as páginas são tratadas como objetos físicos que podem ser reorganizados livremente.
+
+- **Zoom Focado no Mouse**: Ao dar zoom com `Ctrl+Scroll`, o ponto sob o cursor permanece fixo, permitindo exploração precisa de detalhes.
+- **Renderização Dinâmica de Alta Qualidade**: Ao aproximar o zoom, as páginas visíveis são automaticamente re-renderizadas em maior resolução para manter a nitidez. Isso é feito de forma assíncrona para não travar a interface.
+- **Movimentação Livre**: Arraste páginas para qualquer posição da tela, criando layouts personalizados para comparação ou revisão.
+- **Estabilidade de Layout**: As páginas utilizam dimensões fixas (`width_pt`, `height_pt`), garantindo que suas posições não "pulem" ao receberem um novo pixmap renderizado.
+
+> [!TIP]
+> A Mesa de Luz é ideal para revisar projetos de engenharia com múltiplas pranchas (A0, A1), permitindo visualizar todas as plantas de uma só vez e navegar com zoom detalhado.
 
 ---
 

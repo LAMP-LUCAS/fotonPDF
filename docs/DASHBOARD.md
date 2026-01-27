@@ -18,8 +18,26 @@ pie title Cobertura da Documentação
 | **Fase 1: Fundação** | 🟢 Completo | ████████████ 100% | Finalizada ✅ |
 | **Fase 2: Interface & Func.** | 🟢 Completo | ████████████ 100% | 20/01/2026 ✅ |
 | **Fase 3: Ecossistema** | 🟢 Completo | ████████████ 100% | 23/01/2026 ✅ |
+| **Fase 3.5: Navegação Premium** | 🟢 Completo | ████████████ 100% | 27/01/2026 ✅ |
 | **Fase 4: Plugins** | 🏗️ Em Progresso | [██░░░░░░░░░░░░░░░░░░] 10% | Prev. Fev/2026 |
 | **Q&A: Cobertura 90%** | 🟢 Completo | ████████████ 100% | 24/01/2026 ✅ |
+
+### Sprint 22 (Em Progresso) 🏗️
+
+- [ ] Build com PyInstaller 📦
+- [ ] Zoom por Área (RubberBand) 🔍
+- [ ] Renderização Assíncrona da Primeira Página ⚡
+- [ ] Testes E2E para Navegação 🧪
+- [ ] Merge para `develop` 🚀
+
+### Sprint 21 (Concluído) ✅
+
+- [x] ModernNavBar com Transparência Dinâmica 🎨
+- [x] NavHub (Volante de Controle) 🎮
+- [x] Atalhos Estilo Okular ⌨️
+- [x] Zoom Focado no Mouse 🎯
+- [x] Mesa de Luz Hi-Res 📐
+- [x] Suporte A0/A1 (Tiling) 🏗️
 
 ### Sprint 20 (Concluído) ✅
 
@@ -27,20 +45,6 @@ pie title Cobertura da Documentação
 - [x] Windows Registry Mock Adapter 🛠️
 - [x] UI Widget Unit Tests (TopBar, Canvas) 🎨
 - [x] 90%+ Coverage Achievement 🚀
-
-### Sprint 12 (Concluído) ✅
-
-- [x] UI Error Boundaries (Tolerância a Falhas) 🛡️
-- [x] Global Application Exception Hook 🎣
-- [x] Resilient Widget Placeholders 🏗️
-- [x] Color-Coded Log Diagnostics 📊
-
-### Sprint 11 (Concluído) ✅
-
-- [x] Arquitetura Híbrida Sincronizada 🏛️
-- [x] Sistema de Abas Multi-Documento 📑
-- [x] Painéis Auxiliares (Bottom/Right) ▃
-- [x] Async Dual-Split (Mesmo Doc) ◫
 
 ### Sprint 10 (Concluído) ✅
 
