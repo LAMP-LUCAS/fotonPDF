@@ -21,6 +21,11 @@ class IntelligenceCore:
         if self._initialized:
             return
         
+        # Verificar se a IA está habilitada nas configurações
+        if not self._settings.get_bool("ai_enabled", False):
+            log_debug("IntelligenceCore: IA desativada pelo usuário. Ignorando inicialização.")
+            return
+
         log_debug("IntelligenceCore: Inicializando provider de IA...")
         try:
             from src.infrastructure.services.ai_litellm_provider import LiteLLMProvider

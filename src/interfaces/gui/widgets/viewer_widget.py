@@ -2,7 +2,7 @@ from pathlib import Path
 from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame, QMenu
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint
 from src.interfaces.gui.widgets.page_widget import PageWidget
-from src.infrastructure.services.logger import log_debug, log_warning
+from src.infrastructure.services.logger import log_debug, log_warning, log_error, log_exception
 from src.interfaces.gui.state.render_engine import RenderEngine
 from src.interfaces.gui.widgets.floating_navbar import FloatingNavBar
 from src.interfaces.gui.widgets.marker_scrollbar import MarkerScrollBar
@@ -37,8 +37,11 @@ class PDFViewerWidget(QScrollArea):
         self._mode = "default"
         self._layout_mode = "single"
         self._last_emitted_page = -1
-        self._tool_mode = "pan" # "pan" ou "selection"
-
+        # Throttling de visibilidade para evitar flood de renderização
+        self._visibility_timer = QTimer(self)
+        self._visibility_timer.setSingleShot(True)
+        self._visibility_timer.timeout.connect(self._do_check_visibility)
+        
         # Controle de renderização em lote
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
         
@@ -48,16 +51,24 @@ class PDFViewerWidget(QScrollArea):
         self._selection_start = None
         self._selection_rect = None
         self._selection_overlay = None
+        
+        # Tool Mode & Interaction
+        self._tool_mode = "pan"
+        self._panning = False
+        self._last_mouse_pos = QPoint(0, 0)
 
     def clear(self):
         """Limpa o visualizador e encerra processos pendentes."""
         RenderEngine.instance().clear_queue()
+        if hasattr(self, "_visibility_timer"):
+            self._visibility_timer.stop()
         while self.layout.count():
             child = self.layout.takeAt(0)
             if child.widget():
                 child.widget().deleteLater()
         self._pages.clear()
         self._page_sizes.clear()
+        self._hints = {}
         self._last_emitted_page = -1
 
     def setPlaceholder(self, widget: QWidget):
@@ -66,42 +77,145 @@ class PDFViewerWidget(QScrollArea):
 
     def load_document(self, path: Path, metadata: dict):
         """Inicializa o visualizador com um arquivo e seus metadados."""
+        #log_debug(f"PDFViewerWidget: load_document chamado para {path.name} (page_count={metadata.get('page_count', 0)})")
         self.clear()
+        self._hints = metadata.get("hints", {"complexity": "STANDARD"})
         self.add_pages(path, metadata)
 
     def add_pages(self, path: Path, metadata: dict):
-        """Adiciona páginas de um novo documento sem resetar."""
+        """Adiciona páginas de um novo documento de forma progressiva."""
         page_count = metadata.get("page_count", 0)
         page_info = metadata.get("pages", [])
         
-        for i in range(page_count):
-            page_widget = PageWidget(str(path), i)
-            self.layout.addWidget(page_widget)
-            self._pages.append(page_widget)
-            
-            # Armazenar tamanho original para cálculos de zoom/fit
-            if i < len(page_info):
-                self._page_sizes.append(page_info[i])
-            else:
-                self._page_sizes.append((595.0, 842.0)) # Fallback A4
+        # FALLBACK DE ÚLTIMO RECURSO: Se page_count for 0, tentar abrir o documento diretamente
+        # Isso garante que o visualizador exiba o PDF mesmo se a análise de metadados falhou
+        if page_count == 0:
+            log_warning(f"Viewer: page_count=0 detectado para {path.name}. Tentando fallback direto...")
+            try:
+                import fitz
+                with fitz.open(str(path)) as doc:
+                    page_count = doc.page_count
+                    # Gerar page_info básico com tamanho A4 padrão
+                    page_info = [{"width_mm": 210, "height_mm": 297, "format": "A4"} for _ in range(page_count)]
+                log_debug(f"Viewer: Fallback bem-sucedido. Páginas detectadas: {page_count}")
+            except Exception as e:
+                log_exception(f"Viewer: Fallback de abertura falhou: {e}")
+                # Não há como exibir nada, mas não propagamos o erro
+                return
         
-        QTimer.singleShot(100, self._initial_render)
+        # Carregamento Progressivo: carregar as primeiras N páginas imediatamente
+        # e as demais em background para garantir abertura < 1s
+        initial_batch = 20
+        
+        def create_page_widgets(start_idx, count):
+            if not self.container: return
+            self.container.setUpdatesEnabled(False)
+            
+            end_idx = min(start_idx + count, page_count)
+            log_debug(f"Viewer: Batch creation {start_idx} to {end_idx}...")
+            
+            try:
+                for i in range(start_idx, end_idx):
+                    try:
+                        page_widget = PageWidget(str(path), i)
+                        self.layout.addWidget(page_widget)
+                        self._pages.append(page_widget)
+                        
+                        if i < len(page_info):
+                            self._page_sizes.append(page_info[i])
+                        else:
+                            self._page_sizes.append((595.0, 842.0))
+                    except Exception as e:
+                        log_error(f"Viewer: Erro ao criar widget da página {i}: {e}")
+                
+                self.container.setUpdatesEnabled(True)
+                
+                # Trigger visibility check after first batch to start rendering immediately
+                if start_idx == 0 and end_idx > 0:
+                    QTimer.singleShot(10, self.check_visibility)
+                
+                if end_idx < page_count:
+                    # Pequeno delay para respirar a GUI
+                    QTimer.singleShot(20, lambda: create_page_widgets(end_idx, 20))
+                else:
+                    log_debug(f"Viewer: Carregamento de {page_count} páginas concluído com sucesso.")
+                    # Final visibility check to catch any remaining pages
+                    QTimer.singleShot(100, self.check_visibility)
+                    
+            except Exception as outer_e:
+                log_exception(f"Viewer: Erro crítico no lote {start_idx}: {outer_e}")
+                
+        # Garantir que timers anteriores parem
+        if self._visibility_timer.isActive():
+            self._visibility_timer.stop()
 
-    def _initial_render(self):
-        self.check_visibility()
+        create_page_widgets(0, initial_batch)
 
     def check_visibility(self):
-        """Solicita renderização das páginas que entram no viewport."""
-        viewport_top = self.verticalScrollBar().value()
-        viewport_bottom = viewport_top + self.viewport().height()
+        """Garante que a verificação de visibilidade seja throttled."""
+        #log_debug(f"Viewer: check_visibility chamado. Pages: {len(self._pages)}")
+        self._visibility_timer.start(100)
+
+    def _do_check_visibility(self):
+        """Solicita renderização das páginas que entram no viewport (Execução real)."""
+        if not self._pages:
+            #log_debug("Viewer: _do_check_visibility - Sem páginas!")
+            return
         
-        # Margem de segurança (buffer) para carregar páginas um pouco antes de entrarem
-        buffer = 1200 
+        #log_debug(f"Viewer: _do_check_visibility - {len(self._pages)} páginas disponíveis")
         
-        for page in self._pages:
-            pos = page.pos().y()
-            if pos < viewport_bottom + buffer and pos + page.height() > viewport_top - buffer:
-                page.render_page(zoom=self._zoom, mode=self._mode)
+        scroll_v = self.verticalScrollBar().value()
+        viewport_h = self.viewport().height()
+        viewport_top = scroll_v
+        viewport_bottom = scroll_v + viewport_h
+        
+        # Otimização: Achar índice inicial aproximado (Binary Search seria ideal, mas heurística linear local é ok)
+        # O self.get_current_page_index() já faz uma busca.
+        current_idx = self.get_current_page_index()
+        
+        # Margem de segurança (buffer) mais conservadora (400px)
+        buffer = 400 
+        complexity = self._hints.get("complexity", "STANDARD")
+        
+        for i in range(current_idx, len(self._pages)):
+            page = self._pages[i]
+            pos_y = page.pos().y()
+            page_h = page.height()
+            
+            # Optimization: Early Exit (Downward)
+            if pos_y > viewport_bottom + buffer:
+                break
+                
+            # Se a página está visível (com buffer)
+            if pos_y < viewport_bottom + buffer and pos_y + page_h > viewport_top - buffer:
+                
+                # Inteligência Adaptativa: 
+                clip = None
+                if complexity in ("HEAVY", "ULTRA_HEAVY"):
+                    # Calcular interseção entre viewport e página
+                    y0_v = max(0, viewport_top - pos_y)
+                    y1_v = min(page_h, viewport_bottom - pos_y)
+                    
+                    if self._zoom > 0:
+                        clip = (0, y0_v / self._zoom, page.width() / self._zoom, y1_v / self._zoom)
+                
+                # Prioridade: 10 se estiver no viewport central, 0 se for buffer
+                priority = 10 if (pos_y < viewport_bottom and pos_y + page_h > viewport_top) else 0
+                #log_debug(f"Viewer: Requesting render for page {i} (zoom={self._zoom}, visible)")
+                page.render_page(zoom=self._zoom, mode=self._mode, clip=clip, priority=priority)
+
+        # Optimization: Check backward (Upward) for buffer items
+        for i in range(current_idx - 1, -1, -1):
+            page = self._pages[i]
+            pos_y = page.pos().y()
+            page_h = page.height()
+            
+            # Early Exit (Upward)
+            if pos_y + page_h < viewport_top - buffer:
+                break
+                
+            if pos_y < viewport_bottom + buffer and pos_y + page_h > viewport_top - buffer:
+                page.render_page(zoom=self._zoom, mode=self._mode, priority=0)
 
         # Emitir mudança de página se necessário
         current_idx = self.get_current_page_index()

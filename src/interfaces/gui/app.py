@@ -201,6 +201,24 @@ def main(file_path: str = None):
                 window = create_fallback_window()
         
         startup_log("Showing window...")
+        
+        # Health Check: Verificar se PyMuPDF funciona antes de declarar pronto
+        try:
+            import fitz
+            test_doc = fitz.open()  # Documento vazio
+            test_doc.new_page()
+            test_doc.close()
+            startup_log("Health Check: PyMuPDF OK")
+        except Exception as e:
+            startup_log(f"Health Check FAILED: PyMuPDF não funcional: {e}")
+            show_error_dialog(
+                app, 
+                "Aviso de Inicialização", 
+                "O mecanismo de renderização pode não estar funcionando corretamente.\n"
+                "Alguns PDFs podem não ser exibidos.",
+                str(e)
+            )
+        
         window.show()
         startup_log("Window shown. Entering event loop...")
         

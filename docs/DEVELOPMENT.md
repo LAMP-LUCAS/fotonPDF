@@ -108,6 +108,18 @@ Para garantir a qualidade da interface e evitar regressões visuais:
 1. **Snapshots Automáticos:** Ao rodar no modo de desenvolvimento (`--mode mock`), o sistema captura snapshots da UI em `docs/visuals/captures`.
 2. **Registro de Evolução:** Compare os novos snapshots para validar mudanças de layout.
 
+## ⚡ Benchmarks de Performance
+
+Para garantir que o sistema mantenha o padrão de "Toolkit de PDFs mais rápido do mundo", existe um script de benchmark automatizado:
+
+```bash
+python scripts/performance_benchmark.py
+```
+
+- **Métricas:** Mede tempo de inicialização (Cold Start), consumo de RAM/CPU e velocidade de renderização de PDFs.
+- **Auditoria:** Os resultados são salvos automaticamente em `logs/performance_report.txt`.
+- **Meta:** O tempo total de inicialização e abertura de documentos deve ser mantido abaixo de **1 segundo**.
+
 ## 🔗 Referências
 
 - [[ARCHITECTURE|Entenda a estrutura de pastas]]

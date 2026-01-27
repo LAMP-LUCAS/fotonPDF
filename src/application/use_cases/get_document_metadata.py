@@ -7,8 +7,8 @@ class GetDocumentMetadataUseCase:
     def __init__(self, pdf_port: PDFOperationsPort):
         self._pdf_port = pdf_port
 
-    def execute(self, pdf_path: Path) -> dict:
+    def execute(self, pdf_path: Path, doc_handle=None) -> dict:
         if not pdf_path.exists():
             raise FileNotFoundError(f"Arquivo não encontrado: {pdf_path}")
             
-        return self._pdf_port.get_document_metadata(pdf_path)
+        return self._pdf_port.get_document_metadata(pdf_path, doc_handle=doc_handle)

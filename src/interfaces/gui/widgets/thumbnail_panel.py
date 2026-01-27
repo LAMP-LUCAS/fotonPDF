@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QListWidget, QListWidgetItem, QAbstractItemView
 from PyQt6.QtGui import QIcon, QPixmap
-from PyQt6.QtCore import QSize, pyqtSignal, Qt
+from PyQt6.QtCore import QSize, pyqtSignal, Qt, QTimer
 from src.interfaces.gui.utils.ui_error_boundary import ResilientWidget
 
 class ThumbnailPanel(ResilientWidget):
@@ -43,18 +43,37 @@ class ThumbnailPanel(ResilientWidget):
         self.append_thumbnails(path, page_count)
 
     def append_thumbnails(self, path: str, page_count: int):
-        start_idx = self.list.count()
-        for i in range(page_count):
-            absolute_idx = start_idx + i
-            item = QListWidgetItem(f"Página {absolute_idx + 1}")
-            item.setData(Qt.ItemDataRole.UserRole, absolute_idx)
-            self.list.addItem(item)
+        """Adiciona miniaturas de forma progressiva em lotes para manter a GUI ativa."""
+        batch_size = 20
+        
+        def process_batch(current_start):
+            if current_start >= page_count:
+                return
+                
+            self.list.setUpdatesEnabled(False)
+            end_idx = min(current_start + batch_size, page_count)
             
             from src.interfaces.gui.state.render_engine import RenderEngine
-            RenderEngine.instance().request_render(
-                path, i, 0.2, 0, 
-                lambda p_idx, pix, z, r, m, it=item: self._on_thumbnail_ready(it, pix)
-            )
+            engine = RenderEngine.instance()
+            
+            for i in range(current_start, end_idx):
+                item = QListWidgetItem(f"Página {i + 1}")
+                item.setData(Qt.ItemDataRole.UserRole, i)
+                self.list.addItem(item)
+                
+                # Solicitar render (O motor já é assíncrono)
+                engine.request_render(
+                    path, i, 0.2, 0, 
+                    lambda p_idx, pix, z, r, m, it=item: self._on_thumbnail_ready(it, pix)
+                )
+            
+            self.list.setUpdatesEnabled(True)
+            
+            # Agendar próximo lote
+            if end_idx < page_count:
+                QTimer.singleShot(50, lambda: process_batch(end_idx))
+
+        process_batch(0)
 
     def _on_thumbnail_ready(self, item, pixmap):
         if item: item.setIcon(QIcon(pixmap))

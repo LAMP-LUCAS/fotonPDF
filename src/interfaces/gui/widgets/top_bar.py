@@ -9,6 +9,7 @@ class TopBarWidget(QFrame):
     Modular e independente para fácil manutenção e plugins.
     """
     searchTriggered = pyqtSignal(str)
+    searchChanged = pyqtSignal(str) # Para Command Palette instantâneo
     toggleRequested = pyqtSignal(str) # 'left', 'right', 'bottom', 'activity'
     viewModeChanged = pyqtSignal(str) # 'scroll', 'table'
 
@@ -55,6 +56,7 @@ class TopBarWidget(QFrame):
         self.search_input.setObjectName("SearchInput")
         self.search_input.setPlaceholderText("Pesquisar documento ou comandos (Ctrl+P)")
         self.search_input.returnPressed.connect(self._on_search_enter)
+        self.search_input.textChanged.connect(self._on_text_changed)
         
         search_inner_layout.addWidget(icon_label)
         search_inner_layout.addWidget(self.search_input)
@@ -122,6 +124,10 @@ class TopBarWidget(QFrame):
         text = self.search_input.text()
         if text:
             self.searchTriggered.emit(text)
+
+    def _on_text_changed(self, text):
+        """Emite sinal para detecção instantânea de comandos."""
+        self.searchChanged.emit(text)
 
     def set_search_text(self, text):
         self.search_input.setText(text)

@@ -35,11 +35,8 @@ class InspectorPanel(ResilientWidget):
         self.scroll.setWidgetResizable(True)
         self.scroll.setStyleSheet("background: transparent; border: none;")
         
-        print("DEBUG: creating QWidget content")
         self.content = QWidget()
-        print("DEBUG: content created")
         self.content_layout = QVBoxLayout(self.content)
-        print("DEBUG: content_layout created")
         self.content_layout.setContentsMargins(15, 15, 15, 15)
         self.content_layout.setSpacing(20)
         self.content_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -61,6 +58,12 @@ class InspectorPanel(ResilientWidget):
         self.layers_list_layout = QVBoxLayout(self.layers_container)
         self.layers_list_layout.setContentsMargins(0, 0, 0, 0)
         self.layers_list_layout.setSpacing(8)
+        
+        # Estilo otimizado no container (uma única vez para todos os filhos)
+        self.layers_container.setStyleSheet("""
+            QCheckBox { color: #E2E8F0; font-size: 11px; }
+            QCheckBox::indicator { width: 14px; height: 14px; }
+        """)
         
         self.layers_group.layout().addWidget(self.layers_container)
         self.content_layout.addWidget(self.layers_group)
@@ -106,22 +109,50 @@ class InspectorPanel(ResilientWidget):
 
     def update_metadata(self, metadata: dict):
         """Atualiza a UI com dados reais do documento."""
-        # Lazy Loading: Garante que a UI esteja criada
-        self._initialize_ui_lazy()
-        if not self._ui_initialized: return
+        log_debug("Inspector: update_metadata iniciado...")
+        
+        # Proteção: Se metadata for vazio/None, apenas ocultar
+        if not metadata:
+            log_debug("Inspector: Metadata vazio, exibindo placeholder.")
+            self.show_placeholder(True, "Sem metadados disponíveis")
+            return
+        
+        try:
+            # Lazy Loading: Garante que a UI esteja criada
+            self._initialize_ui_lazy()
+            if not self._ui_initialized: 
+                log_debug("Inspector: UI não inicializada, abortando update.")
+                return
 
-        self.show_placeholder(False)
+            self.show_placeholder(False)
+            
+            # Simplesmente pegamos a primeira página para o formato principal
+            if metadata.get("pages"):
+                page = metadata["pages"][0]
+                self.lbl_format.setText(page.get("format", "---"))
+                self.lbl_dims.setText(f"{int(page.get('width_mm', 0))} x {int(page.get('height_mm', 0))}")
+            
+            # Atualizar Camadas (com proteção de performance)
+            self._clear_layers()
+            layers = metadata.get("layers", [])
+            log_debug(f"Inspector: Atualizando {len(layers)} camadas.")
         
-        # Simplesmente pegamos a primeira página para o formato principal
-        if metadata.get("pages"):
-            page = metadata["pages"][0]
-            self.lbl_format.setText(page["format"])
-            self.lbl_dims.setText(f"{int(page['width_mm'])} x {int(page['height_mm'])}")
+        # Bloquear updates de layout durante a inserção massiva
+        self.layers_container.setUpdatesEnabled(False)
         
-        # Atualizar Camadas
-        self._clear_layers()
-        for layer in metadata.get("layers", []):
-            self._add_layer_item(layer)
+        # Limite de segurança para evitar UI Freeze (max 100 camadas na lista simples)
+            for i, layer in enumerate(layers):
+                if i >= 100:
+                    log_debug("Inspector: Limite de 100 camadas atingido. Ignorando as demais para performance.")
+                    break
+                self._add_layer_item(layer)
+                
+            self.layers_container.setUpdatesEnabled(True)
+            log_debug("Inspector: update_metadata concluído.")
+            
+        except Exception as e:
+            log_error(f"Inspector: Erro crítico em update_metadata: {e}")
+            self.show_placeholder(True, f"Erro: {e}", is_error=True)
 
     def _clear_layers(self):
         while self.layers_list_layout.count():
@@ -132,6 +163,6 @@ class InspectorPanel(ResilientWidget):
     def _add_layer_item(self, layer):
         cb = QCheckBox(layer["name"])
         cb.setChecked(layer["visible"])
-        cb.setStyleSheet("QCheckBox { color: #E2E8F0; font-size: 11px; } QCheckBox::indicator { width: 14px; height: 14px; }")
+        # Estilo agora é herdado do container pai (layers_container)
         cb.toggled.connect(lambda checked, lid=layer["id"]: self.layerVisibilityChanged.emit(lid, checked))
         self.layers_list_layout.addWidget(cb)

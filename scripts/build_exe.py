@@ -19,16 +19,16 @@ def build():
     # Caminhos
     scripts_path = Path(__file__).parent
     project_root = scripts_path.parent
-    entry_point = project_root / "src" / "interfaces" / "cli" / "main.py"
+    entry_point = project_root / "src" / "interfaces" / "gui" / "app.py"
     
     # Configurações do PyInstaller
     params = [
         str(entry_point),
-        "--name=foton_v1.0.0",
+        "--name=foton",
         f"--icon={project_root / 'docs' / 'brand' / 'logo.ico'}",
         "--onedir",          # Modo diretório para estabilidade e velocidade
         "--noconfirm",       # Não pedir confirmação para sobrescrever
-        "--console",         # Mantemos console para os wizards de sistema
+        "--windowed",        # GUI pura (sem console) conforme requisitos de UX
         "--clean",
         f"--distpath={project_root / 'dist'}",
         f"--workpath={project_root / 'build'}",
@@ -50,7 +50,6 @@ def build():
         "--hidden-import=instructor",
         # PDF e outras dependências
         "--hidden-import=fitz",
-        "--hidden-import=fitz.fitz",
         "--hidden-import=requests",
         "--hidden-import=plyer",
         "--hidden-import=click",

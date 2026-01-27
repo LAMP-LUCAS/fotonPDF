@@ -6,19 +6,26 @@ from src.infrastructure.services.logger import log_exception
 def safe_ui_callback(title="Component Error"):
     """
     Decorador para funções de UI que captura exceções e evita crashes do loop principal.
-    Notifica via logger e pode ser estendido para emitir sinais.
+    Identifica automaticamente se é um método (com self) ou função estática/closure.
     """
     def decorator(func):
-        def wrapper(self, *args, **kwargs):
+        import functools
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            # Tentar identificar 'self' (primeiro argumento se for um QWidget/QObject)
+            self_obj = None
+            if args and hasattr(args[0], 'parentWidget'):
+                self_obj = args[0]
+                
             try:
-                return func(self, *args, **kwargs)
+                return func(*args, **kwargs)
             except Exception as e:
                 error_msg = f"Resilience Boundary [{title}]: {str(e)}"
                 log_exception(error_msg)
                 
                 # Procura por uma MainWindow ou BottomPanel acessível para logar na UI
                 main_win = None
-                curr = self
+                curr = self_obj
                 while curr:
                     if hasattr(curr, "window") and curr.window():
                         main_win = curr.window()
@@ -26,9 +33,9 @@ def safe_ui_callback(title="Component Error"):
                     curr = curr.parentWidget() if hasattr(curr, "parentWidget") else None
                 
                 if main_win and hasattr(main_win, "bottom_panel"):
-                    main_win.bottom_panel.add_log(f"⚠️ {title}: {str(e)}")
-                elif hasattr(self, "statusBar") and self.statusBar():
-                    self.statusBar().showMessage(f"⚠️ {title}: {str(e)}")
+                    main_win.bottom_panel.add_log(f"⚠️ {title}: {str(e)}", color="red")
+                elif self_obj and hasattr(self_obj, "statusBar") and self_obj.statusBar():
+                    self_obj.statusBar().showMessage(f"⚠️ {title}: {str(e)}")
                     
         return wrapper
     return decorator

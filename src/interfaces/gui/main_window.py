@@ -1,8 +1,10 @@
 from pathlib import Path
+import time
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
                              QFileDialog, QStatusBar, QToolBar, QLabel, QTabWidget, QTextEdit, QStackedWidget)
 from PyQt6.QtGui import QAction, QIcon, QDragEnterEvent, QDropEvent, QKeySequence
-from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtCore import Qt, QSize, QTimer
+import socket
 
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.widgets.thumbnail_panel import ThumbnailPanel
@@ -29,7 +31,7 @@ from src.application.use_cases.detect_text_layer import DetectTextLayerUseCase
 from src.application.use_cases.apply_ocr import ApplyOCRUseCase
 from src.application.use_cases.ocr_area_extraction import OCRAreaExtractionUseCase
 
-from src.infrastructure.services.logger import log_debug, log_exception
+from src.infrastructure.services.logger import log_debug, log_exception, log_error
 from src.interfaces.gui.styles import get_main_stylesheet
 from src.infrastructure.services.resource_service import ResourceService
 from src.infrastructure.services.settings_service import SettingsService
@@ -38,6 +40,10 @@ from src.application.use_cases.get_document_metadata import GetDocumentMetadataU
 
 from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
 from src.interfaces.gui.state.pdf_state import PDFStateManager
+from src.infrastructure.services.telemetry_service import TelemetryService
+from src.interfaces.gui.utils.document_loader import AsyncDocumentLoader
+from src.infrastructure.services.startup_logger import StartupLogger
+from src.interfaces.gui.controllers.workspace_controller import WorkspaceController
 
 class MainWindow(QMainWindow):
     @property
@@ -61,29 +67,21 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("fotonPDF - Visualizador Profissional")
         self.setMinimumSize(1200, 800)
         
-        # Helper for startup logging
-        def _log_stage(stage: str, error: Exception = None):
-            try:
-                import os
-                from datetime import datetime
-                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    timestamp = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                    if error:
-                        f.write(f"[{timestamp}] MainWindow.{stage} FAILED: {error}\n")
-                    else:
-                        f.write(f"[{timestamp}] MainWindow.{stage} OK\n")
-            except:
-                pass
+        # Helper for startup logging (Delegated to StartupLogger)
+        StartupLogger.clear()
         
         # Stage 1: Adapter & Infrastructure
         try:
             self._adapter = PyMuPDFAdapter()
+            # Injeção de dependência no motor de renderização (Arquitetura Hexagonal)
+            from src.interfaces.gui.state.render_engine import RenderEngine
+            RenderEngine.instance(adapter=self._adapter)
+            
             from src.infrastructure.repositories.sqlite_stage_repository import StageStateRepository
             self.persistence = StageStateRepository(Path("stage_state.db"))
-            _log_stage("Stage1_Infrastructure")
+            StartupLogger.log("Stage1_Infrastructure")
         except Exception as e:
-            _log_stage("Stage1_Infrastructure", e)
+            StartupLogger.log("Stage1_Infrastructure", e)
             log_exception(f"Stage1 failed: {e}")
             self._adapter = None
             self.persistence = None
@@ -103,18 +101,18 @@ class MainWindow(QMainWindow):
                 self._get_metadata_use_case = self._detect_ocr_use_case = None
                 self._apply_ocr_use_case = self._ocr_area_use_case = None
                 self._add_annot_use_case = None
-            _log_stage("Stage2_UseCases")
+            StartupLogger.log("Stage2_UseCases")
         except Exception as e:
-            _log_stage("Stage2_UseCases", e)
+            StartupLogger.log("Stage2_UseCases", e)
             log_exception(f"Stage2 failed: {e}")
         
         # Stage 3: Orchestrator (Lazy AI)
         try:
             from src.application.services.command_orchestrator import CommandOrchestrator
             self.orchestrator = CommandOrchestrator(self._adapter) if self._adapter else None
-            _log_stage("Stage3_Orchestrator")
+            StartupLogger.log("Stage3_Orchestrator")
         except Exception as e:
-            _log_stage("Stage3_Orchestrator", e)
+            StartupLogger.log("Stage3_Orchestrator", e)
             log_exception(f"Orchestrator init failed: {e}")
             self.orchestrator = None
 
@@ -122,20 +120,21 @@ class MainWindow(QMainWindow):
         try:
             self.current_file = None
             self.state_manager = PDFStateManager()
+            self.workspace_controller = WorkspaceController(self) # Novo Controller
             self.navigation_history = []
             self.history_index = -1
             self._is_navigating_history = False
-            _log_stage("Stage4_UIState")
+            StartupLogger.log("Stage4_UIState")
         except Exception as e:
-            _log_stage("Stage4_UIState", e)
+            StartupLogger.log("Stage4_UIState", e)
             log_exception(f"UI State init failed: {e}")
 
         # Stage 5: UI Setup
         try:
             self._setup_ui_v4()
-            _log_stage("Stage5_SetupUI")
+            StartupLogger.log("Stage5_SetupUI")
         except Exception as e:
-            _log_stage("Stage5_SetupUI", e)
+            StartupLogger.log("Stage5_SetupUI", e)
             log_exception(f"UI Setup failed: {e}")
             # Create minimal fallback UI
             from PyQt6.QtWidgets import QLabel
@@ -148,17 +147,17 @@ class MainWindow(QMainWindow):
         try:
             self._setup_menus()
             self._setup_statusbar()
-            _log_stage("Stage6_MenusStatusbar")
+            StartupLogger.log("Stage6_MenusStatusbar")
         except Exception as e:
-            _log_stage("Stage6_MenusStatusbar", e)
+            StartupLogger.log("Stage6_MenusStatusbar", e)
             log_exception(f"Menus/Statusbar failed: {e}")
         
         # Stage 7: Connections
         try:
             self._setup_connections_v4()
-            _log_stage("Stage7_Connections")
+            StartupLogger.log("Stage7_Connections")
         except Exception as e:
-            _log_stage("Stage7_Connections", e)
+            StartupLogger.log("Stage7_Connections", e)
             log_exception(f"Connections failed: {e}")
             if hasattr(self, "bottom_panel"):
                 self.bottom_panel.add_log(f"⚠️ Erro de Conexões: {e}", color="orange")
@@ -167,58 +166,60 @@ class MainWindow(QMainWindow):
         try:
             self.setStyleSheet(get_main_stylesheet())
             self._setup_window_icon()
-            _log_stage("Stage8_Styling")
+            StartupLogger.log("Stage8_Styling")
         except Exception as e:
-            _log_stage("Stage8_Styling", e)
+            StartupLogger.log("Stage8_Styling", e)
             log_exception(f"Styling failed: {e}")
 
         # Stage 9: Final Setup
         try:
             self.setAcceptDrops(True)
             self._load_settings()
-            _log_stage("Stage9_FinalSetup")
+            StartupLogger.log("Stage9_FinalSetup")
         except Exception as e:
-            _log_stage("Stage9_FinalSetup", e)
+            StartupLogger.log("Stage9_FinalSetup", e)
             log_exception(f"Final setup failed: {e}")
 
         # Open initial file if provided
         if initial_file:
             QTimer.singleShot(100, lambda: self.open_file(Path(initial_file)))
         
-        _log_stage("__init__COMPLETE")
+        # Stage 10: Heartbeat (Dev Mode)
+        try:
+            self._heartbeat_timer = QTimer(self)
+            self._heartbeat_timer.timeout.connect(self._send_heartbeat)
+            self._heartbeat_timer.start(1000)
+            self._hb_sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        except:
+            pass
+            
+        StartupLogger.log("__init__COMPLETE")
+
+    def _send_heartbeat(self):
+        """Monitor de saúde da GUI: envia ping para o hot-reload."""
+        try:
+            self._hb_sock.sendto(b"1", ("127.0.0.1", 9999))
+        except:
+            pass
 
     def _setup_ui_v4(self):
         """Organização modular orientada a plugins e alta performance."""
-        import os
-        from datetime import datetime
         
-        def _log_widget(name: str, error: Exception = None):
-            try:
-                log_path = os.path.join(os.environ.get('TEMP', '.'), 'fotonpdf_startup.log')
-                with open(log_path, 'a', encoding='utf-8') as f:
-                    ts = datetime.now().strftime('%H:%M:%S.%f')[:-3]
-                    if error:
-                        f.write(f"[{ts}] _setup_ui_v4.{name} FAILED: {error}\n")
-                    else:
-                        f.write(f"[{ts}] _setup_ui_v4.{name} OK\n")
-            except:
-                pass
-        
-        _log_widget("START")
+        StartupLogger.log("START_UI_V4")
         
         # Import widgets with logging
         try:
             from src.interfaces.gui.widgets.top_bar import TopBarWidget
-            _log_widget("import TopBarWidget")
+            StartupLogger.log("import TopBarWidget")
         except Exception as e:
-            _log_widget("import TopBarWidget", e)
+            StartupLogger.log("import TopBarWidget", e)
             TopBarWidget = None
             
         try:
             from src.interfaces.gui.widgets.inspector_panel import InspectorPanel
-            _log_widget("import InspectorPanel")
+            StartupLogger.log("import InspectorPanel")
         except Exception as e:
-            _log_widget("import InspectorPanel", e)
+            StartupLogger.log("import InspectorPanel", e)
             InspectorPanel = None
         
         # Central Widget & Main Layout
@@ -227,17 +228,19 @@ class MainWindow(QMainWindow):
         self.outer_layout = QVBoxLayout(self.central_widget)
         self.outer_layout.setContentsMargins(0, 0, 0, 0)
         self.outer_layout.setSpacing(0)
-        _log_widget("central_widget")
+        StartupLogger.log("central_widget")
         
         # 1. Top Bar
         try:
             self.top_bar = TopBarWidget(self) if TopBarWidget else QWidget()
             self.top_bar.searchTriggered.connect(self._on_search_triggered)
+            if hasattr(self.top_bar, 'searchChanged'):
+                self.top_bar.searchChanged.connect(self._on_search_changed)
             self.top_bar.toggleRequested.connect(self._on_layout_toggle_requested)
             self.top_bar.viewModeChanged.connect(self._switch_view_mode_v4)
-            _log_widget("TopBar")
+            StartupLogger.log("TopBar")
         except Exception as e:
-            _log_widget("TopBar", e)
+            StartupLogger.log("TopBar", e)
             self.top_bar = QWidget()
         
         # 2. Body Layout
@@ -245,33 +248,54 @@ class MainWindow(QMainWindow):
         self.body_layout = QHBoxLayout(self.body_container)
         self.body_layout.setContentsMargins(0, 0, 0, 0)
         self.body_layout.setSpacing(0)
-        _log_widget("body_container")
+        StartupLogger.log("body_container")
         
         try:
-            self.activity_bar = ActivityBar(self)
-            _log_widget("ActivityBar")
+            should_load_sidebar = SettingsService.instance().get_bool("startup_load_sidebar", True)
+            
+            if should_load_sidebar:
+                self.activity_bar = ActivityBar(self)
+                StartupLogger.log("ActivityBar")
+            else:
+                self.activity_bar = QWidget()
+                self.activity_bar.setVisible(False)
+                StartupLogger.log("ActivityBar (Disabled)")
         except Exception as e:
-            _log_widget("ActivityBar", e)
+            StartupLogger.log("ActivityBar", e)
             self.activity_bar = QWidget()
             
         try:
-            self.side_bar = SideBar(self, initial_width=250)
-            _log_widget("SideBar_left")
+            should_load_sidebar = SettingsService.instance().get_bool("startup_load_sidebar", True)
+            
+            if should_load_sidebar:
+                self.side_bar = SideBar(self, initial_width=250)
+                StartupLogger.log("SideBar_left")
+            else:
+                self.side_bar = QWidget()
+                self.side_bar.setVisible(False)
+                StartupLogger.log("SideBar_left (Disabled)")
         except Exception as e:
-            _log_widget("SideBar_left", e)
+            StartupLogger.log("SideBar_left", e)
             self.side_bar = QWidget()
             
         try:
-            self.side_bar_right = SideBar(self, initial_width=300)
-            self.side_bar_right.set_title("AEC INSPECTOR")
-            _log_widget("SideBar_right")
+            should_load_sidebar = SettingsService.instance().get_bool("startup_load_sidebar", True)
+
+            if should_load_sidebar:
+                self.side_bar_right = SideBar(self, initial_width=300)
+                self.side_bar_right.set_title("AEC INSPECTOR")
+                StartupLogger.log("SideBar_right")
+            else:
+                self.side_bar_right = QWidget()
+                self.side_bar_right.setVisible(False)
+                StartupLogger.log("SideBar_right (Disabled)")
         except Exception as e:
-            _log_widget("SideBar_right", e)
+            StartupLogger.log("SideBar_right", e)
             self.side_bar_right = QWidget()
         
         self.horizontal_splitter = QSplitter(Qt.Orientation.Horizontal)
         self.central_splitter = QSplitter(Qt.Orientation.Vertical)
-        _log_widget("splitters")
+        StartupLogger.log("splitters")
         
         self.body_layout.addWidget(self.activity_bar)
         self.body_layout.addWidget(self.horizontal_splitter, stretch=1)
@@ -279,28 +303,28 @@ class MainWindow(QMainWindow):
         self.horizontal_splitter.addWidget(self.side_bar)
         self.horizontal_splitter.addWidget(self.central_splitter)
         self.horizontal_splitter.addWidget(self.side_bar_right)
-        _log_widget("body_layout_assembled")
+        StartupLogger.log("body_layout_assembled")
         
         # Components & Tabs
         try:
             self.tabs = TabContainer()
-            _log_widget("TabContainer")
+            StartupLogger.log("TabContainer")
         except Exception as e:
-            _log_widget("TabContainer", e)
+            StartupLogger.log("TabContainer", e)
             self.tabs = QWidget()
             
         try:
             self.bottom_panel = BottomPanel()
-            _log_widget("BottomPanel")
+            StartupLogger.log("BottomPanel")
         except Exception as e:
-            _log_widget("BottomPanel", e)
+            StartupLogger.log("BottomPanel", e)
             self.bottom_panel = QWidget()
             
         try:
             self.inspector = InspectorPanel() if InspectorPanel else QWidget()
-            _log_widget("InspectorPanel")
+            StartupLogger.log("InspectorPanel")
         except Exception as e:
-            _log_widget("InspectorPanel", e)
+            StartupLogger.log("InspectorPanel", e)
             self.inspector = QWidget()
         
         # Sidebars setup
@@ -308,19 +332,19 @@ class MainWindow(QMainWindow):
             if hasattr(self.side_bar_right, 'add_panel'):
                 self.side_bar_right.add_panel(self.inspector, "AEC Inspector")
                 self.side_bar_right.toggle_collapse()
-            _log_widget("sidebar_right_setup")
+            StartupLogger.log("sidebar_right_setup")
         except Exception as e:
-            _log_widget("sidebar_right_setup", e)
+            StartupLogger.log("sidebar_right_setup", e)
 
         self.view_stack = QStackedWidget()
         self.view_stack.addWidget(self.tabs)
-        _log_widget("view_stack_tabs")
+        StartupLogger.log("view_stack_tabs")
         
         try:
             self.light_table = LightTableView()
-            _log_widget("LightTableView")
+            StartupLogger.log("LightTableView")
         except Exception as e:
-            _log_widget("LightTableView", e)
+            StartupLogger.log("LightTableView", e)
             self.light_table = QWidget()
             
         self.view_stack.addWidget(self.light_table)
@@ -328,17 +352,20 @@ class MainWindow(QMainWindow):
         self.central_splitter.addWidget(self.view_stack)
         self.central_splitter.addWidget(self.bottom_panel)
         self.central_splitter.setSizes([700, 30])
-        _log_widget("central_splitter_setup")
+        StartupLogger.log("central_splitter_setup")
         
         # Add to Main Layout
         self.outer_layout.addWidget(self.top_bar)
         self.outer_layout.addWidget(self.body_container, stretch=1)
-        _log_widget("COMPLETE")
+        StartupLogger.log("COMPLETE")
 
     def _setup_connections_v4(self):
         """Conexões modularizadas e resilientes com Lazy Loading."""
         self.tabs.fileChanged.connect(self._on_tab_changed)
-        self.activity_bar.clicked.connect(self._on_activity_clicked)
+        
+        # Conexão segura com ActivityBar (conforme diagnóstico)
+        if hasattr(self.activity_bar, 'clicked'):
+            self.activity_bar.clicked.connect(self._on_activity_clicked)
         
         # Painéis da sidebar serão carregados sob demanda (Lazy Loading)
         self.thumbnails = None
@@ -399,37 +426,100 @@ class MainWindow(QMainWindow):
             log_exception(f"Erro ao salvar settings: {e}")
 
     def closeEvent(self, event):
-        """Salva configurações ao fechar."""
+        """Salva configurações e encerra processos ao fechar."""
+        from src.interfaces.gui.state.render_engine import RenderEngine
+        RenderEngine.instance().shutdown()
+        
         self._save_settings()
         super().closeEvent(event)
 
     def _on_light_table_moved(self, info):
         """Manipula reordenação na Mesa de Luz."""
-        self.bottom_panel.add_log(f"Mesa de Luz: Página movida ({info})")
-        # Logica de reordenação real aqui se info tiver os indices
+        # Silenciado para evitar spam durante layout/animação
+        # TODO: Implementar lógica de reordenação real aqui se necessário
+        pass
+
+    def _on_search_changed(self, text):
+        """Intercepta comandos instantâneos conforme o usuário digita."""
+        cmd = text.lower().strip()
+        # Comandos que queremos disparar na hora (sem Enter)
+        instant_triggers = {
+            "config": "config", "settings": "settings", "configurações": "configurações",
+            "ia": "ia", "ai": "ai", 
+            "mesa": "mesa", "scroll": "scroll"
+        }
+        
+        if cmd in instant_triggers:
+            # Feedback na status bar para confirmar detecção
+            self.statusBar().showMessage(f"⚡ Comando detectado: {cmd}", 2000)
+            self._on_search_triggered(text)
+            # Opcional: Limpar o campo para permitir próxima digitação
+            if hasattr(self.top_bar, 'search_input'):
+                 self.top_bar.search_input.clear()
 
     def _on_search_triggered(self, query):
-        """Orquestração inteligente da busca superior."""
+        """Orquestração inteligente da busca superior (Universal Search + Command Palette)."""
         from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
         
-        @safe_ui_callback("Search/Command Execution")
+        @safe_ui_callback("Command/Search Palette")
         def _execute():
-            response = self.orchestrator.execute(query, self.current_file)
+            # 1. Verificar se é um comando interno (Command Palette)
+            cmd_lower = query.lower().strip()
             
-            if response["type"] == "command":
-                self.bottom_panel.add_log(f"⚡ [CMD] {response.get('message')}")
-                # Se mudou o arquivo (ex: rotate salva novo), abre o novo
-                if "path" in response:
-                    self.open_file(Path(response["path"]))
-            elif response["type"] == "search":
-                # Abre painel de busca se houver resultados
-                self.activity_bar.set_active(1)
-                self.search_panel.set_results(response["results"]) # Placeholder: assumindo que SearchPanel tem set_results
-                self.bottom_panel.add_log(f"🔎 Encontradas {len(response['results'])} ocorrências para '{query}'")
-            elif response["type"] == "error":
-                self.bottom_panel.add_log(f"❌ {response.get('message')}", color="red")
+            # Map de comandos amigáveis (Internacionalização/Variantes)
+            commands = {
+                "configurações": self._on_startup_config_clicked,
+                "config": self._on_startup_config_clicked,
+                "diagnóstico": self._on_startup_config_clicked,
+                "settings": self._on_startup_config_clicked,
+                "ia": self._on_ai_settings_clicked,
+                "ai": self._on_ai_settings_clicked,
+                "miniaturas": lambda: self._on_activity_clicked(0),
+                "explorer": lambda: self._on_activity_clicked(0),
+                "busca": lambda: self._on_activity_clicked(1),
+                "sumário": lambda: self._on_activity_clicked(2),
+                "toc": lambda: self._on_activity_clicked(2),
+                "mesa de luz": lambda: self._switch_view_mode_v4("table"),
+                "mesa": lambda: self._switch_view_mode_v4("table"),
+                "scroll": lambda: self._switch_view_mode_v4("scroll"),
+                "leitura": lambda: self._switch_view_mode_v4("scroll"),
+                "abrir": self._on_open_clicked,
+                "unir": self._on_merge_clicked,
+                "merge": self._on_merge_clicked,
+                "ajuda": lambda: self.statusBar().showMessage("Comandos: config, ia, mesa, scroll, abrir, unir", 5000)
+            }
+            
+            if cmd_lower in commands:
+                self.bottom_panel.add_log(f"⌨️ Executando comando: {cmd_lower}")
+                commands[cmd_lower]()
+                return
+
+            # 2. Se não for comando, delegar para o Orchestrator (IA / Busca de Texto)
+            if hasattr(self, 'orchestrator'):
+                 response = self.orchestrator.execute(query, self.current_file)
+                 self._handle_orchestrator_response(query, response)
+            else:
+                 # Fallback: Se não tem orchestrator, tenta busca de texto básica
+                 self.bottom_panel.add_log(f"🔎 Pesquisando por: {query}")
+                 # Se o painel de busca estiver carregado, use-o
+                 self._on_activity_clicked(1) # Abre aba de busca
         
         _execute()
+
+    def _handle_orchestrator_response(self, query, response):
+        """Processa a resposta do orquestrador de busca."""
+        if response["type"] == "command":
+            self.bottom_panel.add_log(f"⚡ [CMD] {response.get('message')}")
+            if "path" in response:
+                self.open_file(Path(response["path"]))
+        elif response["type"] == "search":
+            if hasattr(self.activity_bar, 'set_active'):
+                self.activity_bar.set_active(1)
+            if self.search_panel:
+                self.search_panel.set_results(response["results"])
+            self.bottom_panel.add_log(f"🔎 Encontradas {len(response['results'])} ocorrências para '{query}'")
+        elif response["type"] == "error":
+            self.bottom_panel.add_log(f"❌ {response.get('message')}", color="red")
 
     def _on_layout_toggle_requested(self, target):
         """Responde aos botões de toggle da TopBar."""
@@ -614,6 +704,37 @@ class MainWindow(QMainWindow):
         self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
         tools_menu.addAction(self.ocr_area_action)
 
+        # --- SUBMENU CONFIGURAÇÕES ---
+        config_menu = self.app_menu.addMenu("⚙️ Configurações")
+        
+        config_menu.addAction("🤖 Assistente de IA...").triggered.connect(self._on_ai_settings_clicked)
+        config_menu.addAction("🛠️ Inicialização & Diagnóstico...").triggered.connect(self._on_startup_config_clicked)
+
+    def _on_ai_settings_clicked(self):
+        """Abre o painel de configurações de IA em um diálogo modal."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout
+        from src.interfaces.gui.widgets.ai_settings_panel import AISettingsWidget
+        
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Configuração da Inteligência Artificial")
+        dlg.setMinimumSize(500, 600)
+        
+        layout = QVBoxLayout(dlg)
+        settings_widget = AISettingsWidget(dlg)
+        layout.addWidget(settings_widget)
+        
+        dlg.exec()
+
+    def _on_startup_config_clicked(self):
+        """Abre o diálogo de configuração de inicialização."""
+        from src.interfaces.gui.widgets.startup_config import StartupConfigDialog
+        from PyQt6.QtWidgets import QMessageBox
+        
+        dlg = StartupConfigDialog(self)
+        if dlg.exec():
+            dlg.save_settings()
+            QMessageBox.information(self, "Configuração Salva", "As alterações terão efeito na próxima reinicialização.")
+
     def _setup_statusbar(self):
         from PyQt6.QtWidgets import QPushButton, QHBoxLayout, QFrame
         
@@ -631,7 +752,8 @@ class MainWindow(QMainWindow):
         self.btn_toggle_sidebar.setToolTip("Alternar Left Side Bar")
         self.btn_toggle_sidebar.setFixedSize(24, 20)
         self.btn_toggle_sidebar.setStyleSheet("background: transparent; border: none; color: #858585;")
-        self.btn_toggle_sidebar.clicked.connect(self.side_bar.toggle_collapse)
+        if hasattr(self.side_bar, 'toggle_collapse'):
+            self.btn_toggle_sidebar.clicked.connect(self.side_bar.toggle_collapse)
         
         # Botão Toggle Bottom Panel
         self.btn_toggle_bottom = QPushButton("▃")
@@ -645,14 +767,16 @@ class MainWindow(QMainWindow):
         self.btn_toggle_right.setToolTip("Alternar Right Side Bar")
         self.btn_toggle_right.setFixedSize(24, 20)
         self.btn_toggle_right.setStyleSheet("background: transparent; border: none; color: #858585;")
-        self.btn_toggle_right.clicked.connect(self.side_bar_right.toggle_collapse)
+        if hasattr(self.side_bar_right, 'toggle_collapse'):
+            self.btn_toggle_right.clicked.connect(self.side_bar_right.toggle_collapse)
         
         # Botão Toggle ActivityBar
         self.btn_toggle_activity = QPushButton("┇")
         self.btn_toggle_activity.setToolTip("Alternar Activity Bar")
         self.btn_toggle_activity.setFixedSize(24, 20)
         self.btn_toggle_activity.setStyleSheet("background: transparent; border: none; color: #858585;")
-        self.btn_toggle_activity.clicked.connect(self._on_toggle_activity_bar)
+        if hasattr(self.activity_bar, 'setVisible'):
+            self.btn_toggle_activity.clicked.connect(self._on_toggle_activity_bar)
         
         layout.addWidget(self.btn_toggle_sidebar)
         layout.addWidget(self.btn_toggle_bottom)
@@ -693,42 +817,111 @@ class MainWindow(QMainWindow):
     @safe_ui_callback("Tab Switch")
     def _on_tab_changed(self, file_path):
         """Sincroniza a UI quando o usuário muda de aba."""
-        if not file_path: return
-        
-        self.current_file = file_path
-        self.setWindowTitle(f"fotonPDF - {file_path.name}")
-        
-        # Obter metadados via Caso de Uso (Sprint 16: mm + layers)
-        metadata = self._get_metadata_use_case.execute(file_path)
-        
-        # Sincronizar painéis laterais (Lazy Sync)
-        if self.thumbnails:
-            self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
-        
-        if self.toc_panel:
-            self.toc_panel.set_pdf(file_path)
+        try:
+            if not file_path: return
+            log_debug("MainWindow [TAB_CHANGED]: Iniciando sincronização...")
             
-        if self.inspector:
-            self.inspector.update_metadata(metadata)
-        
-        # Sincronizar conexões do visualizador ativo
-        if self.viewer:
+            self.current_file = file_path
+            self.setWindowTitle(f"fotonPDF - {file_path.name}")
+            
+            # Obter metadados via CACHE ou Fallback Vazio (Non-blocking)
+            group = self.tabs.current_editor()
+            if not group or not group.metadata:
+                log_debug(f"MainWindow: Metadados ausentes para {file_path.name}. Usando fallback vazio.")
+                metadata = {"page_count": 0, "pages": [], "layers": []}
+            else:
+                metadata = group.metadata
+            
+            # EMERGENCY FIX: Se o viewer existe mas está vazio, forçar reload
+            if group and hasattr(group, 'viewer_left') and group.viewer_left:
+                viewer = group.viewer_left
+                if hasattr(viewer, '_pages') and len(viewer._pages) == 0:
+                    log_debug(f"MainWindow [EMERGENCY]: ViewerWidget vazio! Forçando reload...")
+                    # Construir metadata de emergência a partir do StateManager
+                    if self.state_manager and self.state_manager.doc:
+                        page_count = self.state_manager.doc.page_count
+                        rescue_metadata = {
+                            "page_count": page_count,
+                            "pages": [{"width_mm": 210, "height_mm": 297, "format": "A4"} for _ in range(page_count)],
+                            "layers": []
+                        }
+                        log_debug(f"MainWindow [EMERGENCY]: Metadados resgatados: {page_count} páginas")
+                        viewer.load_document(file_path, rescue_metadata)
+                        group.metadata = rescue_metadata  # Atualizar cache do group
+                        metadata = rescue_metadata
+            
+            log_debug("MainWindow [TAB_CHANGED]: [1/5] Metadados obtidos.")
+            
+            # Sincronizar painéis laterais (Lazy Sync)
+            # Cada um em seu bloco try-except para evitar cascade failure
+            
+            if self.thumbnails:
+                try:
+                    self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
+                except Exception as e:
+                    log_exception(f"MainWindow: Falha ao atualizar Thumbnails: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [2/5] Thumbnails OK.")
+            
+            if self.toc_panel:
+                try:
+                    self.toc_panel.set_pdf(file_path)
+                except Exception as e:
+                    log_exception(f"MainWindow: Falha ao atualizar TOC: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [3/5] TOC OK.")
+                
+            if self.inspector and hasattr(self.inspector, 'update_metadata'):
+                try:
+                    self.inspector.update_metadata(metadata)
+                except Exception as e:
+                    log_exception(f"MainWindow: Falha ao atualizar Inspector: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [4/5] Inspector OK.")
+            
+            # Sincronizar conexões do visualizador ativo
+            if self.viewer:
+                try:
+                    try: self.viewer.pageChanged.disconnect()
+                    except: pass
+                    try: self.viewer.selectionChanged.disconnect()
+                    except: pass
+                    # Nota: Não desconectamos nav_bar aqui pois é interna do viewer, mas ok.
+                    
+                    self.viewer.pageChanged.connect(self._on_page_changed, Qt.ConnectionType.UniqueConnection)
+                    # Conectar seleção à telemetria (MM)
+                    self.viewer.selectionChanged.connect(self._on_selection_changed, Qt.ConnectionType.UniqueConnection)
+                    self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
+                except (TypeError, RuntimeError): 
+                    pass
+                except Exception as e:
+                     log_exception(f"MainWindow: Falha ao conectar sinais do Viewer: {e}")
+            
+            # Conectar Inspector à porta de camadas
             try:
-                self.viewer.pageChanged.connect(self._on_page_changed, Qt.ConnectionType.UniqueConnection)
-                # Conectar seleção à telemetria (MM)
-                self.viewer.selectionChanged.connect(self._on_selection_changed, Qt.ConnectionType.UniqueConnection)
-                self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
-            except (TypeError, RuntimeError): pass
-        
-        # Conectar Inspector à porta de camadas
-        self.inspector.layerVisibilityChanged.connect(
-            lambda lid, vis: self._on_layer_toggle(file_path, lid, vis),
-            Qt.ConnectionType.UniqueConnection
-        )
-        
-        self.bottom_panel.add_log(f"Synced Meta for: {file_path.name}")
+                # Necessário desconectar anterior? UniqueConnection resolve.
+                # Verificar se inspector é realmente um InspectorPanel (não um fallback QWidget)
+                if self.inspector and hasattr(self.inspector, 'layerVisibilityChanged'):
+                     self.inspector.layerVisibilityChanged.connect(
+                        lambda lid, vis: self._on_layer_toggle(file_path, lid, vis),
+                        Qt.ConnectionType.UniqueConnection
+                    )
+            except Exception as e:
+                log_exception(f"MainWindow: Falha ao conectar Inspector Layers: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [5/5] Conexões completas.")
+            
+            if hasattr(self, 'bottom_panel'):
+                try:
+                    self.bottom_panel.add_log(f"Synced Meta for: {file_path.name}")
+                except: pass
+
+        except Exception as e:
+             log_exception(f"MainWindow: Erro Crítico em _on_tab_changed: {e}")
+             # Não propagar para evitar crash da GUI
 
     def _on_activity_clicked(self, idx):
+        # Fail-safe: Se side_bar ou activity_bar forem dummy widgets, ignorar
+        if not hasattr(self.side_bar, 'stack') or not hasattr(self.activity_bar, 'group'):
+            self.bottom_panel.add_log(f"⚠️ Recurso da Sidebar desativado no modo de diagnóstico. Impossível focar aba {idx}.")
+            return
+
         titles = {0: "EXPLORER", 1: "SEARCH", 2: "SUMÁRIO", 3: "ANNOTATIONS"}
         
         # SPECIAL: Settings icon (99) opens the app menu popup
@@ -768,54 +961,75 @@ class MainWindow(QMainWindow):
 
     @safe_ui_callback("Open File")
     def open_file(self, file_path: Path):
-        """Abre um documento PDF em uma nova aba."""
-        try:
-            # Segurança: Sanitize Path
-            file_path = Path(file_path).resolve()
-            if not file_path.exists():
-                raise FileNotFoundError(f"Arquivo não encontrado: {file_path}")
-            
-            self.current_file = file_path
-            
-            # Obter metadados via Caso de Uso (Arquitetura Hexagonal)
-            metadata = self._get_metadata_use_case.execute(file_path)
-            
-            # Adicionar ao container de abas
-            self.tabs.add_editor(file_path, metadata)
-            
-            # Inicializar State Manager (Sprint 10+)
-            self.state_manager.load_base_document(str(file_path))
+        """Inicia o carregamento do documento (Síncrono ou Assíncrono conforme config). Pipolote """
+        # 0. Iniciar nova sessão de log para correlação (Debug Conjunto)
+        from src.infrastructure.services.logger import set_session_id
+        session = set_session_id()
+        log_debug(f"MainWindow: Iniciando tentativa de abertura: {session} para {file_path.name}")
+        
+        TelemetryService.mark_start("TTU")
+        file_path = Path(file_path).resolve()
+        if not file_path.exists():
+            self.statusBar().showMessage(f"Erro: Arquivo não encontrado", 3000)
+            return
 
-            # Novo: Carregar na Mesa de Luz
-            self.light_table.load_document(file_path, metadata)
-            
-            # Sincronizar painéis laterais (thumbnails já são carregados via add_editor -> load_document)
-            # Mas vamos forçar a sincronização global aqui
-            self._on_tab_changed(file_path)
+        self.statusBar().showMessage(f"Analisando {file_path.name}...")
+        self.setCursor(Qt.CursorShape.WaitCursor)
+        self.current_file = file_path # Set immediately to avoid race conditions in UI
 
-            # Atualizar UI
-            self.setWindowTitle(f"fotonPDF - {file_path.name}")
-            self.statusBar().showMessage(f"Documento aberto: {file_path.name}")
-            self.bottom_panel.add_log(f"Opened: {file_path.name}")
-            
-            # Salvar no histórico de recentes
-            SettingsService.instance().set("last_file", str(file_path))
-            
-            self._enable_actions(True)
-            
-            # Reset History
-            self.navigation_history = [0]
-            self.history_index = 0
-            
-        except Exception as e:
-            log_exception(f"MainWindow: Erro ao abrir: {e}")
-            self.statusBar().showMessage(f"Erro: {e}")
-            self.bottom_panel.add_log(f"Error opening file: {str(e)}", color="red")
+        # Verificar preferência de carregamento via Settings
+        use_async = SettingsService.instance().get_bool("startup_async_loader", True)
+
+        if use_async:
+            # Modo Assíncrono (Padrão)
+            self._loader = AsyncDocumentLoader(file_path, self._get_metadata_use_case, self._detect_ocr_use_case)
+            self._loader.finished.connect(self._on_load_finished)
+            self._loader.progress.connect(lambda msg: self.statusBar().showMessage(msg))
+            self._loader.error.connect(self._on_load_error)
+            self._loader.start()
+        else:
+            # Modo Síncrono (Fallback de Segurança / Debug)
+            try:
+                log_debug(f"MainWindow: Carregando {file_path.name} em modo SÍNCRONO.")
+                
+                # 1. Abertura do Documento PRIMEIRO (para passar handle ao use case)
+                import fitz
+                opened_doc = fitz.open(file_path)
+                
+                # 2. Análise de Metadados COM handle injetado (evita dupla abertura)
+                metadata = self._get_metadata_use_case.execute(file_path, doc_handle=opened_doc)
+                hints = {"complexity": "STANDARD"}
+                metadata["hints"] = hints  # Anexar hints ao metadata para consistência
+                is_searchable = True  # Assume true no modo simples
+                
+                log_debug(f"MainWindow: Sync metadata extraído: page_count={metadata.get('page_count', 0)}")
+                
+                # 3. Finalização Direta
+                self._on_load_finished(file_path, metadata, hints, opened_doc, is_searchable)
+            except Exception as e:
+                self._on_load_error(str(e))
+
+    @safe_ui_callback("Load Finished")
+    def _on_load_finished(self, file_path: Path, metadata: dict, hints: dict, opened_doc, is_searchable: bool):
+        """Callback quando o documento e metadados estão prontos. Delegado ao Controller."""
+        if hasattr(self, 'workspace_controller'):
+            self.workspace_controller.handle_load_finished(file_path, metadata, hints, opened_doc, is_searchable)
+        else:
+             log_error("CRITICAL: WorkspaceController not initialized!")
+
+    def _on_load_error(self, message: str):
+        """Callback em caso de falha no carregamento."""
+        self.setCursor(Qt.CursorShape.ArrowCursor)
+        self.statusBar().showMessage(f"Erro ao abrir arquivo", 5000)
+        log_error(f"MainWindow Loader Error: {message}")
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.critical(self, "Erro ao Abrir", f"Não foi possível abrir o documento:\n{message}")
 
     @safe_ui_callback("Page Change")
     def _on_page_changed(self, index: int):
         """Sincroniza a seleção da sidebar com a página atual do viewer."""
-        self.thumbnails.set_selected_page(index)
+        if self.thumbnails and hasattr(self.thumbnails, 'set_selected_page'):
+            self.thumbnails.set_selected_page(index)
         
         if self._is_navigating_history:
             return
@@ -1062,23 +1276,24 @@ class MainWindow(QMainWindow):
         self.back_action.setEnabled(self.history_index > 0)
         self.forward_action.setEnabled(self.history_index < len(self.navigation_history) - 1)
 
-    def _check_ocr_needed(self, file_path: Path):
-        """Verifica se o PDF precisa de OCR e se o motor está disponível."""
+    def _apply_ocr_status(self, file_path: Path, is_searchable: bool):
+        """Aplica o status de OCR já calculado em background."""
         try:
-            is_searchable = self._detect_ocr_use_case.execute(file_path)
             has_engine = self._adapter.is_engine_available()
-            
             group = self.current_editor_group
             if not group: return
-
+ 
             if not is_searchable and has_engine:
                 group.ocr_banner.show()
+                # Desconectar antes para evitar duplicidade em recargas
+                try: group.btn_apply_ocr.clicked.disconnect()
+                except: pass
                 group.btn_apply_ocr.clicked.connect(self._on_apply_ocr_clicked)
                 self.bottom_panel.add_log(f"OCR needed for {file_path.name}")
             else:
                 group.ocr_banner.hide()
         except Exception as e:
-            log_exception(f"OCR Detection: {e}")
+            log_exception(f"OCR UI Update: {e}")
 
     @safe_ui_callback("Apply OCR")
     def _on_apply_ocr_clicked(self):

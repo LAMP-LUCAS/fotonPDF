@@ -62,18 +62,27 @@ class PDFOperationsPort(ABC):
         pass
 
     @abstractmethod
-    def get_document_metadata(self, pdf_path: Path) -> dict:
-        """Retorna metadados técnicos do documento (número de páginas, dimensões das páginas, etc.)."""
+    def get_document_metadata(self, pdf_path: Path, doc_handle=None) -> dict:
+        """
+        Retorna metadados técnicos do documento.
+        Otimizado: Suporta 'doc_handle' para evitar reabertura (Single-Open).
+        """
         pass
 
     @abstractmethod
-    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
-        """Renderiza uma página e retorna (bytes, width, height, stride)."""
+    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int, clip: tuple | None = None, doc_handle=None) -> tuple:
+        """
+        Renderiza uma página e retorna (bytes, width, height, stride).
+        Otimizado: Suporta 'clip' (tiling) e 'doc_handle' (Single-Open).
+        """
         pass
 
     @abstractmethod
-    def get_layers(self, pdf_path: Path) -> list[dict]:
-        """Retorna a lista de camadas (OCG) do documento."""
+    def get_layers(self, pdf_path: Path, doc_handle=None) -> list[dict]:
+        """
+        Retorna a lista de camadas (OCG) do documento.
+        Otimizado: Suporta 'doc_handle'.
+        """
         pass
 
     @abstractmethod

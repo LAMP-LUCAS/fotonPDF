@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-                             QLineEdit, QComboBox, QPushButton, QFormLayout, QFrame)
+                             QLineEdit, QComboBox, QPushButton, QFormLayout, QFrame, QCheckBox)
 from PyQt6.QtCore import Qt
 from src.infrastructure.services.settings_service import SettingsService
 
@@ -22,7 +22,15 @@ class AISettingsWidget(QWidget):
         title.setStyleSheet("color: #FFC107; font-weight: bold; font-size: 14px;")
         layout.addWidget(title)
 
-        form = QFormLayout()
+        # Ativar Assistente
+        self.check_enabled = QCheckBox("Ativar Assistente de IA")
+        self.check_enabled.setChecked(self._settings.get_bool("ai_enabled", False))
+        self.check_enabled.setStyleSheet("color: white; font-weight: bold; margin-bottom: 10px;")
+        layout.addWidget(self.check_enabled)
+
+        # Frame para agrupar campos (opcionalmente desabilitar se checkbox for false)
+        self.config_frame = QFrame()
+        form = QFormLayout(self.config_frame)
         form.setSpacing(10)
 
         # Provedor
@@ -48,7 +56,11 @@ class AISettingsWidget(QWidget):
         self.edit_url.setText(self._settings.get("ai_base_url", "http://localhost:11434"))
         form.addRow("Base URL:", self.edit_url)
 
-        layout.addLayout(form)
+        layout.addWidget(self.config_frame)
+
+        # Conectar sinal para habilitar/desabilitar campos
+        self.check_enabled.toggled.connect(self.config_frame.setEnabled)
+        self.config_frame.setEnabled(self.check_enabled.isChecked())
 
         # Botão Salvar
         self.btn_save = QPushButton("Salvar Configurações")
@@ -62,10 +74,12 @@ class AISettingsWidget(QWidget):
         layout.addStretch()
 
     def _save_settings(self):
+        self._settings.set("ai_enabled", self.check_enabled.isChecked())
         self._settings.set("ai_provider", self.combo_provider.currentText())
         self._settings.set("ai_model", self.edit_model.text())
         self._settings.set("ai_api_key", self.edit_key.text())
         self._settings.set("ai_base_url", self.edit_url.text())
         
         # Notificar MainWindow de que os modelos precisam ser recarregados (via signals se necessário)
-        # Por simplicidade neste passo, o Core lê os novos valores no próximo init ou via refresh
+        self.btn_save.setText("✅ Configurações Salvas!")
+        self.btn_save.setStyleSheet("background-color: #059669; color: white; padding: 10px; border-radius: 6px;")

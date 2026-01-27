@@ -1,5 +1,5 @@
-import pytest
-from PyQt6.QtWidgets import QApplication
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import QApplication, QLabel
 from src.interfaces.gui.widgets.ai_settings_panel import AISettingsWidget
 from src.infrastructure.services.settings_service import SettingsService
 
@@ -14,7 +14,7 @@ def test_ai_settings_ui_persistence(qtbot):
     widget.edit_key.setText("sk-test-key")
     
     # Clicar em salvar
-    qtbot.mouseClick(widget.btn_save, qtbot.Qt.MouseButton.LeftButton)
+    qtbot.mouseClick(widget.btn_save, Qt.MouseButton.LeftButton)
     
     # Verificar persistência no SettingsService
     settings = SettingsService.instance()
@@ -27,4 +27,4 @@ def test_ai_config_placeholder_labels(qtbot):
     widget = AISettingsWidget()
     qtbot.addWidget(widget)
     
-    assert "CONFIGURAÇÃO DE INTELIGÊNCIA" in widget.findChild(qtbot.QtWidgets.QLabel).text()
+    assert "CONFIGURAÇÃO DE INTELIGÊNCIA" in widget.findChild(QLabel).text()

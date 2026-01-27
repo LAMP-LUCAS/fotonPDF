@@ -216,16 +216,19 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         doc.close()
         return output_path
 
-    def get_document_metadata(self, pdf_path: Path) -> dict:
+    def get_document_metadata(self, pdf_path: Path, doc_handle=None) -> dict:
         """Extrai metadados técnicos (páginas, dimensões e formato AEC) via PyMuPDF."""
         from src.domain.services.geometry_service import GeometryService
         
         metadata = {
             "page_count": 0,
             "pages": [], # list of {width, height, format}
-            "layers": self.get_layers(pdf_path)
+            "layers": self.get_layers(pdf_path, doc_handle=doc_handle)
         }
-        with fitz.open(str(pdf_path)) as doc:
+        
+        # Se handle não fornecido, abre e garante fechamento
+        doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
+        try:
             metadata["page_count"] = doc.page_count
             for page in doc:
                 rect = page.rect
@@ -237,14 +240,22 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
                     "height_mm": GeometryService.points_to_mm(rect.height),
                     "format": fmt
                 })
+        finally:
+            if not doc_handle: 
+                doc.close()
+                
         return metadata
 
-    def get_layers(self, pdf_path: Path) -> list[dict]:
+    def get_layers(self, pdf_path: Path, doc_handle=None) -> list[dict]:
         """Extrai grupos de conteúdo opcional (OCG/Layers) usando PyMuPDF."""
-        with fitz.open(str(pdf_path)) as doc:
+        doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
+        try:
             ocgs = doc.get_ocgs()
             return [{"id": ocg_id, "name": config["name"], "visible": config["on"]} 
                     for ocg_id, config in ocgs.items()]
+        finally:
+            if not doc_handle:
+                doc.close()
 
     def set_layer_visibility(self, pdf_path: Path, layer_id: int, visible: bool) -> None:
         """Altera a visibilidade de uma camada diretamente no documento."""
@@ -252,32 +263,49 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
             doc.set_ocg(layer_id, on=visible)
             doc.saveIncremental()
 
-    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int) -> tuple:
-        """Renderiza uma página e retorna (bytes, width, height, stride)."""
-        with fitz.open(str(pdf_path)) as doc:
+    def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int, clip: tuple | None = None, doc_handle=None) -> tuple:
+        """
+        Renderiza uma página e retorna (bytes, width, height, stride).
+        Suporta 'clip' (x0, y0, x1, y1) para renderização parcial (Tiling).
+        Otimizado: Suporta reutilização de handle (Single-Open).
+        """
+        doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
+        try:
             page = doc.load_page(page_index)
             mat = fitz.Matrix(zoom, zoom)
             if rotation != 0:
                 mat.prerotate(rotation)
             
-            pix = page.get_pixmap(matrix=mat, alpha=False)
+            fitz_clip = fitz.Rect(clip) if clip else None
+            pix = page.get_pixmap(matrix=mat, alpha=False, clip=fitz_clip)
             return (pix.samples, pix.width, pix.height, pix.stride)
+        finally:
+            if not doc_handle:
+                doc.close()
 
-    def has_text_layer(self, pdf_path: Path) -> bool:
+    def has_text_layer(self, pdf_path: Path, doc_handle=None) -> bool:
         """
-        Verifica se o PDF tem camada de texto. 
-        Calcula a densidade de texto: se houver pouquíssimo texto por página, considera não-pesquisável.
+        Verifica se o PDF tem camada de texto (Pesquisabilidade).
+        Otimizado: Amostragem 'Lazy' interrompe assim que detecta densidade.
         """
-        with fitz.open(str(pdf_path)) as doc:
+        doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
+        try:
             total_text_len = 0
-            # Amostra das primeiras 5 páginas ou todas se menos que 5
+            # Amostra das primeiras 5 páginas
             pages_to_check = doc[:min(5, len(doc))]
             for page in pages_to_check:
-                total_text_len += len(page.get_text("text").strip())
+                text = page.get_text("text").strip()
+                total_text_len += len(text)
+                
+                # Otimização: Se a página já tem bastante texto, não precisa checar o resto
+                if len(text) > 100: 
+                    return True
             
-            # Média de caracteres por página. Se < 50, provavelmente é scan.
             avg_text = total_text_len / len(pages_to_check) if pages_to_check else 0
             return avg_text > 50
+        finally:
+            if not doc_handle:
+                doc.close()
 
     def is_engine_available(self) -> bool:
         """Verifica se o Tesseract está disponível para o PyMuPDF."""

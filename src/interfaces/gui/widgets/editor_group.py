@@ -48,6 +48,8 @@ class EditorGroup(ResilientWidget):
     @safe_ui_callback("Load Document")
     def load_document(self, file_path, metadata):
         """Carrega o documento no(s) visualizador(es)."""
+        from src.infrastructure.services.logger import log_debug
+        log_debug(f"EditorGroup: load_document chamado para {file_path.name} (page_count={metadata.get('page_count', 0)})")
         self.current_file = file_path
         self.metadata = metadata
         self.viewer_left.load_document(file_path, metadata)

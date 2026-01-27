@@ -40,13 +40,20 @@ class TabContainer(QTabWidget):
     @safe_ui_callback("Open Tab")
     def add_editor(self, file_path, metadata):
         """Adiciona um novo documento em uma nova aba."""
+        from src.infrastructure.services.logger import log_debug
+        
         # Verificar se já está aberto (opcional, para evitar duplicatas nas abas)
         for i in range(self.count()):
             group = self.widget(i)
             if group.current_file == file_path:
                 self.setCurrentIndex(i)
+                # Se metadata do group estiver vazio mas o novo não, recarregar
+                if metadata.get("page_count", 0) > 0 and (not group.metadata or group.metadata.get("page_count", 0) == 0):
+                    log_debug(f"TabContainer: Recarregando documento na aba existente (metadata anterior inválido)")
+                    group.load_document(file_path, metadata)
                 return group
 
+        log_debug(f"TabContainer: Criando nova aba para {file_path.name}")
         group = EditorGroup()
         group.load_document(file_path, metadata)
         
