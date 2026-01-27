@@ -63,6 +63,7 @@ O fotonPDF implementa um sistema de navegação de classe mundial, projetado par
 | `Backspace` | Página Anterior |
 | `Space` | Próxima Página |
 | `N` | Mostrar/Esconder NavHub |
+| `Z` | Ferramenta: Zoom por Área |
 
 #### NavHub (Volante de Controle)
 

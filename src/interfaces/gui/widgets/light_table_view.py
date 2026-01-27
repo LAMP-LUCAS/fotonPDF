@@ -216,6 +216,8 @@ class LightTableView(QGraphicsView):
         elif mod == Qt.KeyboardModifier.NoModifier:
             if key == Qt.Key.Key_P: self.set_tool_mode("pan")
             elif key == Qt.Key.Key_S: self.set_tool_mode("selection")
+            elif key == Qt.Key.Key_Z:
+                self.set_tool_mode("zoom_area")
             elif key == Qt.Key.Key_N:
                 if self.nav_hub.isVisible(): self.nav_hub.hide()
                 else: self.nav_hub.show()

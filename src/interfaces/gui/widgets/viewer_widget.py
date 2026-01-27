@@ -363,6 +363,8 @@ class PDFViewerWidget(QScrollArea):
                 self.set_tool_mode("pan")
             elif key == Qt.Key.Key_S:
                 self.set_tool_mode("selection")
+            elif key == Qt.Key.Key_Z:
+                self.set_tool_mode("zoom_area")
             elif key == Qt.Key.Key_N:
                 # Toggle NavHub
                 if self.nav_hub.isVisible(): self.nav_hub.hide()
