@@ -48,6 +48,7 @@ class PDFViewerWidget(QScrollArea):
     selectionChanged = pyqtSignal(tuple)  # (pdf_x0, pdf_y0, pdf_x1, pdf_y1)
     textExtracted = pyqtSignal(str)  # Texto selecionado extraído
     statusMessageRequested = pyqtSignal(str, int) # (mensagem, timeout_ms)
+    draftNoteRequested = pyqtSignal(str) # Solicitação para enviar texto para rascunho de nota
 
     def __init__(self):
         super().__init__()
@@ -748,10 +749,16 @@ class PDFViewerWidget(QScrollArea):
             
             if all_text_fragments:
                 self._selected_text = " ".join(all_text_fragments)
-                QApplication.clipboard().setText(self._selected_text)
+                # Removed Auto-Copy
+                # QApplication.clipboard().setText(self._selected_text) 
+                
                 self.textExtracted.emit(self._selected_text)
                 log_debug(f"Selection finalized: {len(self._selected_text)} chars")
-                self.statusMessageRequested.emit(f"Seleção consolidada: {len(self._selected_text)} caracteres.", 3000)
+                self.statusMessageRequested.emit(f"Seleção: {len(self._selected_text)} caracteres. Escolha uma ação.", 0)
+                
+                # Trigger Menu Immediately
+                from PyQt6.QtGui import QCursor
+                QTimer.singleShot(50, lambda: self._show_context_menu(QCursor.pos()))
             else:
                 self._selected_text = ""
                 
@@ -772,20 +779,41 @@ class PDFViewerWidget(QScrollArea):
 
     def _show_context_menu(self, pos: QPoint):
         menu = QMenu(self)
-        menu.setStyleSheet("QMenu { background-color: #252526; color: #CCCCCC; border: 1px solid #454545; }")
+        menu.setStyleSheet("QMenu { background-color: #252526; color: #CCCCCC; border: 1px solid #454545; padding: 5px; } QMenu::item { padding: 5px 20px; } QMenu::item:selected { background-color: #37373d; }")
         
-        copy_action = menu.addAction("📋 Copiar")
+        # Info Header
+        info_action = menu.addAction(f"{len(self._selected_text)} caracteres")
+        info_action.setEnabled(False)
+        menu.addSeparator()
+        
+        copy_action = menu.addAction("📋 Copiar Texto")
         highlight_action = menu.addAction("🖍️ Realçar")
-        search_action = menu.addAction("🔍 Pesquisar")
+        note_action = menu.addAction("📝 Criar Nota (Draft)")
+        
+        menu.addSeparator()
+        clear_action = menu.addAction("❌ Limpar Seleção")
         
         action = menu.exec(pos)
+        
         if action == copy_action:
-            log_debug("Context Menu: Copy triggered")
-            # TODO: Integrate with clipboard
+            QApplication.clipboard().setText(self._selected_text)
+            self.statusMessageRequested.emit("Texto copiado para a área de transferência.", 2000)
+            self._clear_selection()
+            
         elif action == highlight_action:
+            # TODO: Integrate with actual Annotation/Highlight logic
             log_debug("Context Menu: Highlight triggered")
-        elif action == search_action:
-            log_debug("Context Menu: Search triggered")
+            # For now, keep the selection visible to simulate highlight persistence until cleared
+            self.statusMessageRequested.emit("Texto marcado (Mock - funcionalidade futura).", 2000)
+            # self._clear_selection() # Keep selection for verify
+            
+        elif action == note_action:
+            self.draftNoteRequested.emit(self._selected_text)
+            self.statusMessageRequested.emit("Texto enviado para painel de notas.", 2000)
+            # self._clear_selection() # Keep selection so user sees what they drafted
+            
+        elif action == clear_action:
+            self._clear_selection()
 
     def mouseMoveEvent(self, event):
         if self._selecting:

@@ -959,6 +959,11 @@ class MainWindow(QMainWindow):
                     # Feedback Visual (Status Bar)
                     self.viewer.statusMessageRequested.connect(lambda msg, ms: self.statusBar().showMessage(msg, ms))
                     
+                    # Conectar Draft Note
+                    try: self.viewer.draftNoteRequested.disconnect()
+                    except: pass
+                    self.viewer.draftNoteRequested.connect(self._on_draft_note_requested)
+                    
                     # Focar visualizador para atalhos imediatos
                     self.viewer.setFocus()
                 except (TypeError, RuntimeError): 
@@ -1512,6 +1517,35 @@ class MainWindow(QMainWindow):
         except Exception as e:
             log_exception(f"Highlight: {e}")
             self.statusBar().showMessage(f"Erro ao realçar: {e}")
+
+    def _on_draft_note_requested(self, text: str):
+        """Receives text from selection and sends to notes panel as draft."""
+        log_debug(f"MainWindow: Recebido pedido de Draft Note: {len(text)} chars")
+        
+        # 1. Ensure Activity Bar is visible
+        if hasattr(self, 'activity_bar') and not self.activity_bar.isVisible():
+             self.activity_bar.setVisible(True)
+        
+        # 2. Activate Notes Tab (Index 3)
+        if hasattr(self.activity_bar, "set_active_index"):
+            self.activity_bar.set_active_index(3)
+        
+        # 3. Force load implementation if lazy
+        self._ensure_panel_loaded("notes")
+        
+        # 4. Inject Text
+        if hasattr(self, 'notes_panel') and self.notes_panel:
+            # Try to set as draft text first
+            if hasattr(self.notes_panel, 'set_draft_text'):
+                self.notes_panel.set_draft_text(text)
+            # Fallback: try adding as a new note
+            elif hasattr(self.notes_panel, 'add_note'):
+                self.notes_panel.add_note(content=text)
+            # Fallback: try setting to a text edit field if exposed
+            elif hasattr(self.notes_panel, 'input_area'):
+                 self.notes_panel.input_area.setPlainText(text)
+            else:
+                log_warning("MainWindow: notes_panel has no suitable method for draft.")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):
