@@ -1,6 +1,6 @@
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLabel, QFrame, QGraphicsOpacityEffect, QMenu
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLabel, QFrame, QGraphicsOpacityEffect, QMenu, QWidgetAction
 from PyQt6.QtCore import Qt, QSize, pyqtSignal, QPropertyAnimation, QPoint, QEasingCurve, QTimer
-from PyQt6.QtGui import QAction, QIcon, QColor
+from PyQt6.QtGui import QAction, QIcon, QColor, QPalette
 
 class ModernNavBar(QFrame):
     """
@@ -22,6 +22,7 @@ class ModernNavBar(QFrame):
     fitPage = pyqtSignal()
     viewAll = pyqtSignal()
     setTool = pyqtSignal(str) # 'pan', 'selection', 'zoom_area'
+    highlightColor = pyqtSignal(str)  # Emits color hex code for highlights
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -103,7 +104,13 @@ class ModernNavBar(QFrame):
         self.btn_zoom.setToolTip("Opções de Zoom e Enquadramento")
         self._setup_zoom_menu()
         
-        # 5. Split/Extras
+        # 5. Highlight Color Palette
+        self.btn_highlight = QPushButton("🖍")
+        self.btn_highlight.setObjectName("main_btn")
+        self.btn_highlight.setToolTip("Cor de Marcação")
+        self._setup_highlight_menu()
+        
+        # 6. Split/Extras
         sep2 = self._create_separator()
         self.btn_split = QPushButton("◫")
         self.btn_split.setToolTip("Dividir Visualização (Split)")
@@ -116,6 +123,7 @@ class ModernNavBar(QFrame):
         self.layout.addWidget(sep1)
         self.layout.addWidget(self.btn_tools)
         self.layout.addWidget(self.btn_zoom)
+        self.layout.addWidget(self.btn_highlight)
         self.layout.addWidget(sep2)
         self.layout.addWidget(self.btn_split)
 
@@ -144,6 +152,58 @@ class ModernNavBar(QFrame):
         menu.addAction(zarea_act)
         
         self.btn_tools.setMenu(menu)
+
+    def _setup_highlight_menu(self):
+        """Creates a color palette menu for highlight annotations."""
+        menu = QMenu(self)
+        menu.setStyleSheet(self._menu_style() + """
+            QPushButton#colorBtn {
+                min-width: 24px;
+                min-height: 24px;
+                max-width: 24px;
+                max-height: 24px;
+                border-radius: 12px;
+                margin: 2px;
+            }
+        """)
+        
+        # Color palette with common highlight colors
+        colors = [
+            ("#FFEB3B", "Amarelo"),
+            ("#4CAF50", "Verde"),
+            ("#2196F3", "Azul"),
+            ("#F44336", "Vermelho"),
+            ("#E91E63", "Rosa"),
+        ]
+        
+        # Create a widget for horizontal color buttons
+        color_widget = QWidget()
+        color_layout = QHBoxLayout(color_widget)
+        color_layout.setContentsMargins(8, 8, 8, 8)
+        color_layout.setSpacing(4)
+        
+        for hex_color, name in colors:
+            btn = QPushButton()
+            btn.setObjectName("colorBtn")
+            btn.setToolTip(name)
+            btn.setStyleSheet(f"background-color: {hex_color}; border: 2px solid rgba(255,255,255,0.3);")
+            btn.clicked.connect(lambda checked, c=hex_color: self._on_color_selected(c, menu))
+            color_layout.addWidget(btn)
+        
+        color_action = QWidgetAction(self)
+        color_action.setDefaultWidget(color_widget)
+        menu.addAction(color_action)
+        
+        self.btn_highlight.setMenu(menu)
+        self._current_highlight_color = "#FFEB3B"  # Default: yellow
+    
+    def _on_color_selected(self, color: str, menu: QMenu):
+        """Handles color selection and updates the highlight button."""
+        self._current_highlight_color = color
+        # Update button to show selected color
+        self.btn_highlight.setStyleSheet(f"background-color: {color}; border-radius: 18px;")
+        self.highlightColor.emit(color)
+        menu.close()
 
     def _setup_zoom_menu(self):
         menu = QMenu(self)

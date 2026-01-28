@@ -65,12 +65,14 @@ class PDFViewerWidget(QScrollArea):
         self._flow_start_word = None  # First word index
         self._current_page_words = {}  # Cache: {page_index: [(x0,y0,x1,y1,word,block,line,word_n)...]}
         self._word_highlight_overlays = []  # List of QLabel widgets for word highlights
+        self._highlight_color = "#FFEB3B"  # Default highlight color (yellow)
         
         # Tool Mode & Interaction
         # Modes: 'pan', 'selection_flow', 'selection_area', 'zoom_area'
         self._tool_mode = "pan"
         self._panning = False
         self._last_mouse_pos = QPoint(0, 0)
+
 
 
     def clear(self):
@@ -507,6 +509,12 @@ class PDFViewerWidget(QScrollArea):
         else:
             self.setCursor(Qt.CursorShape.OpenHandCursor)
 
+    def set_highlight_color(self, color: str):
+        """Sets the highlight color for annotations."""
+        self._highlight_color = color
+        log_debug(f"Highlight color set to: {color}")
+
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         self._update_nav_pos()
@@ -562,18 +570,13 @@ class PDFViewerWidget(QScrollArea):
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
         elif self._tool_mode == "selection_flow" and event.button() == Qt.MouseButton.LeftButton:
-            # Text editor style: word-by-word selection with visual feedback
+            # Text editor style: word-by-word selection (NO RubberBand, only word highlights)
             self._selecting = True
             self._selection_start = event.position().toPoint()
             self._flow_selection_words = []
-            # Create RubberBand for visual feedback
-            if not self._selection_overlay:
-                from PyQt6.QtWidgets import QRubberBand
-                self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
-            self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
-            self._selection_overlay.show()
             # Cache words from the current page for fast lookup
             self._cache_page_words_at_point(self._selection_start)
+
 
         elif self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton:
             self._panning = True

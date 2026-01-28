@@ -146,6 +146,10 @@ class LightTableView(QGraphicsView):
         nav_bar.setTool.connect(self.set_tool_mode)
         nav_bar.viewAll.connect(self.viewport_to_overview)
         
+        # Connect highlight color if signal exists
+        if hasattr(nav_bar, 'highlightColor'):
+            nav_bar.highlightColor.connect(self._on_highlight_color_changed)
+        
         # Conectar Visão de Scroll à troca de modo na MainWindow
         try:
             main_window = self.window()
@@ -153,6 +157,11 @@ class LightTableView(QGraphicsView):
                 nav_bar.viewAll.disconnect() # Limpar conexão de overview se for voltar p/ scroll
                 nav_bar.viewAll.connect(lambda: main_window._switch_view_mode_v4("scroll"))
         except: pass
+
+    def _on_highlight_color_changed(self, color: str):
+        """Handles highlight color change from navbar."""
+        self._highlight_color = color
+
 
     def viewport_to_overview(self):
         """Enquadra todas as páginas na visão atual."""
