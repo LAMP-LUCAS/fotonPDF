@@ -64,6 +64,12 @@ class SideBar(QFrame):
         self.stack = QStackedWidget()
         self.layout.addWidget(self.stack)
         
+        # Pre-populate with 4 placeholder slots (indices 0, 1, 2, 3)
+        # This ensures panel indices match ActivityBar button indices
+        for _ in range(4):
+            placeholder = QWidget()
+            self.stack.addWidget(placeholder)
+        
         # Animations
         self._animation = QPropertyAnimation(self, b"minimumWidth")
         self._animation.setDuration(300)
@@ -75,8 +81,17 @@ class SideBar(QFrame):
         
         self._animation_max.finished.connect(self._on_animation_finished)
 
-    def add_panel(self, widget, title):
-        self.stack.addWidget(widget)
+    def add_panel(self, widget, title, idx=None):
+        """Adds a panel at a specific index, replacing any placeholder."""
+        if idx is not None and 0 <= idx < self.stack.count():
+            # Remove placeholder and insert real widget at same index
+            old = self.stack.widget(idx)
+            self.stack.removeWidget(old)
+            old.deleteLater()
+            self.stack.insertWidget(idx, widget)
+        else:
+            # Fallback: append to end (legacy behavior)
+            self.stack.addWidget(widget)
 
     @safe_ui_callback("Sidebar Panel Switch")
     def show_panel(self, idx, title):

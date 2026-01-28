@@ -1,0 +1,7 @@
+fix(sidebar): corrige inversão de painéis e inconsistência nas Notas
+
+Resolve o problema onde clicar em Pesquisar abria Notas (e vice-versa) devido ao carregamento assíncrono (Lazy Loading) fora de ordem. Agora a SideBar utiliza índices fixos garantidos por placeholders. Além disso, corrigiu a integração do "Draft Note" com o painel de anotações correto.
+
+Arquivos alterados:
+- src/interfaces/gui/widgets/side_bar.py: Implementado preenchimento de placeholders e inserção por índice explícito para garantir coesão com a ActivityBar.
+- src/interfaces/gui/main_window.py: Sincronizado nomes de painéis ("annotations") e corrigido fluxo de redirecionamento de texto selecionado para notas.

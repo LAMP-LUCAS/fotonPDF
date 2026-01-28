@@ -390,7 +390,7 @@ class MainWindow(QMainWindow):
                 self.thumbnails = ThumbnailPanel()
                 self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
                 self.thumbnails.orderChanged.connect(self._on_pages_reordered)
-                self.side_bar.add_panel(self.thumbnails, "Páginas")
+                self.side_bar.add_panel(self.thumbnails, "Páginas", idx=0)
             
             elif name == "search" and not self.search_panel:
                 from src.application.use_cases.search_text import SearchTextUseCase
@@ -399,13 +399,13 @@ class MainWindow(QMainWindow):
                 self.search_panel.result_clicked.connect(
                     lambda page_idx, highlights: self.viewer.scroll_to_page(page_idx, highlights) if self.viewer else None
                 )
-                self.side_bar.add_panel(self.search_panel, "Pesquisar")
+                self.side_bar.add_panel(self.search_panel, "Pesquisar", idx=1)
 
             
             elif name == "toc" and not self.toc_panel:
                 from src.application.use_cases.get_toc import GetTOCUseCase
                 self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
-                self.side_bar.add_panel(self.toc_panel, "Índice")
+                self.side_bar.add_panel(self.toc_panel, "Índice", idx=2)
             
             elif name == "annotations" and not self.annotations_panel:
                 from src.interfaces.gui.widgets.annotations_panel import AnnotationsPanel
@@ -413,7 +413,7 @@ class MainWindow(QMainWindow):
                 self.annotations_panel.annotationClicked.connect(
                     lambda page, aid: self.viewer.scroll_to_page(page) if self.viewer else None
                 )
-                self.side_bar.add_panel(self.annotations_panel, "Notas")
+                self.side_bar.add_panel(self.annotations_panel, "Notas", idx=3)
                 
         except Exception as e:
             log_exception(f"Erro ao carregar painel {name}: {e}")
@@ -1519,33 +1519,33 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Erro ao realçar: {e}")
 
     def _on_draft_note_requested(self, text: str):
-        """Receives text from selection and sends to notes panel as draft."""
+        """Receives text from selection and sends to annotations panel as draft."""
         log_debug(f"MainWindow: Recebido pedido de Draft Note: {len(text)} chars")
         
         # 1. Ensure Activity Bar is visible
         if hasattr(self, 'activity_bar') and not self.activity_bar.isVisible():
              self.activity_bar.setVisible(True)
         
-        # 2. Activate Notes Tab (Index 3)
-        if hasattr(self.activity_bar, "set_active_index"):
+        # 2. Activate Notes Tab (Index 3) - Use correct method name
+        if hasattr(self.activity_bar, 'set_active'):
+            self.activity_bar.set_active(3)
+        elif hasattr(self.activity_bar, 'set_active_index'):
             self.activity_bar.set_active_index(3)
         
-        # 3. Force load implementation if lazy
-        self._ensure_panel_loaded("notes")
+        # 3. Force load annotations panel (correct name)
+        self._ensure_panel_loaded("annotations")
         
-        # 4. Inject Text
-        if hasattr(self, 'notes_panel') and self.notes_panel:
-            # Try to set as draft text first
-            if hasattr(self.notes_panel, 'set_draft_text'):
-                self.notes_panel.set_draft_text(text)
-            # Fallback: try adding as a new note
-            elif hasattr(self.notes_panel, 'add_note'):
-                self.notes_panel.add_note(content=text)
-            # Fallback: try setting to a text edit field if exposed
-            elif hasattr(self.notes_panel, 'input_area'):
-                 self.notes_panel.input_area.setPlainText(text)
-            else:
-                log_warning("MainWindow: notes_panel has no suitable method for draft.")
+        # 4. Inject Text using correct attribute
+        if hasattr(self, 'annotations_panel') and self.annotations_panel:
+            # Get current page if available
+            current_page = 0
+            if self.viewer and hasattr(self.viewer, 'current_page_index'):
+                current_page = self.viewer.current_page_index
+            
+            self.annotations_panel.add_annotation(current_page, text)
+            log_debug(f"MainWindow: Nota adicionada na página {current_page}")
+        else:
+            log_warning("MainWindow: annotations_panel não disponível para draft.")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):
