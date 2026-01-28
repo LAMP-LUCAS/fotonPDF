@@ -60,7 +60,13 @@ class PDFViewerWidget(QScrollArea):
         self._selection_rect = None
         self._selection_overlay = None
         
+        # Flow Selection (word-by-word like text editors)
+        self._flow_selection_words = []  # List of word rects being selected
+        self._flow_start_word = None  # First word index
+        self._current_page_words = {}  # Cache: {page_index: [(x0,y0,x1,y1,word,block,line,word_n)...]}
+        
         # Tool Mode & Interaction
+        # Modes: 'pan', 'selection_flow', 'selection_area', 'zoom_area'
         self._tool_mode = "pan"
         self._panning = False
         self._last_mouse_pos = QPoint(0, 0)
@@ -364,7 +370,11 @@ class PDFViewerWidget(QScrollArea):
             elif key == Qt.Key.Key_P:
                 self.set_tool_mode("pan")
             elif key == Qt.Key.Key_S:
-                self.set_tool_mode("selection")
+                # S = Flow Selection (text editor style)
+                self.set_tool_mode("selection_flow")
+            elif key == Qt.Key.Key_A:
+                # A = Area Selection (CAD style)
+                self.set_tool_mode("selection_area")
             elif key == Qt.Key.Key_Z:
                 self.set_tool_mode("zoom_area")
             elif key == Qt.Key.Key_N:
@@ -372,6 +382,13 @@ class PDFViewerWidget(QScrollArea):
                 if self.nav_hub.isVisible(): self.nav_hub.hide()
                 else: self.nav_hub.show()
                 self._update_nav_pos()
+            else:
+                super().keyPressEvent(event)
+        
+        elif mod == Qt.KeyboardModifier.ShiftModifier:
+            if key == Qt.Key.Key_S:
+                # Shift+S = Area Selection (CAD style)
+                self.set_tool_mode("selection_area")
             else:
                 super().keyPressEvent(event)
         
@@ -384,6 +401,7 @@ class PDFViewerWidget(QScrollArea):
             else: super().keyPressEvent(event)
         else:
             super().keyPressEvent(event)
+
 
     def _on_hub_tool_changed(self, action):
         if action == "pan": self.set_tool_mode("pan")
@@ -469,13 +487,19 @@ class PDFViewerWidget(QScrollArea):
             page.render_page(zoom=self._zoom, mode=self._mode, force=True)
 
     def set_tool_mode(self, mode: str):
-        """Alterna entre 'pan', 'selection' e 'zoom_area'."""
+        """Alterna entre 'pan', 'selection_flow', 'selection_area' e 'zoom_area'."""
+        # Backwards compatibility: 'selection' maps to 'selection_flow'
+        if mode == "selection":
+            mode = "selection_flow"
+        
         self._tool_mode = mode
         if hasattr(self, 'nav_hub'):
             self.nav_hub.set_tool(mode)
             
-        if mode == "selection":
+        if mode == "selection_flow":
             self.setCursor(Qt.CursorShape.IBeamCursor)
+        elif mode == "selection_area":
+            self.setCursor(Qt.CursorShape.CrossCursor)
         elif mode == "zoom_area":
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
@@ -523,8 +547,8 @@ class PDFViewerWidget(QScrollArea):
                 self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
-        elif self._tool_mode == "selection" and event.button() == Qt.MouseButton.LeftButton:
-            # Implementar seleção de texto (futuro) ou RubberBand temporário
+        elif self._tool_mode == "selection_area" and event.button() == Qt.MouseButton.LeftButton:
+            # CAD-style: RubberBand para seleção por área
             self._selecting = True
             self._selection_start = event.position().toPoint()
             if not self._selection_overlay:
@@ -532,11 +556,19 @@ class PDFViewerWidget(QScrollArea):
                 self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
+        elif self._tool_mode == "selection_flow" and event.button() == Qt.MouseButton.LeftButton:
+            # Text editor style: word-by-word selection
+            self._selecting = True
+            self._selection_start = event.position().toPoint()
+            self._flow_selection_words = []
+            # Cache words from the current page for fast lookup
+            self._cache_page_words_at_point(self._selection_start)
         elif self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton:
             self._panning = True
             self._last_mouse_pos = event.position().toPoint()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
         super().mousePressEvent(event)
+
 
     def mouseReleaseEvent(self, event):
         if self._selecting:
@@ -547,22 +579,28 @@ class PDFViewerWidget(QScrollArea):
             if self._tool_mode == "zoom_area":
                 self._apply_zoom_to_selection(self._selection_start, end_pos)
                 self._clear_selection()
-            # Se for modo de seleção de texto, mostrar menu contextual
-            elif self._tool_mode == "selection":
+            # CAD-style area selection
+            elif self._tool_mode == "selection_area":
+                self._process_selection(self._selection_start, end_pos)
                 self._show_context_menu(event.globalPosition().toPoint())
                 QTimer.singleShot(500, self._clear_selection)
+            # Text editor flow selection
+            elif self._tool_mode == "selection_flow":
+                self._process_flow_selection(end_pos)
+                self._show_context_menu(event.globalPosition().toPoint())
             else:
                 self._process_selection(self._selection_start, end_pos)
                 QTimer.singleShot(500, self._clear_selection)
         
         self._panning = False
-        if self._tool_mode == "selection":
+        if self._tool_mode == "selection_flow":
             self.setCursor(Qt.CursorShape.IBeamCursor)
-        elif self._tool_mode == "zoom_area":
+        elif self._tool_mode in ("selection_area", "zoom_area"):
             self.setCursor(Qt.CursorShape.CrossCursor)
         else:
-            self.setCursor(Qt.CursorShape.ArrowCursor)
+            self.setCursor(Qt.CursorShape.OpenHandCursor)
         super().mouseReleaseEvent(event)
+
 
     def _apply_zoom_to_selection(self, start: QPoint, end: QPoint):
         """Calcula e aplica o zoom para que a área selecionada caiba no viewport."""
@@ -682,8 +720,79 @@ class PDFViewerWidget(QScrollArea):
         except Exception as e:
             log_exception(f"Erro ao extrair texto: {e}")
 
+    def _cache_page_words_at_point(self, point: QPoint):
+        """Cache words from the page at the given screen coordinate for flow selection."""
+        try:
+            viewport_offset = self.verticalScrollBar().value()
+            y_absolute = point.y() + viewport_offset
+            
+            for i, page in enumerate(self._pages):
+                page_pos = page.pos()
+                if page_pos.y() <= y_absolute <= page_pos.y() + page.height():
+                    # Found the page, cache its words
+                    from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
+                    import fitz
+                    
+                    with fitz.open(page.source_path) as doc:
+                        fitz_page = doc[page.source_index]
+                        # get_text("words") returns: (x0, y0, x1, y1, "word", block_n, line_n, word_n)
+                        words = fitz_page.get_text("words")
+                        self._current_page_words = {
+                            "page_index": i,
+                            "source_path": page.source_path,
+                            "source_page": page.source_index,
+                            "words": words,
+                            "page_pos": page_pos
+                        }
+                    break
+        except Exception as e:
+            log_exception(f"Erro ao cachear palavras: {e}")
+            self._current_page_words = {}
+
+    def _process_flow_selection(self, end_pos: QPoint):
+        """Processes flow selection by finding words between start and end positions."""
+        try:
+            if not self._current_page_words or not self._current_page_words.get("words"):
+                return
+            
+            words = self._current_page_words["words"]
+            page_pos = self._current_page_words["page_pos"]
+            viewport_offset = self.verticalScrollBar().value()
+            
+            # Convert screen coordinates to PDF points
+            start_x = (self._selection_start.x() - page_pos.x()) / self._zoom
+            start_y = (self._selection_start.y() + viewport_offset - page_pos.y()) / self._zoom
+            end_x = (end_pos.x() - page_pos.x()) / self._zoom
+            end_y = (end_pos.y() + viewport_offset - page_pos.y()) / self._zoom
+            
+            # Find words in the selection range
+            selected_words = []
+            for word_data in words:
+                x0, y0, x1, y1 = word_data[:4]
+                word_text = word_data[4]
+                
+                # Check if word center is within selection range (simplified)
+                word_cx = (x0 + x1) / 2
+                word_cy = (y0 + y1) / 2
+                
+                # Selection bounds (normalize)
+                sel_x0, sel_x1 = min(start_x, end_x), max(start_x, end_x)
+                sel_y0, sel_y1 = min(start_y, end_y), max(start_y, end_y)
+                
+                if sel_x0 <= word_cx <= sel_x1 and sel_y0 <= word_cy <= sel_y1:
+                    selected_words.append(word_text)
+            
+            if selected_words:
+                text = " ".join(selected_words)
+                clipboard = QApplication.clipboard()
+                clipboard.setText(text)
+                log_debug(f"Flow selection: {len(selected_words)} palavras copiadas")
+                self.textExtracted.emit(text)
+        except Exception as e:
+            log_exception(f"Erro na seleção de fluxo: {e}")
 
     def wheelEvent(self, event):
+
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:
             factor = 1.2 if event.angleDelta().y() > 0 else 1.0 / 1.2
             self.set_zoom(self._zoom * factor, focus_pos=event.position())

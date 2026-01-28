@@ -395,7 +395,12 @@ class MainWindow(QMainWindow):
             elif name == "search" and not self.search_panel:
                 from src.application.use_cases.search_text import SearchTextUseCase
                 self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
+                # CRITICAL: Connect result click to viewer navigation
+                self.search_panel.result_clicked.connect(
+                    lambda page_idx, highlights: self.viewer.scroll_to_page(page_idx, highlights) if self.viewer else None
+                )
                 self.side_bar.add_panel(self.search_panel, "Pesquisar")
+
             
             elif name == "toc" and not self.toc_panel:
                 from src.application.use_cases.get_toc import GetTOCUseCase
@@ -918,6 +923,15 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     log_exception(f"MainWindow: Falha ao atualizar TOC: {e}")
             log_debug("MainWindow [TAB_CHANGED]: [3/5] TOC OK.")
+            
+            # Sincronizar SearchPanel com o documento ativo
+            if self.search_panel:
+                try:
+                    self.search_panel.set_pdf(file_path)
+                except Exception as e:
+                    log_exception(f"MainWindow: Falha ao atualizar Search: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [3.5/5] Search OK.")
+
                 
             if self.inspector and hasattr(self.inspector, 'update_metadata'):
                 try:
