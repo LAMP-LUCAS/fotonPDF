@@ -372,3 +372,22 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
                 return page.get_textbox(area)
         except Exception:
             return ""
+    @staticmethod
+    def get_text(path: str, page_index: int, option: str = "text"):
+        """
+        Extrai texto ou estrutura de uma página de forma estática.
+        option: "text", "blocks", "words", "html", etc.
+        """
+        try:
+            doc = fitz.open(str(path))
+            # Validação básica
+            if page_index < 0 or page_index >= doc.page_count:
+                return None
+            
+            page = doc[page_index]
+            result = page.get_text(option)
+            doc.close()
+            return result
+        except Exception as e:
+            print(f"Error extracting text from {path}: {e}")
+            return None

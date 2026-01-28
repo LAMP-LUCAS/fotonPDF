@@ -947,12 +947,17 @@ class MainWindow(QMainWindow):
                     except: pass
                     try: self.viewer.selectionChanged.disconnect()
                     except: pass
+                    try: self.viewer.statusMessageRequested.disconnect()
+                    except: pass
                     # Nota: Não desconectamos nav_bar aqui pois é interna do viewer, mas ok.
                     
                     self.viewer.pageChanged.connect(self._on_page_changed, Qt.ConnectionType.UniqueConnection)
                     # Conectar seleção à telemetria (MM)
                     self.viewer.selectionChanged.connect(self._on_selection_changed, Qt.ConnectionType.UniqueConnection)
                     self.viewer.nav_bar.toggleSplit.connect(self._on_split_clicked, Qt.ConnectionType.UniqueConnection)
+                    
+                    # Feedback Visual (Status Bar)
+                    self.viewer.statusMessageRequested.connect(lambda msg, ms: self.statusBar().showMessage(msg, ms))
                     
                     # Focar visualizador para atalhos imediatos
                     self.viewer.setFocus()
