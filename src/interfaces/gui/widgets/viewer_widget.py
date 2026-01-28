@@ -1,5 +1,5 @@
 from pathlib import Path
-from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame, QMenu
+from PyQt6.QtWidgets import QScrollArea, QVBoxLayout, QWidget, QFrame, QMenu, QApplication, QRubberBand
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QPoint
 from src.interfaces.gui.widgets.page_widget import PageWidget
 from src.infrastructure.services.logger import log_debug, log_warning, log_error, log_exception
@@ -11,6 +11,8 @@ from src.interfaces.gui.widgets.marker_scrollbar import MarkerScrollBar
 class PDFViewerWidget(QScrollArea):
     """Visualizador que suporta documentos virtuais (múltiplas fontes)."""
     pageChanged = pyqtSignal(int)
+    selectionChanged = pyqtSignal(tuple)  # (pdf_x0, pdf_y0, pdf_x1, pdf_y1)
+    textExtracted = pyqtSignal(str)  # Texto selecionado extraído
 
     def __init__(self):
         super().__init__()
@@ -628,7 +630,7 @@ class PDFViewerWidget(QScrollArea):
         super().mouseMoveEvent(event)
 
     def _process_selection(self, start, end):
-        """Converte as coordenadas da tela para as coordenadas do PDF e emite o sinal."""
+        """Converte as coordenadas da tela para as coordenadas do PDF e extrai o texto."""
         # Achar em qual página o clique começou
         viewport_offset = self.verticalScrollBar().value()
         start_y_absolute = start.y() + viewport_offset
@@ -638,7 +640,6 @@ class PDFViewerWidget(QScrollArea):
             if page_pos.y() <= start_y_absolute <= page_pos.y() + page.height():
                 # Encontrou a página
                 # Converter coordenadas locais do widget para pontos do PDF (72 DPI)
-                # Levando em conta o Zoom e a margem do container
                 local_x = start.x() - page_pos.x()
                 local_y = start_y_absolute - page_pos.y()
                 
@@ -646,14 +647,41 @@ class PDFViewerWidget(QScrollArea):
                 local_x_end = end.x() - page_pos.x()
                 local_y_end = end.y() + viewport_offset - page_pos.y()
                 
-                # Normalizar zoom
+                # Normalizar zoom para coordenadas PDF
                 pdf_x0 = min(local_x, local_x_end) / self._zoom
                 pdf_y0 = min(local_y, local_y_end) / self._zoom
                 pdf_x1 = max(local_x, local_x_end) / self._zoom
                 pdf_y1 = max(local_y, local_y_end) / self._zoom
                 
                 self.selectionChanged.emit((pdf_x0, pdf_y0, pdf_x1, pdf_y1))
+                
+                # Extrair texto real via PyMuPDF
+                self._extract_and_copy_text(page.source_path, page.source_index, pdf_x0, pdf_y0, pdf_x1, pdf_y1)
                 break
+
+    def _extract_and_copy_text(self, source_path: str, page_index: int, x0: float, y0: float, x1: float, y1: float):
+        """Extrai texto da área selecionada usando PyMuPDF e copia para o clipboard."""
+        try:
+            from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
+            adapter = PyMuPDFAdapter()
+            
+            # Criar rect no formato PyMuPDF (x0, y0, x1, y1)
+            rect = (x0, y0, x1, y1)
+            
+            # Open document and extract text
+            text = adapter.get_text_in_rect(source_path, page_index, rect)
+            
+            if text and text.strip():
+                # Copiar para o clipboard
+                clipboard = QApplication.clipboard()
+                clipboard.setText(text.strip())
+                log_debug(f"Texto copiado para clipboard: {text[:50]}...")
+                self.textExtracted.emit(text.strip())
+            else:
+                log_debug("Nenhum texto encontrado na área selecionada.")
+        except Exception as e:
+            log_exception(f"Erro ao extrair texto: {e}")
+
 
     def wheelEvent(self, event):
         if event.modifiers() == Qt.KeyboardModifier.ControlModifier:

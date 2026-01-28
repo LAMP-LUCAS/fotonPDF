@@ -354,3 +354,21 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
             rect = fitz.Rect(area)
             # Tenta extrair texto via OCR apenas daquela área
             return page.get_textbox(rect, method="ocr", language=language)
+
+    def get_text_in_rect(self, pdf_path: Path | str, page_index: int, rect: Tuple[float, float, float, float]) -> str:
+        """
+        Extrai texto de uma área específica SEM usar OCR.
+        Ideal para PDFs com camada de texto existente.
+        """
+        try:
+            pdf_path_str = str(pdf_path) if isinstance(pdf_path, Path) else pdf_path
+            with fitz.open(pdf_path_str) as doc:
+                if page_index < 0 or page_index >= len(doc):
+                    return ""
+                page = doc[page_index]
+                # Converte Tupla (x0, y0, x1, y1) para Rect
+                area = fitz.Rect(rect)
+                # Extrai texto da área usando a camada de texto existente
+                return page.get_textbox(area)
+        except Exception:
+            return ""

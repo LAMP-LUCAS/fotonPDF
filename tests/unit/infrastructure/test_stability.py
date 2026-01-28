@@ -29,9 +29,12 @@ class MockQtCore:
     pyqtSignal = lambda *args: MockSignal()
     pyqtSlot = lambda *args: lambda x: x
     QTimer = MockQTimer
+    QMutex = MagicMock
+    QMutexLocker = MagicMock
     @staticmethod
     def singleShot(ms, callback): callback()
     def __getattr__(self, name): return MagicMock()
+
 
 # We need sys for the module patching
 import sys

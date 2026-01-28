@@ -37,13 +37,14 @@ class PageItem(QGraphicsPixmapItem):
     def update_render(self, zoom):
         """Solicita uma renderização condizente com o zoom atual."""
         from src.interfaces.gui.state.render_engine import RenderEngine
-        # Limitar o zoom para evitar sobrecarga (Mesa de Luz costuma ser visão geral)
-        target_zoom = max(0.3, min(zoom, 1.5))
+        # Permitir qualidade Hi-Res até 3.0x para evitar pixelização em zooms próximos
+        target_zoom = max(0.3, min(zoom, 3.0))
         
         RenderEngine.instance().request_render(
             self.source_path, self.page_index, target_zoom, 0, 
             lambda idx, pix, z, r, m, c: self._on_render_finished(pix)
         )
+
 
     def itemChange(self, change, value):
         if change == QGraphicsPixmapItem.GraphicsItemChange.ItemPositionHasChanged:

@@ -34,6 +34,7 @@ class PageWidget(QLabel):
 
     def update_layout_size(self, zoom: float):
         """Define o tamanho físico do widget ANTES da renderização para estabilizar o scroll."""
+        old_zoom = self.zoom
         self.zoom = zoom
         if self.width_pt > 0 and self.height_pt > 0:
             new_w = int(self.width_pt * zoom)
@@ -42,6 +43,9 @@ class PageWidget(QLabel):
                 self.setFixedSize(new_w, new_h)
                 # Se o zoom mudou, o cache antigo é inválido
                 self._base_pixmap = None
+                # CRÍTICO: Marcar como não renderizado para forçar nova requisição
+                self._rendered = False
+
 
     def render_page(self, zoom=None, rotation=None, mode=None, force=False, clip=None, priority=0):
         """Solicita renderização. Suporta 'clip' para Tiling em arquivos pesados."""
