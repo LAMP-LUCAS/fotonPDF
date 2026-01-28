@@ -64,12 +64,14 @@ class PDFViewerWidget(QScrollArea):
         self._flow_selection_words = []  # List of word rects being selected
         self._flow_start_word = None  # First word index
         self._current_page_words = {}  # Cache: {page_index: [(x0,y0,x1,y1,word,block,line,word_n)...]}
+        self._word_highlight_overlays = []  # List of QLabel widgets for word highlights
         
         # Tool Mode & Interaction
         # Modes: 'pan', 'selection_flow', 'selection_area', 'zoom_area'
         self._tool_mode = "pan"
         self._panning = False
         self._last_mouse_pos = QPoint(0, 0)
+
 
     def clear(self):
         """Limpa o visualizador e encerra processos pendentes."""
@@ -528,6 +530,9 @@ class PDFViewerWidget(QScrollArea):
         self._selecting = False
         if self._selection_overlay:
             self._selection_overlay.hide()
+        # Also clear word highlights
+        self._clear_word_highlights()
+
 
     def mousePressEvent(self, event):
         if self._selection_mode and event.button() == Qt.MouseButton.LeftButton:
@@ -557,12 +562,19 @@ class PDFViewerWidget(QScrollArea):
             self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
             self._selection_overlay.show()
         elif self._tool_mode == "selection_flow" and event.button() == Qt.MouseButton.LeftButton:
-            # Text editor style: word-by-word selection
+            # Text editor style: word-by-word selection with visual feedback
             self._selecting = True
             self._selection_start = event.position().toPoint()
             self._flow_selection_words = []
+            # Create RubberBand for visual feedback
+            if not self._selection_overlay:
+                from PyQt6.QtWidgets import QRubberBand
+                self._selection_overlay = QRubberBand(QRubberBand.Shape.Rectangle, self)
+            self._selection_overlay.setGeometry(self._selection_start.x(), self._selection_start.y(), 0, 0)
+            self._selection_overlay.show()
             # Cache words from the current page for fast lookup
             self._cache_page_words_at_point(self._selection_start)
+
         elif self._tool_mode == "pan" and event.button() == Qt.MouseButton.LeftButton:
             self._panning = True
             self._last_mouse_pos = event.position().toPoint()
@@ -588,6 +600,8 @@ class PDFViewerWidget(QScrollArea):
             elif self._tool_mode == "selection_flow":
                 self._process_flow_selection(end_pos)
                 self._show_context_menu(event.globalPosition().toPoint())
+                QTimer.singleShot(500, self._clear_selection)
+
             else:
                 self._process_selection(self._selection_start, end_pos)
                 QTimer.singleShot(500, self._clear_selection)
@@ -653,12 +667,18 @@ class PDFViewerWidget(QScrollArea):
 
     def mouseMoveEvent(self, event):
         if self._selecting:
-            self._selection_overlay.setGeometry(
-                int(min(self._selection_start.x(), event.position().x())),
-                int(min(self._selection_start.y(), event.position().y())),
-                int(abs(self._selection_start.x() - event.position().x())),
-                int(abs(self._selection_start.y() - event.position().y()))
-            )
+            # Update RubberBand for visual feedback
+            if self._selection_overlay:
+                self._selection_overlay.setGeometry(
+                    int(min(self._selection_start.x(), event.position().x())),
+                    int(min(self._selection_start.y(), event.position().y())),
+                    int(abs(self._selection_start.x() - event.position().x())),
+                    int(abs(self._selection_start.y() - event.position().y()))
+                )
+            
+            # For flow selection, also highlight individual words
+            if self._tool_mode == "selection_flow" and self._current_page_words:
+                self._update_word_highlights(event.position().toPoint())
 
         elif self._panning:
             delta = event.position().toPoint() - self._last_mouse_pos
@@ -666,6 +686,66 @@ class PDFViewerWidget(QScrollArea):
             self.horizontalScrollBar().setValue(self.horizontalScrollBar().value() - delta.x())
             self.verticalScrollBar().setValue(self.verticalScrollBar().value() - delta.y())
         super().mouseMoveEvent(event)
+
+    def _update_word_highlights(self, current_pos: QPoint):
+        """Updates word highlight overlays during selection drag."""
+        try:
+            # Clear existing highlights
+            for overlay in self._word_highlight_overlays:
+                overlay.deleteLater()
+            self._word_highlight_overlays.clear()
+            
+            if not self._current_page_words or not self._current_page_words.get("words"):
+                return
+            
+            words = self._current_page_words["words"]
+            page_pos = self._current_page_words["page_pos"]
+            viewport_offset = self.verticalScrollBar().value()
+            
+            # Convert screen coordinates to PDF points
+            start_x = (self._selection_start.x() - page_pos.x()) / self._zoom
+            start_y = (self._selection_start.y() + viewport_offset - page_pos.y()) / self._zoom
+            end_x = (current_pos.x() - page_pos.x()) / self._zoom
+            end_y = (current_pos.y() + viewport_offset - page_pos.y()) / self._zoom
+            
+            # Selection bounds (normalize)
+            sel_x0, sel_x1 = min(start_x, end_x), max(start_x, end_x)
+            sel_y0, sel_y1 = min(start_y, end_y), max(start_y, end_y)
+            
+            # Find and highlight words in selection range
+            from PyQt6.QtWidgets import QLabel
+            from PyQt6.QtGui import QColor
+            
+            for word_data in words:
+                x0, y0, x1, y1 = word_data[:4]
+                word_cx = (x0 + x1) / 2
+                word_cy = (y0 + y1) / 2
+                
+                if sel_x0 <= word_cx <= sel_x1 and sel_y0 <= word_cy <= sel_y1:
+                    # Create highlight overlay for this word
+                    # Convert PDF coords back to screen coords
+                    screen_x = int(x0 * self._zoom + page_pos.x())
+                    screen_y = int(y0 * self._zoom + page_pos.y() - viewport_offset)
+                    screen_w = int((x1 - x0) * self._zoom)
+                    screen_h = int((y1 - y0) * self._zoom)
+                    
+                    highlight = QLabel(self)
+                    highlight.setStyleSheet("background-color: rgba(51, 153, 255, 0.4); border-radius: 2px;")
+                    highlight.setGeometry(screen_x, screen_y, screen_w, screen_h)
+                    highlight.show()
+                    self._word_highlight_overlays.append(highlight)
+                    
+        except Exception as e:
+            pass  # Silently fail to avoid spam during drag
+
+    def _clear_word_highlights(self):
+        """Clears all word highlight overlays."""
+        for overlay in self._word_highlight_overlays:
+            overlay.deleteLater()
+        self._word_highlight_overlays.clear()
+
+
+
 
     def _process_selection(self, start, end):
         """Converte as coordenadas da tela para as coordenadas do PDF e extrai o texto."""
@@ -752,7 +832,11 @@ class PDFViewerWidget(QScrollArea):
     def _process_flow_selection(self, end_pos: QPoint):
         """Processes flow selection by finding words between start and end positions."""
         try:
+            log_debug(f"Flow selection: Starting with cache={bool(self._current_page_words)}")
             if not self._current_page_words or not self._current_page_words.get("words"):
+                log_debug("Flow selection: No cached words, falling back to area selection")
+                # Fallback to area selection if no words cached
+                self._process_selection(self._selection_start, end_pos)
                 return
             
             words = self._current_page_words["words"]
@@ -764,6 +848,8 @@ class PDFViewerWidget(QScrollArea):
             start_y = (self._selection_start.y() + viewport_offset - page_pos.y()) / self._zoom
             end_x = (end_pos.x() - page_pos.x()) / self._zoom
             end_y = (end_pos.y() + viewport_offset - page_pos.y()) / self._zoom
+            
+            log_debug(f"Flow selection: Area ({start_x:.0f},{start_y:.0f}) to ({end_x:.0f},{end_y:.0f}), {len(words)} words in page")
             
             # Find words in the selection range
             selected_words = []
@@ -786,10 +872,13 @@ class PDFViewerWidget(QScrollArea):
                 text = " ".join(selected_words)
                 clipboard = QApplication.clipboard()
                 clipboard.setText(text)
-                log_debug(f"Flow selection: {len(selected_words)} palavras copiadas")
+                log_debug(f"Flow selection: {len(selected_words)} palavras copiadas para clipboard")
                 self.textExtracted.emit(text)
+            else:
+                log_debug("Flow selection: Nenhuma palavra encontrada na área")
         except Exception as e:
             log_exception(f"Erro na seleção de fluxo: {e}")
+
 
     def wheelEvent(self, event):
 
