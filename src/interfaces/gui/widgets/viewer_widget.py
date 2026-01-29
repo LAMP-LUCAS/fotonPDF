@@ -49,6 +49,7 @@ class PDFViewerWidget(QScrollArea):
     textExtracted = pyqtSignal(str)  # Texto selecionado extraído
     statusMessageRequested = pyqtSignal(str, int) # (mensagem, timeout_ms)
     draftNoteRequested = pyqtSignal(str) # Solicitação para enviar texto para rascunho de nota
+    highlightRequested = pyqtSignal(int, tuple, tuple) # page_idx, rect (x0,y0,x1,y1), color (r,g,b)
 
     def __init__(self):
         super().__init__()
@@ -107,7 +108,7 @@ class PDFViewerWidget(QScrollArea):
         # Single unified selection model like Chrome PDF viewer
         self._selected_word_rects = []  # List of current DRAG highlights
         self._persistent_selection = {} # Cache of { (page_idx, word_idx): rect_data }
-        self._current_page_words = {}  # Cache: {words: [...], page_pos: QPoint}
+        self._visible_pages_words = []  # Cache: list of {words: [...], page_pos: QPoint, page_index: int}
         self._selected_text = ""  # Text currently selected
         self._highlight_color = "#3399FF"  # Selection blue
         self._persistent_highlight_color = "#2196F3" # Solid blue for saved selection
@@ -600,7 +601,7 @@ class PDFViewerWidget(QScrollArea):
             if self._selection_modifier == Qt.KeyboardModifier.NoModifier:
                 self._persistent_selection = {}
                 
-            self._cache_page_words_at_point(container_pos)
+            self._cache_visible_pages_words()
             self.container._overlay.update()
             
         elif self._tool_mode == "pan":
@@ -679,14 +680,42 @@ class PDFViewerWidget(QScrollArea):
 
     def _draw_selection_highlight(self, painter):
         """Paint selected word rectangles and the selection box (AutoCAD style)."""
+        # 0. Draw Temporary Highlights (Search Results)
+        if hasattr(self, '_temporary_highlights') and self._temporary_highlights:
+             # Golden Yellow for Search
+             color = QColor(255, 215, 0)
+             # Fade out effect based on timer (mocked for now as static alpha)
+             color.setAlpha(120)
+             painter.setBrush(color)
+             painter.setPen(Qt.PenStyle.NoPen)
+             for page_idx, rects in self._temporary_highlights.items():
+                 # We need to map page_idx to current page widgets to draw correct positions
+                 if 0 <= page_idx < len(self._pages):
+                     page = self._pages[page_idx]
+                     # Check if page is visible (optimization)
+                     if page.isVisible():
+                         # Translate PDF rects to Paint coordinates relative to Container
+                         page_pos = page.pos()
+                         for r in rects:
+                             # r is (x0, y0, x1, y1) in PDF points
+                             rx = int(r[0] * self._zoom + page_pos.x())
+                             ry = int(r[1] * self._zoom + page_pos.y())
+                             rw = int((r[2] - r[0]) * self._zoom)
+                             rh = int((r[3] - r[1]) * self._zoom)
+                             painter.drawRect(rx, ry, rw, rh)
+
         # 1. Draw Persistent Selection (already selected words)
         if self._persistent_selection:
             color = QColor(self._persistent_highlight_color)
             color.setAlpha(100) # Semi-transparent blue
             painter.setBrush(color)
             painter.setPen(Qt.PenStyle.NoPen)
-            for rect_tuple in self._persistent_selection.values():
-                painter.drawRect(*rect_tuple)
+            for rect_data in self._persistent_selection.values():
+                # rect_data is now (paint_rect, pdf_rect) - HANDLE BOTH CASES during migration
+                if isinstance(rect_data, tuple) and len(rect_data) == 2 and isinstance(rect_data[0], tuple):
+                     painter.drawRect(*rect_data[0])
+                else:
+                     painter.drawRect(*rect_data)
 
         # 2. Draw Current Drag (pending selection)
         if self._selected_word_rects:
@@ -795,8 +824,40 @@ class PDFViewerWidget(QScrollArea):
         
         action = menu.exec(pos)
         
+        
         if action == copy_action:
             QApplication.clipboard().setText(self._selected_text)
+        elif action == highlight_action:
+            # Calculate Union Rect of selection for current page (P0: Single Page support first)
+            if not self._persistent_selection: return
+            
+            # Group vars
+            page_idx = -1
+            min_x, min_y = 99999, 99999
+            max_x, max_y = -99999, -99999
+            
+            for (p_idx, _), data in self._persistent_selection.items():
+                if isinstance(data, tuple) and len(data) == 2:
+                    pdf_rect = data[1]
+                    page_idx = p_idx # Take the last one found
+                    min_x = min(min_x, pdf_rect[0])
+                    min_y = min(min_y, pdf_rect[1])
+                    max_x = max(max_x, pdf_rect[2])
+                    max_y = max(max_y, pdf_rect[3])
+            
+            if page_idx != -1:
+                # Emit Signal
+                rect = (min_x, min_y, max_x, max_y)
+                color = (1, 1, 0) # Yellow default
+                self.highlightRequested.emit(page_idx, rect, color)
+                # Clear selection visual
+                self._clear_selection()
+
+        elif action == note_action:
+            self.draftNoteRequested.emit(self._selected_text)
+            self._clear_selection()
+        elif action == clear_action:
+            self._clear_selection()
             self.statusMessageRequested.emit("Texto copiado para a área de transferência.", 2000)
             self._clear_selection()
             
@@ -854,52 +915,51 @@ class PDFViewerWidget(QScrollArea):
             self._selected_word_rects = []
             self._current_drag_ids = [] # (page_idx, word_idx)
             
-            if not self._current_page_words or not self._current_page_words.get("words"):
+            if not self._visible_pages_words:
                 return
             
             self._selection_is_crossing = current_pos.x() >= self._selection_start.x()
             # Normalize to ensure valid positive dimensions
             self._current_selection_rect = QRect(self._selection_start, current_pos).normalized()
             
-            words = self._current_page_words["words"]
-            page_pos = self._current_page_words["page_pos"]
-            page_idx = self._current_page_words["page_index"]
+            # Iterate over ALL cached pages
+            total_words_selected = 0
             
-            # Debug: Print container and page coordinates
-            # log_debug(f"Selection Rect (Container): {self._current_selection_rect}")
-            # log_debug(f"Page Pos: {page_pos}")
-            
-            sel_x0 = (self._current_selection_rect.left() - page_pos.x()) / self._zoom
-            sel_y0 = (self._current_selection_rect.top() - page_pos.y()) / self._zoom
-            sel_x1 = (self._current_selection_rect.right() - page_pos.x()) / self._zoom
-            sel_y1 = (self._current_selection_rect.bottom() - page_pos.y()) / self._zoom
-            
-            # Debug: Print PDF coordinates
-            # log_debug(f"Selection Rect (PDF Points): {sel_x0}, {sel_y0} -> {sel_x1}, {sel_y1}")
+            for page_data in self._visible_pages_words:
+                words = page_data["words"]
+                page_pos = page_data["page_pos"]
+                page_idx = page_data["page_index"]
+                
+                # Calculate selection rect relative to THIS page's PDF coordinates
+                sel_x0 = (self._current_selection_rect.left() - page_pos.x()) / self._zoom
+                sel_y0 = (self._current_selection_rect.top() - page_pos.y()) / self._zoom
+                sel_x1 = (self._current_selection_rect.right() - page_pos.x()) / self._zoom
+                sel_y1 = (self._current_selection_rect.bottom() - page_pos.y()) / self._zoom
 
-            for i, word_data in enumerate(words):
-                x0, y0, x1, y1 = word_data[:4]
-                
-                is_selected = False
-                if self._selection_is_crossing:
-                    is_selected = not (x1 < sel_x0 or x0 > sel_x1 or y1 < sel_y0 or y0 > sel_y1)
-                else:
-                    is_selected = (x0 >= sel_x0 and x1 <= sel_x1 and y0 >= sel_y0 and y1 <= sel_y1)
-                
-                if is_selected:
-                    rect_x = int(x0 * self._zoom + page_pos.x())
-                    rect_y = int(y0 * self._zoom + page_pos.y())
-                    rect_w = int((x1 - x0) * self._zoom)
-                    rect_h = int((y1 - y0) * self._zoom)
+                for i, word_data in enumerate(words):
+                    x0, y0, x1, y1 = word_data[:4]
                     
-                    self._selected_word_rects.append((rect_x, rect_y, rect_w, rect_h))
-                    self._current_drag_ids.append((page_idx, i, (rect_x, rect_y, rect_w, rect_h)))
+                    is_selected = False
+                    if self._selection_is_crossing:
+                        is_selected = not (x1 < sel_x0 or x0 > sel_x1 or y1 < sel_y0 or y0 > sel_y1)
+                    else:
+                        is_selected = (x0 >= sel_x0 and x1 <= sel_x1 and y0 >= sel_y0 and y1 <= sel_y1)
+                    
+                    if is_selected:
+                        rect_x = int(x0 * self._zoom + page_pos.x())
+                        rect_y = int(y0 * self._zoom + page_pos.y())
+                        rect_w = int((x1 - x0) * self._zoom)
+                        rect_h = int((y1 - y0) * self._zoom)
+                        
+                        self._selected_word_rects.append((rect_x, rect_y, rect_w, rect_h))
+                        self._current_drag_ids.append((page_idx, i, (rect_x, rect_y, rect_w, rect_h), (x0, y0, x1, y1)))
+                        total_words_selected += 1
                     
             mode_text = "Crossing (L->R)" if self._selection_is_crossing else "Window (R->L)"
             mod_text = " [+]" if self._selection_modifier & Qt.KeyboardModifier.ShiftModifier else \
                        " [-]" if self._selection_modifier & Qt.KeyboardModifier.ControlModifier else ""
-            self.statusMessageRequested.emit(f"Seleção {mode_text}{mod_text}: {len(self._selected_word_rects)} palavras", 0)
-                    
+            self.statusMessageRequested.emit(f"Seleção {mode_text}{mod_text}: {total_words_selected} palavras", 0)
+                
         except Exception as e:
             log_error(f"Error updating selection: {e}")
 
@@ -910,42 +970,54 @@ class PDFViewerWidget(QScrollArea):
 
         if self._selection_modifier & Qt.KeyboardModifier.ShiftModifier:
             # Additive
-            for page_idx, word_idx, rect in self._current_drag_ids:
-                self._persistent_selection[(page_idx, word_idx)] = rect
+            for page_idx, word_idx, rect, pdf_rect in self._current_drag_ids:
+                self._persistent_selection[(page_idx, word_idx)] = (rect, pdf_rect)
         elif self._selection_modifier & Qt.KeyboardModifier.ControlModifier:
             # Subtractive
-            for page_idx, word_idx, _ in self._current_drag_ids:
+            for page_idx, word_idx, _, _ in self._current_drag_ids:
                 if (page_idx, word_idx) in self._persistent_selection:
                     del self._persistent_selection[(page_idx, word_idx)]
         else:
             # Overwrite
             self._persistent_selection = {}
-            for page_idx, word_idx, rect in self._current_drag_ids:
-                self._persistent_selection[(page_idx, word_idx)] = rect
+            for page_idx, word_idx, rect, pdf_rect in self._current_drag_ids:
+                self._persistent_selection[(page_idx, word_idx)] = (rect, pdf_rect)
         
         self._selected_word_rects = [] # Clear current drag view
         self._current_selection_rect = None
 
-    def _cache_page_words_at_point(self, pos: QPoint):
-        """Identifies page under cursor (container coords) and caches words."""
+    def _cache_visible_pages_words(self):
+        """Identifies ALL pages intersecting viewport and caches words."""
         try:
             from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
             
-            self._current_page_words = {}
+            self._visible_pages_words = []
+            
+            # Simple heuristic: Identify pages effectively visible + buffer
+            # Actually better: Just re-use visibility logic or check geometry intersection
+            
+            scroll_v = self.verticalScrollBar().value()
+            view_h = self.viewport().height()
+            
+            top_y = scroll_v - 100
+            bottom_y = scroll_v + view_h + 100
             
             for i, page in enumerate(self._pages):
-                if page.geometry().contains(pos):
-                    log_debug(f"Selection start on page {i+1}")
+                # Check vertical intersection first (optimization)
+                py = page.pos().y()
+                ph = page.height()
+                
+                if py + ph > top_y and py < bottom_y:
+                    # It's visible (or close to)
                     words = PyMuPDFAdapter.get_text(str(page.source_path), page.source_index, "words")
-                    
-                    self._current_page_words = {
-                        "words": words,
-                        "page_pos": page.pos(), # Container pos
-                        "page_index": i
-                    }
-                    return
+                    if words:
+                        self._visible_pages_words.append({
+                            "words": words,
+                            "page_pos": page.pos(), # Container pos
+                            "page_index": i
+                        })
             
-            log_debug("Selection started outside any page")
+            log_debug(f"Cached words for {len(self._visible_pages_words)} visible pages")
             
         except Exception as e:
             log_error(f"Failed to cache words: {e}")
@@ -989,10 +1061,7 @@ class PDFViewerWidget(QScrollArea):
             self.verticalScrollBar().setValue(y)
             
             if highlights:
-                page = self._pages[visual_index]
-                page.set_highlights(highlights)
-                # Limpar após 2 segundos (efeito temporário estilo VS Code)
-                QTimer.singleShot(2000, lambda: page.set_highlights([]))
+                self._show_temporary_highlights(visual_index, highlights)
 
     def closeEvent(self, event):
         self.clear()

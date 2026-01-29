@@ -119,6 +119,7 @@ class InspectorPanel(ResilientWidget):
         
         try:
             # Lazy Loading: Garante que a UI esteja criada
+            log_debug("Inspector: Verificando lazy init...")
             self._initialize_ui_lazy()
             if not self._ui_initialized: 
                 log_debug("Inspector: UI não inicializada, abortando update.")
@@ -127,32 +128,48 @@ class InspectorPanel(ResilientWidget):
             self.show_placeholder(False)
             
             # Simplesmente pegamos a primeira página para o formato principal
+            log_debug("Inspector: Processando dimensões...")
             if metadata.get("pages"):
                 page = metadata["pages"][0]
                 self.lbl_format.setText(page.get("format", "---"))
                 self.lbl_dims.setText(f"{int(page.get('width_mm', 0))} x {int(page.get('height_mm', 0))}")
             
-            # Atualizar Camadas (com proteção de performance)
+            # Atualizar Camadas (DEFERRED LOADING para evitar travamento da UI)
+            log_debug("Inspector: Limpando camadas...")
             self._clear_layers()
+            
+            log_debug("Inspector: Lendo lista de camadas do metadata...")
             layers = metadata.get("layers", [])
-            log_debug(f"Inspector: Atualizando {len(layers)} camadas.")
+            
+            log_debug(f"Inspector: Calculando len(layers)...")
+            count = len(layers)
+            log_debug(f"Inspector: Agendando atualização de {count} camadas...")
         
-        # Bloquear updates de layout durante a inserção massiva
-        self.layers_container.setUpdatesEnabled(False)
-        
-        # Limite de segurança para evitar UI Freeze (max 100 camadas na lista simples)
-            for i, layer in enumerate(layers):
-                if i >= 100:
-                    log_debug("Inspector: Limite de 100 camadas atingido. Ignorando as demais para performance.")
-                    break
-                self._add_layer_item(layer)
-                
-            self.layers_container.setUpdatesEnabled(True)
-            log_debug("Inspector: update_metadata concluído.")
+            # Usar QTimer para deferir a criação da lista de camadas (Render Break)
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(100, lambda: self._deferred_layer_update(layers))
             
         except Exception as e:
             log_error(f"Inspector: Erro crítico em update_metadata: {e}")
             self.show_placeholder(True, f"Erro: {e}", is_error=True)
+
+    def _deferred_layer_update(self, layers):
+        """Atualiza a lista de camadas sem bloquear a thread principal."""
+        try:
+            self.layers_container.setUpdatesEnabled(False)
+            
+            # Limite de segurança para evitar UI Freeze (max 100 camadas na lista simples)
+            MAX_LAYERS = 100
+            for i, layer in enumerate(layers):
+                if i >= MAX_LAYERS:
+                    log_debug("Inspector: Limite de camadas atingido. Ignorando as demais.")
+                    break
+                self._add_layer_item(layer)
+                
+            self.layers_container.setUpdatesEnabled(True)
+            log_debug("Inspector: Deferred update concluído.")
+        except Exception as e:
+            log_error(f"Inspector: Erro no deferred update: {e}")
 
     def _clear_layers(self):
         while self.layers_list_layout.count():

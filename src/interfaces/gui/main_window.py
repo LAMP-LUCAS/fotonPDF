@@ -679,6 +679,19 @@ class MainWindow(QMainWindow):
         # --- SUBMENU EDITAR ---
         edit_menu = self.app_menu.addMenu("✏️ Editar")
         
+        undo_action = QAction("Desfazer", self)
+        undo_action.setShortcut(QKeySequence.StandardKey.Undo) # Ctrl+Z
+        undo_action.triggered.connect(self._undo_action)
+        edit_menu.addAction(undo_action)
+
+        redo_action = QAction("Refazer", self)
+        # Support both Ctrl+Shift+Z and Ctrl+Y
+        redo_action.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence("Ctrl+Y")]) 
+        redo_action.triggered.connect(self._redo_action)
+        edit_menu.addAction(redo_action)
+        
+        edit_menu.addSeparator()
+        
         self.rotate_left_action = QAction("Girar -90°", self)
         self.rotate_left_action.setEnabled(False)
         self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
@@ -963,6 +976,11 @@ class MainWindow(QMainWindow):
                     try: self.viewer.draftNoteRequested.disconnect()
                     except: pass
                     self.viewer.draftNoteRequested.connect(self._on_draft_note_requested)
+                    
+                    # Conectar Highlight (Persistence)
+                    try: self.viewer.highlightRequested.disconnect()
+                    except: pass
+                    self.viewer.highlightRequested.connect(self._on_highlight_requested)
                     
                     # Focar visualizador para atalhos imediatos
                     self.viewer.setFocus()
@@ -1546,6 +1564,109 @@ class MainWindow(QMainWindow):
             log_debug(f"MainWindow: Nota adicionada na página {current_page}")
         else:
             log_warning("MainWindow: annotations_panel não disponível para draft.")
+
+    def _on_highlight_requested(self, page_idx, rect, color):
+        """Handler para criação de Highlights via menu de contexto."""
+        log_debug(f"MainWindow: Highlight solicitado na pg {page_idx}")
+        
+        if not self.current_file: return
+
+        # Guardar estado visual (scroll) para restaurar
+        scroll_pos = 0
+        if self.viewer:
+            scroll_pos = self.viewer.verticalScrollBar().value()
+
+        try:
+            from src.application.use_cases.add_annotation import AddAnnotationUseCase
+            # color vem como (r, g, b) 0-1 float ou 0-255 int?
+            # O sinal emite QColor geralmente? Não, emite tuple.
+            # PyMuPDF aceita tuple floats (0..1).
+            # Vamos assumir que o viewer manda tuple (0..1).
+            
+            uc = AddAnnotationUseCase(self._adapter)
+            
+            # Executar UseCase (Gera novo arquivo)
+            new_path = uc.execute(self.current_file, page_idx, rect, color=color)
+            
+            if new_path and new_path.exists():
+                log_debug(f"MainWindow: Anotação salva em {new_path.name}")
+                
+                # Undo/Redo Integration
+                if self.tabs and self.tabs.current_editor():
+                    group = self.tabs.current_editor()
+                    group.action_stack.push(new_path)
+                    
+                    # Reload in place (preserve history)
+                    # We pass preserve_history=True so load_document doesn't wipe the stack
+                    # Note: We need to update tab title too
+                    group.load_document(new_path, group.metadata, preserve_history=True)
+                    
+                    # Update window title/state
+                    self.current_file = new_path
+                    self.setWindowTitle(f"fotonPDF - {new_path.name}")
+                    idx = self.tabs.currentIndex()
+                    if idx >= 0:
+                        self.tabs.setTabText(idx, new_path.name)
+                else:
+                    # Fallback
+                    self.open_file(new_path)
+                
+                # Restaurar scroll (Tentativa assíncrona pós-load)
+                QTimer.singleShot(800, lambda: self.viewer.verticalScrollBar().setValue(scroll_pos) if self.viewer else None)
+                    
+                self.bottom_panel.add_log(f"📝 Anotação salva: {new_path.name}")
+            
+        except Exception as e:
+            log_exception(f"Highlight Error: {e}")
+            self.statusBar().showMessage(f"Erro ao criar anotação: {e}")
+
+    def _undo_action(self):
+        """Reverte para o estado anterior do documento atual."""
+        if not self.tabs or not self.tabs.current_editor(): return
+        
+        group = self.tabs.current_editor()
+        prev_state = group.action_stack.undo()
+        
+        if prev_state:
+            log_debug(f"Undo: Revertendo para {prev_state.name}")
+            scroll_pos = self.viewer.verticalScrollBar().value()
+            
+            group.load_document(prev_state, group.metadata, preserve_history=True)
+            
+            self.current_file = prev_state
+            self.setWindowTitle(f"fotonPDF - {prev_state.name}")
+            idx = self.tabs.currentIndex()
+            if idx >= 0:
+                self.tabs.setTabText(idx, prev_state.name)
+                
+            QTimer.singleShot(500, lambda: self.viewer.verticalScrollBar().setValue(scroll_pos))
+            self.bottom_panel.add_log(f"↩️ Desfeito: {prev_state.name}")
+        else:
+            self.statusBar().showMessage("Nada para desfazer.")
+
+    def _redo_action(self):
+        """Refaz a última ação desfeita."""
+        if not self.tabs or not self.tabs.current_editor(): return
+
+        group = self.tabs.current_editor()
+        next_state = group.action_stack.redo()
+        
+        if next_state:
+            log_debug(f"Redo: Avançando para {next_state.name}")
+            scroll_pos = self.viewer.verticalScrollBar().value()
+            
+            group.load_document(next_state, group.metadata, preserve_history=True)
+            
+            self.current_file = next_state
+            self.setWindowTitle(f"fotonPDF - {next_state.name}")
+            idx = self.tabs.currentIndex()
+            if idx >= 0:
+                self.tabs.setTabText(idx, next_state.name)
+                
+            QTimer.singleShot(500, lambda: self.viewer.verticalScrollBar().setValue(scroll_pos))
+            self.bottom_panel.add_log(f"↪️ Refeito: {next_state.name}")
+        else:
+            self.statusBar().showMessage("Nada para refazer.")
 
     # --- Re-implementação de Drag & Drop para Sidebar (Merge) ---
     def _on_sidebar_drag_enter(self, event):

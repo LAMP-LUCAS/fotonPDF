@@ -124,37 +124,6 @@ class PageWidget(QLabel):
         except Exception as e:
             log_exception(f"PageWidget: Erro ao atualizar UI: {e}")
 
-    def set_highlights(self, rects: list):
-        """Define os retângulos de realce (em pontos PDF)."""
-        self._highlights = rects
-        self.update()
-
-    def paintEvent(self, event):
-        # Primeiro, desenha a imagem (pixmap) base
-        super().paintEvent(event)
-        
-        if not self._highlights:
-            return
-
-        painter = QPainter(self)
-        # Amarelo translúcido para busca
-        painter.setBrush(QBrush(QColor(255, 255, 0, 100)))
-        painter.setPen(Qt.PenStyle.NoPen)
-        
-        for rect_data in self._highlights:
-            # rect_data é (x0, y0, x1, y1) em pontos PDF
-            x0, y0, x1, y1 = rect_data
-            
-            # Converter para pixels escalados pelo zoom
-            # Importante: A origem (0,0) do widget deve coincidir com a origem do PDF no topo do QLabel
-            # Como usamos setAlignment(Center), precisamos compensar se o pixmap for menor que o widget.
-            # Mas o PageWidget dá setFixedSize(pixmap.size()), então (0,0) é o topo da página.
-            
-            rx = x0 * self.zoom
-            ry = y0 * self.zoom
-            rw = (x1 - x0) * self.zoom
-            rh = (y1 - y0) * self.zoom
-            
-            painter.drawRect(QRectF(rx, ry, rw, rh))
-        
-        painter.end()
+            self.setMinimumHeight(0)
+        except Exception as e:
+            log_exception(f"PageWidget: Erro ao atualizar UI: {e}")

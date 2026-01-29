@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSplitter, QFrame, QHBoxLayout
 from PyQt6.QtCore import Qt
 from src.interfaces.gui.widgets.viewer_widget import PDFViewerWidget
 from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback, ResilientWidget
+from src.interfaces.gui.state.action_stack import ActionStack
 
 class EditorGroup(ResilientWidget):
     """
@@ -10,8 +11,10 @@ class EditorGroup(ResilientWidget):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        # ResilientWidget já cria self.main_layout e self.content_layout
-        self.layout = self.content_layout 
+        # ResilientWidget agora usa content_container_layout
+        self.layout = self.content_container_layout 
+        
+        self.action_stack = ActionStack() # Undo/Redo History
         
         # Banner OCR (Modular)
         self.ocr_banner = QFrame()
@@ -44,14 +47,22 @@ class EditorGroup(ResilientWidget):
         self.viewer_right = None
         self.current_file = None
         self.metadata = None
+        
+        # Mostrar o conteúdo imediatamente (EditorGroup é sempre visível)
+        self.show_placeholder(False)
 
     @safe_ui_callback("Load Document")
-    def load_document(self, file_path, metadata):
+    def load_document(self, file_path, metadata, preserve_history=False):
         """Carrega o documento no(s) visualizador(es)."""
         from src.infrastructure.services.logger import log_debug
-        log_debug(f"EditorGroup: load_document chamado para {file_path.name} (page_count={metadata.get('page_count', 0)})")
+        log_debug(f"EditorGroup: load_document chamado para {file_path.name} (history={preserve_history})")
+        
         self.current_file = file_path
         self.metadata = metadata
+        
+        if not preserve_history:
+            self.action_stack.reset(file_path)
+            
         self.viewer_left.load_document(file_path, metadata)
         if self.viewer_right:
             self.viewer_right.load_document(file_path, metadata)

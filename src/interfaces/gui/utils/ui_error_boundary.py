@@ -42,20 +42,18 @@ def safe_ui_callback(title="Component Error"):
 
 class ResilientWidget(QWidget):
     """
-    Widget base que mostra um estado de 'Vazio/Erro' em caso de falha crítica
-    ou se nenhum conteúdo estiver carregado.
+    Widget base robusto que usa QStackedLayout para alternar entre
+    Conteúdo Real e Placeholder/Erro de forma eficiente e sem recálculos pesados.
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.main_layout = QVBoxLayout(self)
-        self.main_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Container para o conteúdo real
-        self.content_widget = QWidget()
-        self.content_layout = QVBoxLayout(self.content_widget)
-        self.content_layout.setContentsMargins(0, 0, 0, 0)
+        # Usamos StackedLayout para troca limpa de estado
+        from PyQt6.QtWidgets import QStackedLayout
+        self.stack = QStackedLayout(self)
+        self.stack.setContentsMargins(0, 0, 0, 0)
         
-        # Container para o placeholder / Erro
+        # Estado 0: Placeholder / Erro
         self.placeholder_widget = QWidget()
         self.placeholder_layout = QVBoxLayout(self.placeholder_widget)
         self.placeholder_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -64,7 +62,7 @@ class ResilientWidget(QWidget):
         self.error_icon = QLabel("⚠️")
         self.error_icon.setStyleSheet("font-size: 24px;")
         self.error_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.error_icon.hide() # Oculto por padrão
+        self.error_icon.hide()
         
         self.placeholder_label = QLabel("Recurso indisponível")
         self.placeholder_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
@@ -74,37 +72,41 @@ class ResilientWidget(QWidget):
         self.placeholder_layout.addWidget(self.error_icon)
         self.placeholder_layout.addWidget(self.placeholder_label)
         
-        self.main_layout.addWidget(self.content_widget)
-        self.main_layout.addWidget(self.placeholder_widget)
+        # Estado 1: Conteúdo (Pode ser vazio inicialmente)
+        self.content_container = QWidget()
+        self.content_container_layout = QVBoxLayout(self.content_container)
+        self.content_container_layout.setContentsMargins(0, 0, 0, 0)
         
-        self.show_placeholder(False)
+        self.stack.addWidget(self.placeholder_widget) # Index 0
+        self.stack.addWidget(self.content_container)  # Index 1
+        
+        self.show_placeholder(True)
 
     def show_placeholder(self, visible=True, message=None, is_error=False):
-        """ Mostra o estado de placeholder ou erro. """
-        self.content_widget.setVisible(not visible)
-        self.placeholder_widget.setVisible(visible)
-        
-        if is_error:
-            self.error_icon.show()
-            self.placeholder_label.setStyleSheet("color: #F87171; font-weight: bold; font-size: 11px;")
-        else:
-            self.error_icon.hide()
-            self.placeholder_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
+        """ Alterna entre a stack 0 (placeholder) e 1 (conteúdo). """
+        if visible:
+            self.stack.setCurrentIndex(0)
+            if is_error:
+                self.error_icon.show()
+                self.placeholder_label.setStyleSheet("color: #F87171; font-weight: bold; font-size: 11px;")
+            else:
+                self.error_icon.hide()
+                self.placeholder_label.setStyleSheet("color: #94A3B8; font-size: 11px;")
             
-        if message:
-            self.placeholder_label.setText(message)
+            if message:
+                self.placeholder_label.setText(message)
+        else:
+            self.stack.setCurrentIndex(1)
 
     def set_content_widget(self, widget):
         """ 
-        Define o widget de conteúdo real de forma segura.
-        Limpa o layout anterior antes de adicionar o novo.
+        Define o widget de conteúdo real na stack 1.
         """
-        # Clear previous content safely - reverse order is safer for layout items
-        count = self.content_layout.count()
-        for i in reversed(range(count)):
-            item = self.content_layout.takeAt(i)
-            if item and item.widget():
+        # Limpar anterior
+        while self.content_container_layout.count():
+            item = self.content_container_layout.takeAt(0)
+            if item.widget():
                 item.widget().deleteLater()
         
-        # Add new widget synchronously for stability
-        self.content_layout.addWidget(widget)
+        if widget:
+            self.content_container_layout.addWidget(widget)

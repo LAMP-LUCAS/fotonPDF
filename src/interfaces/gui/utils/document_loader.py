@@ -22,28 +22,35 @@ class AsyncDocumentLoader(QThread):
 
     def run(self):
         import fitz
+        doc = None
         try:
             log_debug(f"AsyncLoader: Iniciando análise de {self.pdf_path.name}...")
             self.progress.emit("Analisando estrutura do PDF...")
             
-            # 1. Análise de Complexidade (Rápida)
+            # 1. Análise de Complexidade (Rápida - Sem abrir o doc full se possível)
             hints = DocumentAnalyzer.analyze(self.pdf_path)
             
-            # 2. Abrir Documento (Abertura ÚNICA Centralizada)
+            # 2. Abrir Documento (Apenas para extração inicial)
             self.progress.emit("Abrindo documento...")
             doc = fitz.open(str(self.pdf_path))
             
-            # 3. Extração de Metadados (Handle Injetado)
+            # 3. Extração de Metadados
             self.progress.emit("Extraindo metadados e camadas...")
             metadata = self.metadata_use_case.execute(self.pdf_path, doc_handle=doc)
             metadata["hints"] = hints
             
-            # 4. Detecção de OCR (Camada de texto - Handle Injetado)
+            # 4. Detecção de OCR 
             self.progress.emit("Verificando pesquisabilidade...")
             is_searchable = self.detect_ocr_use_case.execute(self.pdf_path, doc_handle=doc)
+            
+            # ATENÇÃO: Não fechar 'doc' aqui. Passamos para o StateManager (Main Thread)
+            # O RenderEngine receberá None no Controller para abrir seus próprios handles.
             
             self.finished.emit(self.pdf_path, metadata, hints, doc, is_searchable)
             
         except Exception as e:
             log_exception(f"AsyncLoader Error: {e}")
+            if doc:
+                try: doc.close()
+                except: pass
             self.error.emit(str(e))
