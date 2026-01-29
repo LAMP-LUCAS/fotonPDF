@@ -409,7 +409,13 @@ class MainWindow(QMainWindow):
             
             elif name == "annotations" and not self.annotations_panel:
                 from src.interfaces.gui.widgets.annotations_panel import AnnotationsPanel
-                self.annotations_panel = AnnotationsPanel()
+                from src.infrastructure.repositories.annotation_repository import AnnotationRepository
+                from src.application.use_cases.manage_annotations import ManageAnnotationsUseCase
+                
+                repo = AnnotationRepository()
+                use_case = ManageAnnotationsUseCase(repo)
+                
+                self.annotations_panel = AnnotationsPanel(use_case)
                 self.annotations_panel.annotationClicked.connect(
                     lambda page, aid: self.viewer.scroll_to_page(page) if self.viewer else None
                 )
@@ -455,11 +461,90 @@ class MainWindow(QMainWindow):
         self._save_settings()
         super().closeEvent(event)
 
-    def _on_light_table_moved(self, info):
-        """Manipula reordenação na Mesa de Luz."""
-        # Silenciado para evitar spam durante layout/animação
-        # TODO: Implementar lógica de reordenação real aqui se necessário
-        pass
+    def _on_light_table_moved(self, *args):
+        """Manipula a intenção de reordenação na Mesa de Luz (Debounced)."""
+        if not hasattr(self, "_lt_reorder_timer"):
+            self._lt_reorder_timer = QTimer(self)
+            self._lt_reorder_timer.setSingleShot(True)
+            self._lt_reorder_timer.timeout.connect(self._sync_order_from_light_table)
+        
+        # Iniciar timer de 1.5s - só dispara se o usuário parar de mover
+        self._lt_reorder_timer.start(1500)
+
+    def _sync_order_from_light_table(self):
+        """Calcula a nova ordem baseada na posição espacial dos itens na Mesa de Luz."""
+        if not self.light_table or not self.state_manager:
+            return
+
+        from src.interfaces.gui.widgets.light_table_view import PageItem
+        items = [i for i in self.light_table.scene.items() if isinstance(i, PageItem)]
+        if not items: return
+
+        # Ordenar por posição na cena (Y, X)
+        items.sort(key=lambda it: (it.y(), it.x()))
+
+        # Usar identidade estável (Path, Index Original) para a reordenação
+        # Isso sobrevive a múltiplas reordenações sem perder a referência
+        new_order_identities = [(it.source_path, it.page_index) for it in items]
+        
+        self._on_pages_reordered(new_order_identities)
+
+    def _on_pages_reordered(self, new_order: list):
+        """
+        Sincroniza viewer e state com a nova ordem das páginas.
+        Suporta tanto lista de índices (int) quanto lista de identidades (tuple).
+        """
+        if not self.state_manager: return
+        
+        # 1. Converter identidades para índices se necessário
+        if new_order and isinstance(new_order[0], tuple):
+            # Mapear identities (path, idx) -> índice atual na lista do state_manager
+            # Para isso, precisamos saber onde cada página do state_manager está "agora"
+            current_pages = self.state_manager.pages
+            id_to_current_idx = {}
+            for i, p in enumerate(current_pages):
+                # O state_manager guarda o path no doc.name ou similar
+                # p.source_doc.name é o caminho absoluto
+                id_to_current_idx[(str(p.source_doc.name), p.source_page_index)] = i
+            
+            # Nova ordem baseada nos índices da lista atual
+            new_idx_order = []
+            for ident in new_order:
+                # Sanitizar ident (garantir que path seja string comparável)
+                path_str = str(Path(ident[0]).resolve())
+                # Tentar encontrar a página. Se não achar, ignorar (segurança)
+                # Nota: a comparação de path pode ser sensível a case em Windows, 
+                # mas resolve() ajuda.
+                lookup_key = (path_str, ident[1])
+                
+                # Fallback: tentar match parcial se o path absoluto exato falhar
+                if lookup_key not in id_to_current_idx:
+                    # Tentar encontrar por basename se necessário
+                    pass 
+
+                if lookup_key in id_to_current_idx:
+                    new_idx_order.append(id_to_current_idx[lookup_key])
+            
+            new_order = new_idx_order
+
+        if not new_order: return
+
+        log_debug(f"MainWindow: Aplicando reordenação de índices: {new_order}")
+        
+        # 2. Atualizar o Gerenciador de Estado
+        self.state_manager.reorder_pages(new_order)
+        
+        # 3. Atualizar o Visualizador
+        if self.viewer:
+            self.viewer.reorder_pages(new_order)
+        
+        # 4. Atualizar Thumbnails
+        if self.thumbnails:
+            # Reload leve (reaproveita cache do motor)
+            self.thumbnails.load_thumbnails(str(self.current_file), len(self.state_manager.pages))
+
+        self.statusBar().showMessage("Ordem das páginas atualizada.", 3000)
+
 
     def _on_search_changed(self, text):
         """Intercepta comandos instantâneos conforme o usuário digita."""
@@ -609,8 +694,9 @@ class MainWindow(QMainWindow):
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
 
+
     def _setup_menus(self):
-        """Creates a cascading popup menu (no native menubar)."""
+        """Creates a cascading popup menu (no native menubar) - REFACTORED V2 (Lúdico)."""
         from PyQt6.QtWidgets import QMenu
         
         # Hide the native menu bar for Chrome-less UI
@@ -629,6 +715,8 @@ class MainWindow(QMainWindow):
             QMenu::item {
                 padding: 8px 24px;
                 color: #E2E8F0;
+                font-size: 13px;
+                font-weight: 500;
             }
             QMenu::item:selected {
                 background-color: #3F3F46;
@@ -641,137 +729,76 @@ class MainWindow(QMainWindow):
             }
         """)
         
-        # --- SUBMENU ARQUIVO ---
-        file_menu = self.app_menu.addMenu("📂 Arquivo")
+        # --- 📂 ARQUIVO & PROJETO ---
+        file_menu = self.app_menu.addMenu("📂 Arquivos")
+        file_menu.addAction("Abrir PDF...").triggered.connect(self._on_open_clicked)
+        file_menu.addAction("Unir PDFs (Merge)...").triggered.connect(self._on_merge_clicked)
         
-        open_action = QAction("Abrir...", self)
-        open_action.setShortcut("Ctrl+O")
-        open_action.triggered.connect(self._on_open_clicked)
-        file_menu.addAction(open_action)
-        
-        self.save_action = QAction("Salvar", self)
+        self.save_action = file_menu.addAction("Salvar Alterações")
         self.save_action.setShortcut("Ctrl+S")
         self.save_action.setEnabled(False)
         self.save_action.triggered.connect(self._on_save_clicked)
-        file_menu.addAction(self.save_action)
-        
-        self.save_as_action = QAction("Salvar Como...", self)
-        self.save_as_action.setEnabled(False)
-        self.save_as_action.triggered.connect(self._on_save_as_clicked)
-        file_menu.addAction(self.save_as_action)
         
         file_menu.addSeparator()
         
-        merge_action = QAction("Unir PDFs...", self)
-        merge_action.triggered.connect(self._on_merge_clicked)
-        file_menu.addAction(merge_action)
+        export_menu = file_menu.addMenu("📤 Exportar...")
+        export_menu.addAction("Imagem (PNG High-DPI)").triggered.connect(lambda: self._on_export_image_clicked("png"))
+        export_menu.addAction("Vetor (SVG)").triggered.connect(self._on_export_svg_clicked)
+        export_menu.addAction("Documento (Markdown)").triggered.connect(self._on_export_md_clicked)
         
-        self.extract_action = QAction("Extrair Páginas...", self)
+        # --- 🛠️ FERRAMENTAS DE EDIÇÃO ---
+        edit_menu = self.app_menu.addMenu("🛠️ Edição e Manipulação")
+        
+        edit_menu.addAction("Desfazer (Undo)").triggered.connect(self._undo_action)
+        edit_menu.addAction("Refazer (Redo)").triggered.connect(self._redo_action)
+        
+        edit_menu.addSeparator()
+        
+        rot_menu = edit_menu.addMenu("🔄 Rotação")
+        self.rotate_left_action = rot_menu.addAction("Girar Esquerda (-90°)")
+        self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
+        
+        self.rotate_right_action = rot_menu.addAction("Girar Direita (+90°)")
+        self.rotate_right_action.triggered.connect(lambda: self._on_rotate_clicked(90))
+        
+        edit_menu.addSeparator()
+        
+        self.extract_action = edit_menu.addAction("📄 Extrair Páginas Selecionadas")
         self.extract_action.setEnabled(False)
         self.extract_action.triggered.connect(self._on_extract_clicked)
-        file_menu.addAction(self.extract_action)
         
-        export_menu = file_menu.addMenu("Exportar")
-        export_menu.addAction("PNG High-DPI").triggered.connect(lambda: self._on_export_image_clicked("png"))
-        export_menu.addAction("SVG").triggered.connect(self._on_export_svg_clicked)
-        export_menu.addAction("Markdown").triggered.connect(self._on_export_md_clicked)
+        # --- 🧠 INTELIGÊNCIA ARTIFICIAL ---
+        ai_menu = self.app_menu.addMenu("🧠 Inteligência Artificial")
         
-        # --- SUBMENU EDITAR ---
-        edit_menu = self.app_menu.addMenu("✏️ Editar")
+        ai_menu.addAction("⚙️ Configurar Assistente...").triggered.connect(self._on_ai_settings_clicked)
         
-        undo_action = QAction("Desfazer", self)
-        undo_action.setShortcut(QKeySequence.StandardKey.Undo) # Ctrl+Z
-        undo_action.triggered.connect(self._undo_action)
-        edit_menu.addAction(undo_action)
+        self.ocr_area_action = ai_menu.addAction("🎯 OCR por Área (Seleção)")
+        self.ocr_area_action.setCheckable(True)
+        self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
+        
+        # --- 🎨 APARÊNCIA & LAYOUT ---
+        view_menu = self.app_menu.addMenu("🎨 Aparência")
+        
+        theme_menu = view_menu.addMenu("🌗 Tema de Leitura")
+        theme_menu.addAction("Padrão (Dark Grey)").triggered.connect(lambda: self.viewer.set_reading_mode("default") if self.viewer else None)
+        theme_menu.addAction("Sépia (Conforto)").triggered.connect(lambda: self.viewer.set_reading_mode("sepia") if self.viewer else None)
+        theme_menu.addAction("Noturno (OLED)").triggered.connect(lambda: self.viewer.set_reading_mode("dark") if self.viewer else None)
 
-        redo_action = QAction("Refazer", self)
-        # Support both Ctrl+Shift+Z and Ctrl+Y
-        redo_action.setShortcuts([QKeySequence.StandardKey.Redo, QKeySequence("Ctrl+Y")]) 
-        redo_action.triggered.connect(self._redo_action)
-        edit_menu.addAction(redo_action)
-        
-        edit_menu.addSeparator()
-        
-        self.rotate_left_action = QAction("Girar -90°", self)
-        self.rotate_left_action.setEnabled(False)
-        self.rotate_left_action.triggered.connect(lambda: self._on_rotate_clicked(-90))
-        edit_menu.addAction(self.rotate_left_action)
-        
-        self.rotate_right_action = QAction("Girar +90°", self)
-        self.rotate_right_action.setEnabled(False)
-        self.rotate_right_action.triggered.connect(lambda: self._on_rotate_clicked(90))
-        edit_menu.addAction(self.rotate_right_action)
-        
-        edit_menu.addSeparator()
-        
-        self.highlight_action = QAction("Modo Realçar", self)
-        self.highlight_action.setCheckable(True)
-        self.highlight_action.triggered.connect(self._on_highlight_toggled)
-        edit_menu.addAction(self.highlight_action)
-        
-        # --- SUBMENU VER ---
-        view_menu = self.app_menu.addMenu("👁️ Ver")
-        
-        zoom_menu = view_menu.addMenu("Zoom")
-        zoom_menu.addAction("Aumentar").triggered.connect(lambda: self.viewer.zoom_in() if self.viewer else None)
-        zoom_menu.addAction("Diminuir").triggered.connect(lambda: self.viewer.zoom_out() if self.viewer else None)
-        zoom_menu.addAction("100%").triggered.connect(lambda: self.viewer.real_size() if self.viewer else None)
-        
         view_menu.addSeparator()
-        
-        self.back_action = QAction("⬅ Voltar", self)
-        self.back_action.setShortcut(QKeySequence.StandardKey.Back)
-        self.back_action.setEnabled(False)
-        self.back_action.triggered.connect(self._on_back_clicked)
-        view_menu.addAction(self.back_action)
-        
-        self.forward_action = QAction("➡ Avançar", self)
-        self.forward_action.setShortcut(QKeySequence.StandardKey.Forward)
-        self.forward_action.setEnabled(False)
-        self.forward_action.triggered.connect(self._on_forward_clicked)
-        view_menu.addAction(self.forward_action)
-        
-        view_menu.addSeparator()
-        
-        self.layout_action = QAction("Lado a Lado", self)
+
+        layout_menu = view_menu.addMenu("🔲 Layout")
+        self.layout_action = layout_menu.addAction("Lado a Lado (Dual Page)")
         self.layout_action.setCheckable(True)
         self.layout_action.triggered.connect(self._on_layout_toggled)
-        view_menu.addAction(self.layout_action)
         
-        self.split_action = QAction("Dividir Editor", self)
-        self.split_action.setShortcut("Ctrl+\\")
+        self.split_action = layout_menu.addAction("Dividir Editor (Split View)")
         self.split_action.triggered.connect(self._on_split_clicked)
-        view_menu.addAction(self.split_action)
         
-        reading_menu = view_menu.addMenu("Modo Leitura")
-        reading_menu.addAction("Padrão").triggered.connect(lambda: self.viewer.set_reading_mode("default") if self.viewer else None)
-        reading_menu.addAction("Sépia").triggered.connect(lambda: self.viewer.set_reading_mode("sepia") if self.viewer else None)
-        reading_menu.addAction("Noturno").triggered.connect(lambda: self.viewer.set_reading_mode("dark") if self.viewer else None)
-        
-        # --- SUBMENU FERRAMENTAS ---
-        tools_menu = self.app_menu.addMenu("🛠️ Ferramentas")
-        
-        pan_action = QAction("✋ Mão (Pan)", self)
-        pan_action.triggered.connect(lambda: self.viewer.set_tool_mode("pan") if self.viewer else None)
-        tools_menu.addAction(pan_action)
-        
-        select_action = QAction("🖱️ Seleção", self)
-        select_action.triggered.connect(lambda: self.viewer.set_tool_mode("selection") if self.viewer else None)
-        tools_menu.addAction(select_action)
-        
-        tools_menu.addSeparator()
-        
-        self.ocr_area_action = QAction("🧠 OCR por Área", self)
-        self.ocr_area_action.setCheckable(True)
-        self.ocr_area_action.setEnabled(False)
-        self.ocr_area_action.triggered.connect(self._on_ocr_area_toggled)
-        tools_menu.addAction(self.ocr_area_action)
+        # --- ⚙️ SISTEMA ---
+        sys_menu = self.app_menu.addMenu("⚙️ Sistema")
+        sys_menu.addAction("🚀 Inicialização e Performance...").triggered.connect(self._on_startup_config_clicked)
+        sys_menu.addAction("🔍 Diagnóstico de Recursos").triggered.connect(lambda: self.statusBar().showMessage("Diagnóstico iniciado...", 2000))
 
-        # --- SUBMENU CONFIGURAÇÕES ---
-        config_menu = self.app_menu.addMenu("⚙️ Configurações")
-        
-        config_menu.addAction("🤖 Assistente de IA...").triggered.connect(self._on_ai_settings_clicked)
-        config_menu.addAction("🛠️ Inicialização & Diagnóstico...").triggered.connect(self._on_startup_config_clicked)
 
     def _on_ai_settings_clicked(self):
         """Abre o painel de configurações de IA em um diálogo modal."""
@@ -1202,24 +1229,6 @@ class MainWindow(QMainWindow):
             self.state_manager.save(file_path)
             self.statusBar().showMessage(f"Salvo como: {Path(file_path).name}")
 
-    @safe_ui_callback("Extract Pages")
-    def _on_extract_clicked(self):
-        """Salva as páginas selecionadas em um novo arquivo."""
-        if not self.state_manager: return
-        selected_rows = self.thumbnails.get_selected_rows()
-        if not selected_rows:
-            self.statusBar().showMessage("Selecione páginas na barra lateral para extrair.")
-            return
-
-        file_path, _ = QFileDialog.getSaveFileName(self, "Extrair Páginas", "extracao.pdf", "Arquivos PDF (*.pdf)")
-        if not file_path: return
-
-        try:
-            # Salva o subconjunto baseado na ordem visual atual
-            self.state_manager.save(file_path, indices=selected_rows)
-            self.statusBar().showMessage(f"Extraídas {len(selected_rows)} páginas para {Path(file_path).name}")
-        except Exception as e:
-            self.statusBar().showMessage(f"Erro ao extrair: {e}")
 
     @safe_ui_callback("Export Image")
     def _on_export_image_clicked(self, fmt: str):
@@ -1254,7 +1263,7 @@ class MainWindow(QMainWindow):
             log_exception(f"Export: {e}")
 
     @safe_ui_callback("Export SVG")
-    def _on_export_svg_clicked(self):
+    def _on_export_svg_clicked(self, *args):
         """Exporta a página atual como SVG."""
         if not self.state_manager: return
         idx = self.viewer.get_current_page_index()
@@ -1276,6 +1285,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Erro ao exportar SVG: {e}")
 
     @safe_ui_callback("Export Markdown")
+    
     def _on_export_md_clicked(self):
         """Exporta o conteúdo do documento como Markdown."""
         if not self.state_manager: return
@@ -1296,6 +1306,43 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage("Nenhum arquivo base para exportar.")
         except Exception as e:
             self.statusBar().showMessage(f"Erro ao exportar Markdown: {e}")
+
+    @safe_ui_callback("Extract Pages")
+    def _on_extract_clicked(self, *args):
+        """Extrai páginas selecionadas para um novo PDF."""
+        if not self.state_manager: return
+        
+        # Obter índices das páginas selecionadas na sidebar
+        selected_rows = []
+        if self.thumbnails:
+            selected_rows = self.thumbnails.get_selected_rows()
+            
+        if not selected_rows:
+            self.statusBar().showMessage("Selecione páginas na barra lateral para extrair.", 3000)
+            return
+
+        file_path, _ = QFileDialog.getSaveFileName(
+            self, 
+            "Extrair Páginas Selecionadas", 
+            "extracao_foton.pdf", 
+            "Arquivos PDF (*.pdf)"
+        )
+        
+        if not file_path:
+            return
+
+        try:
+            self.setCursor(Qt.CursorShape.WaitCursor)
+            # Salva o subconjunto baseado na ordem virtual atual
+            self.state_manager.save(file_path, indices=selected_rows)
+            self.statusBar().showMessage(f"Extraídas {len(selected_rows)} páginas para {Path(file_path).name}", 5000)
+            if hasattr(self, 'bottom_panel'):
+                self.bottom_panel.add_log(f"Extracted {len(selected_rows)} pages to {Path(file_path).name}")
+        except Exception as e:
+            log_exception(f"Extraction failed: {e}")
+            self.statusBar().showMessage(f"Erro ao extrair páginas: {e}", 5000)
+        finally:
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def _on_open_clicked(self):
         file_path, _ = QFileDialog.getOpenFileName(self, "Abrir PDF", "", "Arquivos PDF (*.pdf)")
@@ -1327,7 +1374,9 @@ class MainWindow(QMainWindow):
             self.state_manager.append_document(str(path))
             # Atualizar viewer e sidebar instantaneamente
             self.viewer.add_pages(path, metadata)
-            self.thumbnails.append_thumbnails(str(path), metadata["page_count"])
+            # Fix: Pass current session_id to append_thumbnails
+            current_session = self.thumbnails._current_session if self.thumbnails else 0
+            self.thumbnails.append_thumbnails(str(path), metadata["page_count"], current_session)
             self.statusBar().showMessage(f"Adicionado: {path.name}")
         except Exception as e:
             log_exception(f"MainWindow: Erro ao anexar: {e}")

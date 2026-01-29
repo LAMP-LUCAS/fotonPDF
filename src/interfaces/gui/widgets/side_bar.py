@@ -1,6 +1,8 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QStackedWidget, QFrame, QSizePolicy
 from PyQt6.QtCore import Qt, QPropertyAnimation, QEasingCurve, pyqtProperty, pyqtSignal
 from src.interfaces.gui.utils.ui_error_boundary import safe_ui_callback
+from src.infrastructure.adapters.gui_settings_adapter import GUISettingsAdapter
+from PyQt6.QtCore import QTimer
 
 class SideBarHeader(QWidget):
     """Header que detecta clique duplo para atalho inteligente."""
@@ -16,13 +18,28 @@ class SideBar(QFrame):
         super().__init__(parent)
         self.setObjectName("SideBar")
         
-        self._base_width = initial_width  # Largura "Padrão"
-        self._last_width = initial_width  # Largura "Usuário" (para restore)
-        self._is_collapsed = False
+        # Persistência
+        self.settings = GUISettingsAdapter()
+        saved_width = self.settings.get("sidebar_width", initial_width)
+        saved_collapsed = self.settings.get("sidebar_collapsed", False)
+        
+        self._base_width = saved_width  # Largura "Padrão"
+        self._last_width = saved_width  # Largura "Usuário"
+        self._is_collapsed = saved_collapsed
+        
+        # Debounce para evitar salvar a cada pixel de resize
+        self._resize_timer = QTimer()
+        self._resize_timer.setInterval(1000)
+        self._resize_timer.setSingleShot(True)
+        self._resize_timer.timeout.connect(self._save_width_state)
         
         # Permitir redimensionamento
         self.setMinimumWidth(0)
-        self.resize(initial_width, self.height())
+        
+        if self._is_collapsed:
+            self.setFixedWidth(0)
+        else:
+            self.resize(saved_width, self.height())
         
         # Estilo Obsidian/VS Code
         self.setStyleSheet("""
@@ -144,7 +161,10 @@ class SideBar(QFrame):
             target = self._last_width if self._last_width > 50 else self._base_width
             self._animate_to(target)
             
+            self._animate_to(target)
+            
         self._is_collapsed = not self._is_collapsed
+        self.settings.set("sidebar_collapsed", self._is_collapsed)
 
     def _on_animation_finished(self):
         """Libera o redimensionamento após expandir."""
@@ -154,3 +174,15 @@ class SideBar(QFrame):
 
     def set_title(self, text):
         self.title_label.setText(text.upper())
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        # Só salva se não estiver colapsado e não estiver animando (aproximado)
+        if not self._is_collapsed and self.width() > 50:
+            self._base_width = self.width()
+            self._resize_timer.start()
+
+    def _save_width_state(self):
+        """Persiste a largura atual."""
+        if self.width() > 50:
+            self.settings.set("sidebar_width", self.width())

@@ -525,6 +525,37 @@ class PDFViewerWidget(QScrollArea):
         self.verticalScrollBar().valueChanged.connect(self.check_visibility)
         self.check_visibility()
 
+    def reorder_pages(self, new_order: list[int]):
+        """Reordena os widgets de página conforme a nova ordem de índices originais."""
+        if not self._pages or len(new_order) != len(self._pages):
+            return
+            
+        # 1. Mapear os widgets atuais para a nova ordem
+        # new_order contém a sequência de índices da lista self._pages que devem vir agora
+        reordered_pages = [self._pages[i] for i in new_order]
+        
+        # 2. Desabilitar updates do container para evitar flickering
+        self.container.setUpdatesEnabled(False)
+        
+        # 3. Remover todos os widgets do layout (sem deletá-los da memória)
+        # Em layouts do Qt, remover o item do layout não deleta o widget
+        while self.layout.count():
+            self.layout.takeAt(0)
+        
+        # 4. Atualizar a lista interna e readicionar ao layout
+        self._pages = reordered_pages
+        
+        if self._layout_mode == "dual":
+            for i, page in enumerate(self._pages):
+                self.layout.addWidget(page, i // 2, i % 2)
+        else:
+            for page in self._pages:
+                self.layout.addWidget(page)
+            
+        self.container.setUpdatesEnabled(True)
+        # Forçar recalculo de visibilidade e renderização das páginas no novo local
+        self.check_visibility()
+
     selectionChanged = pyqtSignal(tuple) # (x0, y0, x1, y1) em pontos PDF
 
     def refresh_current_view(self):

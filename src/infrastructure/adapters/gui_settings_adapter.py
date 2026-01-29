@@ -16,8 +16,12 @@ class GUISettingsAdapter(UISettingsPort):
         state = self._service.get("window_state")
         return geometry, state
 
+
     def set(self, key: str, value):
         self._service.set(key, value)
 
     def get(self, key: str, default=None):
         return self._service.get(key, default)
+    
+    def contains(self, key: str) -> bool:
+        return self._service.contains(key)

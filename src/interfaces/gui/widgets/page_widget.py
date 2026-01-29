@@ -37,8 +37,15 @@ class PageWidget(QLabel):
         old_zoom = self.zoom
         self.zoom = zoom
         if self.width_pt > 0 and self.height_pt > 0:
-            new_w = int(self.width_pt * zoom)
-            new_h = int(self.height_pt * zoom)
+            # Check rotation for dimension swappping
+            is_rotated = (self.rotation % 180 != 0)
+            
+            w = self.height_pt if is_rotated else self.width_pt
+            h = self.width_pt if is_rotated else self.height_pt
+            
+            new_w = int(w * zoom)
+            new_h = int(h * zoom)
+            
             if self.size() != (new_w, new_h):
                 self.setFixedSize(new_w, new_h)
                 # Se o zoom mudou, o cache antigo é inválido
@@ -59,6 +66,7 @@ class PageWidget(QLabel):
             if rotation is not None and self.rotation != rotation:
                 should_render = True
                 self.rotation = rotation
+                self.update_layout_size(self.zoom)
 
             if mode is not None and self.mode != mode:
                 should_render = True

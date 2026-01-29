@@ -14,7 +14,7 @@ class ThumbnailPanel(ResilientWidget):
         
         # O widget base do ResilientWidget agora é um QListWidget
         self.list = QListWidget()
-        self.list.setFixedWidth(220)
+        # self.list.setFixedWidth(220) REMOVED for responsiveness
         self.list.setIconSize(QSize(120, 160))
         self.list.setGridSize(QSize(140, 180))
         self.list.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
