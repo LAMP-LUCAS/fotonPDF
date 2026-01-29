@@ -27,14 +27,17 @@ def test_resilient_widget_placeholder_toggle(qtbot):
     widget = ResilientWidget()
     qtbot.addWidget(widget)
     
-    # Inicialmente não deve mostrar placeholder
+    # Inicialmente o placeholder(False) deixa o conteúdo visível (Index 1)
+    widget.show_placeholder(False)
+    assert widget.stack.currentIndex() == 1
     assert widget.placeholder_widget.isHidden()
-    assert not widget.content_widget.isHidden()
+    assert not widget.content_container.isHidden()
     
-    # Ativar placeholder
+    # Ativar placeholder (Index 0)
     widget.show_placeholder(True, "Erro de Teste")
+    assert widget.stack.currentIndex() == 0
     assert not widget.placeholder_widget.isHidden()
-    assert widget.content_widget.isHidden()
+    assert widget.content_container.isHidden()
     assert widget.placeholder_label.text() == "Erro de Teste"
 
 def test_resilient_widget_content_replacement(qtbot):
@@ -44,9 +47,9 @@ def test_resilient_widget_content_replacement(qtbot):
     
     child1 = QWidget()
     widget.set_content_widget(child1)
-    assert widget.content_layout.count() == 1
+    assert widget.content_container_layout.count() == 1
     
     child2 = QWidget()
     widget.set_content_widget(child2)
-    assert widget.content_layout.count() == 1
+    assert widget.content_container_layout.count() == 1
     # child1 deve ter sido marcado para deleção
