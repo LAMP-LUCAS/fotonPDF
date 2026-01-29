@@ -88,6 +88,7 @@ class PDFViewerWidget(QScrollArea):
         self._mode = "default"
         self._layout_mode = "single"
         self._last_emitted_page = -1
+        self._current_load_session = 0
         # Throttling de visibilidade para evitar flood de renderização
         self._visibility_timer = QTimer(self)
         self._visibility_timer.setSingleShot(True)
@@ -145,12 +146,12 @@ class PDFViewerWidget(QScrollArea):
 
     def load_document(self, path: Path, metadata: dict):
         """Inicializa o visualizador com um arquivo e seus metadados."""
-        #log_debug(f"PDFViewerWidget: load_document chamado para {path.name} (page_count={metadata.get('page_count', 0)})")
+        self._current_load_session += 1
         self.clear()
         self._hints = metadata.get("hints", {"complexity": "STANDARD"})
-        self.add_pages(path, metadata)
+        self.add_pages(path, metadata, session_id=self._current_load_session)
 
-    def add_pages(self, path: Path, metadata: dict):
+    def add_pages(self, path: Path, metadata: dict, session_id: int = 0):
         """Adiciona páginas de um novo documento de forma progressiva."""
         page_count = metadata.get("page_count", 0)
         page_info = metadata.get("pages", [])
@@ -176,7 +177,9 @@ class PDFViewerWidget(QScrollArea):
         initial_batch = 20
         
         def create_page_widgets(start_idx, count):
-            if not self.container: return
+            # Validação de sessão: se o visualizador já está carregando outro arquivo, abortar este lote
+            if not self.container or session_id != self._current_load_session: return
+            
             self.container.setUpdatesEnabled(False)
             
             end_idx = min(start_idx + count, page_count)

@@ -1,5 +1,4 @@
-import sys
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QSizePolicy, QStackedLayout
 from PyQt6.QtCore import Qt
 from src.infrastructure.services.logger import log_exception
 
@@ -55,6 +54,12 @@ class ResilientWidget(QWidget):
         
         # Estado 0: Placeholder / Erro
         self.placeholder_widget = QWidget()
+        try:
+            self.placeholder_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        except AttributeError:
+            # Fallback para PyQt5 ou versões onde .Policy pode não estar mapeado globalmente
+            self.placeholder_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        
         self.placeholder_layout = QVBoxLayout(self.placeholder_widget)
         self.placeholder_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.placeholder_layout.setSpacing(10)
@@ -73,12 +78,15 @@ class ResilientWidget(QWidget):
         self.placeholder_layout.addWidget(self.placeholder_label)
         
         # Estado 1: Conteúdo (Pode ser vazio inicialmente)
-        self.content_container = QWidget()
-        self.content_container_layout = QVBoxLayout(self.content_container)
-        self.content_container_layout.setContentsMargins(0, 0, 0, 0)
+        # Usamos um widget vazio temporário para garantir que index 1 existe
+        self._content_widget = QWidget()
+        try:
+            self._content_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        except AttributeError:
+            self._content_widget.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         
         self.stack.addWidget(self.placeholder_widget) # Index 0
-        self.stack.addWidget(self.content_container)  # Index 1
+        self.stack.addWidget(self._content_widget)    # Index 1
         
         self.show_placeholder(True)
 
@@ -100,13 +108,25 @@ class ResilientWidget(QWidget):
 
     def set_content_widget(self, widget):
         """ 
-        Define o widget de conteúdo real na stack 1.
+        Define o widget de conteúdo real na stack 1 (Substituição direta).
         """
-        # Limpar anterior
-        while self.content_container_layout.count():
-            item = self.content_container_layout.takeAt(0)
-            if item.widget():
-                item.widget().deleteLater()
+        from src.infrastructure.services.logger import log_debug
         
         if widget:
-            self.content_container_layout.addWidget(widget)
+            log_debug(f"ResilientWidget [{type(self).__name__}]: Substituindo slot de conteúdo por ({type(widget).__name__})")
+            
+            # Remover widget antigo do index 1
+            old_widget = self.stack.widget(1)
+            if old_widget:
+                self.stack.removeWidget(old_widget)
+                old_widget.deleteLater()
+            
+            # Inserir novo widget
+            self.stack.insertWidget(1, widget)
+            self._content_widget = widget
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.width() < 10 or self.height() < 10:
+            from src.infrastructure.services.logger import log_debug
+            log_debug(f"⚠️ ResilientWidget [{type(self).__name__}] Resize: {self.width()}x{self.height()} (Potencial colapso!)")

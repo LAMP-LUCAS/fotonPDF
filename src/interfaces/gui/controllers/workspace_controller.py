@@ -40,50 +40,34 @@ class WorkspaceController:
                 except Exception as rescue_err:
                     log_exception(f"WController: Falha fatal no resgate de metadados: {rescue_err}")
             
-            # 2. Sincronizar StateManager SEM BLOQUEIO 
-            if self.main_window.state_manager:
+            # 3. Adicionar ao container de abas (Isso cria o EditorGroup e seu StateManager)
+            group = None
+            if self.main_window.tabs is not None:
+                try:
+                    group = self.main_window.tabs.add_editor(file_path, metadata)
+                except Exception as e:
+                    log_exception(f"WController: Erro ao adicionar aba: {e}")
+            
+            # 4. Sincronizar StateManager (Usando o do grupo recém-criado ou ativo)
+            sm = group.state_manager if group else self.main_window.state_manager
+            if sm:
                 try:
                     if opened_doc:
-                        self.main_window.state_manager.load_from_document(opened_doc, str(file_path))
+                        sm.load_from_document(opened_doc, str(file_path))
                     else:
-                        # Fallback seguro
-                        self.main_window.state_manager.load_base_document(str(file_path))
+                        sm.load_base_document(str(file_path))
                 except Exception as e:
                     log_exception(f"WController: Erro no StateManager: {e}")
             
-            # 3. Adicionar ao container de abas (Passando metadados para CACHE imediato)
-            #log_debug(f"WController [DEBUG-TABS]: tabs existe? {self.main_window.tabs is not None}, tipo={type(self.main_window.tabs).__name__}, bool={bool(self.main_window.tabs) if self.main_window.tabs is not None else 'N/A'}")
-            # 4. Sincronizar RenderEngine (Single-Open Architecture)
-            # MOVED UP: Este passo DEVE ocorrer antes da criação da UI (Tabs) para garantir
-            # que quando o Viewer pedir render, o motor já tenha o handle injetado.
+            # 5. Sincronizar RenderEngine (Single-Open Architecture)
             log_debug("WController [STEP 3]: Iniciando RenderEngine.set_document")
             try:
-                # Passamos o opened_doc para evitar abertura concorrente
                 RenderEngine.instance().set_document(file_path, pre_opened_handle=opened_doc)
             except Exception as e:
                 log_exception(f"WController: Erro crítico no RenderEngine: {e}")
                 try:
                     self.main_window.statusBar().showMessage("⚠️ Erro de Renderização", 5000)
                 except: pass
-
-            # 3. Adicionar ao container de abas (Passando metadados para CACHE imediato)
-            if self.main_window.tabs is not None:
-                try:
-                    self.main_window.tabs.add_editor(file_path, metadata)
-                except Exception as e:
-                    log_exception(f"WController: Erro ao adicionar aba: {e}")
-            else:
-                log_debug("WController [SKIPPED]: tabs é None, não pode adicionar aba!")
-                log_exception(f"WController: Erro crítico no RenderEngine: {e}")
-                # FEEDBACK CRÍTICO: Notificar usuário que a visualização pode não funcionar
-                try:
-                    if not RenderEngine.instance()._current_doc_path:
-                        self.main_window.statusBar().showMessage(
-                            "⚠️ ATENÇÃO: Motor de renderização falhou. Visualização pode estar indisponível.", 
-                            10000
-                        )
-                except:
-                    pass
             
             # 5. Carregar na Mesa de Luz (Componente Auxiliar - Falha Graciosa)
             if self.main_window.light_table:

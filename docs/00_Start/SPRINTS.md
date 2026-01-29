@@ -9,6 +9,9 @@
 - [x] **Extração Pro**: Ferramenta real de extração de subconjuntos de páginas selecionadas de forma assíncrona.
 - [x] **Viewport Dinâmica**: Ajuste automático de dimensões ao girar páginas no editor (fim do bug de viewport fixa).
 - [x] **Merge 2.0 incremental**: Correção de redundâncias no carregamento de múltiplos arquivos.
+- [x] **Resolução de Identidade Virtual**: Fim da confusão entre índices físicos e visuais em TOC, Busca e Notas.
+- [x] **Bug Fix de Anotações**: Sincronização garantida de highlights mesmo após reordenação.
+- [x] **Diagnóstico 100+**: Novo arquivo `test_complex.pdf` e otimização para documentos longos.
 - [ ] Build com PyInstaller 📦
 - [ ] Testes E2E para Navegação 🧪
 - [ ] Merge para `develop` 🚀

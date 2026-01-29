@@ -25,7 +25,7 @@ class AsyncTOCWorker(QThread):
 
 class TOCPanel(ResilientWidget):
     """Painel lateral resiliente para Sumário (Bookmarks)."""
-    bookmark_clicked = pyqtSignal(int)
+    bookmark_clicked = pyqtSignal(int, str) # page_index, pdf_path
 
     def __init__(self, get_toc_use_case):
         super().__init__()
@@ -108,4 +108,4 @@ class TOCPanel(ResilientWidget):
     def _on_item_clicked(self, item, column):
         page_index = item.data(0, Qt.ItemDataRole.UserRole)
         if page_index is not None:
-            self.bookmark_clicked.emit(page_index)
+            self.bookmark_clicked.emit(page_index, str(self._pdf_path))

@@ -5,6 +5,7 @@ from src.domain.entities.pdf import PDFDocument
 from src.domain.ports.pdf_operations import PDFOperationsPort
 from src.domain.ports.ocr_operations import OCRPort
 from src.domain.services.naming_service import NamingService
+from src.infrastructure.services.logger import log_debug, log_error, log_exception
 
 class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
     """Implementação concreta (Adapter) usando a biblioteca PyMuPDF."""
@@ -185,7 +186,8 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         with fitz.open(str(pdf_path)) as doc:
             toc_data = doc.get_toc() # [level, title, page, ...]
             # PyMuPDF TOC page is 1-based, converting to 0-based for standard
-            return [TOCItem(level=item[0], title=item[1], page_index=item[2]-1) for item in toc_data]
+            # Sanitizar: garantir que não seja < 0 caso o PDF tenha dados corrompidos
+            return [TOCItem(level=item[0], title=item[1], page_index=max(0, item[2]-1)) for item in toc_data]
 
     def add_annotation(self, pdf_path: Path, page_index: int, rect: tuple, type: str = "highlight", color: tuple = (1, 1, 0)) -> Path:
         """Adiciona uma anotação em uma área específica e salva o arquivo modificado."""
@@ -229,8 +231,12 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         # Se handle não fornecido, abre e garante fechamento
         doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
         try:
-            metadata["page_count"] = doc.page_count
-            for page in doc:
+            page_count = doc.page_count
+            metadata["page_count"] = page_count
+            log_debug(f"Adapter: Processando metadados de {page_count} páginas...")
+            for i, page in enumerate(doc):
+                if i % 100 == 0 and i > 0:
+                    log_debug(f"Adapter: ... {i} páginas processadas")
                 rect = page.rect
                 fmt = GeometryService.identify_aec_format(rect.width, rect.height)
                 metadata["pages"].append({
@@ -389,5 +395,5 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
             doc.close()
             return result
         except Exception as e:
-            print(f"Error extracting text from {path}: {e}")
+            log_exception(f"Error extracting text from {path}: {e}")
             return None

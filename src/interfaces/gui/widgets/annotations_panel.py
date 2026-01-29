@@ -6,7 +6,7 @@ from src.infrastructure.services.logger import log_debug
 
 class AnnotationsPanel(ResilientWidget):
     """Painel lateral resiliente para anotações do usuário."""
-    annotationClicked = pyqtSignal(int, str)  # page_index, annotation_id
+    annotationClicked = pyqtSignal(int, str, str)  # page_index, annotation_id, pdf_path
 
     def __init__(self, use_case):
         super().__init__()
@@ -90,7 +90,7 @@ class AnnotationsPanel(ResilientWidget):
         if ann:
             # page_index pode vir como string do JSON, converter
             p_idx = int(ann.get('page_index', 0))
-            self.annotationClicked.emit(p_idx, ann.get('id', ''))
+            self.annotationClicked.emit(p_idx, ann.get('id', ''), str(self._pdf_path))
 
     def _on_add_clicked(self):
         """Abre dialog para criar nova anotação."""
@@ -104,10 +104,15 @@ class AnnotationsPanel(ResilientWidget):
             current_page = 0
             try:
                 mw = self.window()
-                if hasattr(mw, 'viewer') and mw.viewer:
-                    current_page = mw.viewer.get_current_page_index()
-            except:
-                pass
+                if hasattr(mw, 'state_manager') and mw.state_manager:
+                    visual_idx = mw.viewer.get_current_page_index()
+                    v_page = mw.state_manager.get_page(visual_idx)
+                    if v_page:
+                        current_page = v_page.source_page_index
+                        # IMPORTANTE: A nota deve ser associada ao path de ORIGEM da página
+                        self._pdf_path = v_page.source_doc.name
+            except Exception as e:
+                log_debug(f"AnnotationsPanel: Falha ao resolver pág física: {e}")
             
             new_ann = self._use_case.add_annotation(str(self._pdf_path), current_page, text)
             self._annotations.append(new_ann)

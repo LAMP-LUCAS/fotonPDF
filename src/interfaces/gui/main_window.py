@@ -61,6 +61,18 @@ class MainWindow(QMainWindow):
             return self.tabs.current_editor()
         return None
 
+    @property
+    def state_manager(self):
+        """Retorna o StateManager (Virtual State) da aba ativa."""
+        group = self.current_editor_group
+        if group and hasattr(group, 'state_manager'):
+            return group.state_manager
+        # Fallback durante inicialização ou se não houver abas
+        if not hasattr(self, '_fallback_state_manager'):
+            from src.interfaces.gui.state.pdf_state import PDFStateManager
+            self._fallback_state_manager = PDFStateManager()
+        return self._fallback_state_manager
+
     def __init__(self, initial_file=None, settings_connector=None):
         super().__init__()
         self._settings_connector = settings_connector
@@ -119,7 +131,7 @@ class MainWindow(QMainWindow):
         # Stage 4: UI State
         try:
             self.current_file = None
-            self.state_manager = PDFStateManager()
+            # Removida instância fixa: agora é per-aba via propriedade
             self.workspace_controller = WorkspaceController(self) # Novo Controller
             self.navigation_history = []
             self.history_index = -1
@@ -179,7 +191,7 @@ class MainWindow(QMainWindow):
             # Garantir que a SideBar esquerda inicie colapsada (conforme pedido do usuário)
             # Usamos singleShot para evitar conflito com a restauração de geometria/estado no startup
             if hasattr(self, 'side_bar') and self.side_bar:
-                QTimer.singleShot(500, self.side_bar.toggle_collapse)
+                QTimer.singleShot(500, self.side_bar.collapse)
             
             StartupLogger.log("Stage9_FinalSetup")
         except Exception as e:
@@ -337,7 +349,7 @@ class MainWindow(QMainWindow):
         try:
             if hasattr(self.side_bar_right, 'add_panel'):
                 self.side_bar_right.add_panel(self.inspector, "AEC Inspector")
-                self.side_bar_right.toggle_collapse()
+                self.side_bar_right.collapse()
             StartupLogger.log("sidebar_right_setup")
         except Exception as e:
             StartupLogger.log("sidebar_right_setup", e)
@@ -373,39 +385,67 @@ class MainWindow(QMainWindow):
         if hasattr(self.activity_bar, 'clicked'):
             self.activity_bar.clicked.connect(self._on_activity_clicked)
         
+        # Conexões da Sidebar (Thumbnail, etc) são feitas via Lazy Loading em _ensure_panel_loaded
+        # para evitar AttributeError no startup.
+        
         # Painéis da sidebar serão carregados sob demanda (Lazy Loading)
         self.thumbnails = None
         self.toc_panel = None
         self.search_panel = None
         self.annotations_panel = None
 
-        # Conectar LightTable se existir o sinal
         if hasattr(self.light_table, "pageMoved"):
             self.light_table.pageMoved.connect(self._on_light_table_moved)
+
+        # Atalhos Globais
+        self.search_shortcut = QAction("Search", self)
+        self.search_shortcut.setShortcut(QKeySequence("Ctrl+F"))
+        self.search_shortcut.triggered.connect(self._focus_search)
+        self.addAction(self.search_shortcut)
+
+        self.split_shortcut = QAction("Split", self)
+        self.split_shortcut.setShortcut(QKeySequence("Ctrl+\\"))
+        self.split_shortcut.triggered.connect(self._on_split_clicked)
+        self.addAction(self.split_shortcut)
 
     def _ensure_panel_loaded(self, name: str):
         """Garante que um painel da sidebar esteja carregado (Lazy Loading)."""
         try:
             if name == "thumbnails" and not self.thumbnails:
-                self.thumbnails = ThumbnailPanel()
+                self.thumbnails = ThumbnailPanel(self._adapter)
                 self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
                 self.thumbnails.orderChanged.connect(self._on_pages_reordered)
                 self.side_bar.add_panel(self.thumbnails, "Páginas", idx=0)
-            
+                
+                # Sincronização Imediata se já houver documento
+                if self.state_manager and self.state_manager.pages:
+                    identities = [(str(p.source_doc.name), p.source_page_index) for p in self.state_manager.pages]
+                    self.thumbnails.load_thumbnails(identities)
+
             elif name == "search" and not self.search_panel:
                 from src.application.use_cases.search_text import SearchTextUseCase
                 self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
-                # CRITICAL: Connect result click to viewer navigation
+                # CRITICAL: Converter físico -> visual antes de scrollar
                 self.search_panel.result_clicked.connect(
-                    lambda page_idx, highlights: self.viewer.scroll_to_page(page_idx, highlights) if self.viewer else None
+                    lambda p_idx, highlights, p_path: self._navigate_to_physical_page(p_path, p_idx, highlights)
                 )
                 self.side_bar.add_panel(self.search_panel, "Pesquisar", idx=1)
+                
+                # Sincronização Imediata
+                if self.current_file:
+                    self.search_panel.set_pdf(self.current_file)
 
-            
             elif name == "toc" and not self.toc_panel:
                 from src.application.use_cases.get_toc import GetTOCUseCase
                 self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
+                self.toc_panel.bookmark_clicked.connect(
+                    lambda p_idx, p_path: self._navigate_to_physical_page(p_path, p_idx)
+                )
                 self.side_bar.add_panel(self.toc_panel, "Índice", idx=2)
+                
+                # Sincronização Imediata
+                if self.current_file:
+                    self.toc_panel.set_pdf(self.current_file)
             
             elif name == "annotations" and not self.annotations_panel:
                 from src.interfaces.gui.widgets.annotations_panel import AnnotationsPanel
@@ -417,9 +457,13 @@ class MainWindow(QMainWindow):
                 
                 self.annotations_panel = AnnotationsPanel(use_case)
                 self.annotations_panel.annotationClicked.connect(
-                    lambda page, aid: self.viewer.scroll_to_page(page) if self.viewer else None
+                    lambda p_idx, aid, p_path: self._navigate_to_physical_page(p_path, p_idx)
                 )
                 self.side_bar.add_panel(self.annotations_panel, "Notas", idx=3)
+                
+                # Sincronização Imediata
+                if self.current_file:
+                    self.annotations_panel.set_pdf(self.current_file)
                 
         except Exception as e:
             log_exception(f"Erro ao carregar painel {name}: {e}")
@@ -540,8 +584,10 @@ class MainWindow(QMainWindow):
         
         # 4. Atualizar Thumbnails
         if self.thumbnails:
-            # Reload leve (reaproveita cache do motor)
-            self.thumbnails.load_thumbnails(str(self.current_file), len(self.state_manager.pages))
+            # Sincronizar ordens através das identidades do StateManager (Verdade Absoluta)
+            # USAR .name (que no fitz.Document é o path completo) em vez de .path
+            identities = [(str(p.source_doc.name), p.source_page_index) for p in self.state_manager.pages]
+            self.thumbnails.load_thumbnails(identities)
 
         self.statusBar().showMessage("Ordem das páginas atualizada.", 3000)
 
@@ -739,6 +785,11 @@ class MainWindow(QMainWindow):
         self.save_action.setEnabled(False)
         self.save_action.triggered.connect(self._on_save_clicked)
         
+        self.save_as_action = file_menu.addAction("Salvar Como...")
+        self.save_as_action.setShortcut("Ctrl+Shift+S")
+        self.save_as_action.setEnabled(False)
+        self.save_as_action.triggered.connect(self._on_save_as_clicked)
+        
         file_menu.addSeparator()
         
         export_menu = file_menu.addMenu("📤 Exportar...")
@@ -793,6 +844,18 @@ class MainWindow(QMainWindow):
         
         self.split_action = layout_menu.addAction("Dividir Editor (Split View)")
         self.split_action.triggered.connect(self._on_split_clicked)
+
+        # --- 🧭 NAVEGAÇÃO ---
+        nav_menu = self.app_menu.addMenu("🧭 Navegação")
+        self.back_action = nav_menu.addAction("Voltar (Histórico)")
+        self.back_action.setShortcut(QKeySequence.StandardKey.Back)
+        self.back_action.triggered.connect(self._on_back_clicked)
+        self.back_action.setEnabled(False)
+
+        self.forward_action = nav_menu.addAction("Avançar (Histórico)")
+        self.forward_action.setShortcut(QKeySequence.StandardKey.Forward)
+        self.forward_action.triggered.connect(self._on_forward_clicked)
+        self.forward_action.setEnabled(False)
         
         # --- ⚙️ SISTEMA ---
         sys_menu = self.app_menu.addMenu("⚙️ Sistema")
@@ -880,30 +943,6 @@ class MainWindow(QMainWindow):
         visible = self.activity_bar.isVisible()
         self.activity_bar.setVisible(not visible)
 
-    def _setup_connections(self):
-        # Conexões de Abas
-        self.tabs.fileChanged.connect(self._on_tab_changed)
-        
-        # Conexões da Sidebar (Thumbnail) serão feitas no _on_tab_changed 
-        # para garantir que apontam para o viewer ativo.
-        self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
-        self.thumbnails.orderChanged.connect(self._on_pages_reordered)
-        
-        # Conexão da Activity Bar
-        self.activity_bar.clicked.connect(self._on_activity_clicked)
-        
-        # Atalhos
-        self.search_shortcut = QAction("Search", self)
-        self.search_shortcut.setShortcut(QKeySequence("Ctrl+F"))
-        self.search_shortcut.triggered.connect(self._focus_search)
-        self.addAction(self.search_shortcut)
-
-        # Split Shortcut (Ctrl+\)
-        self.split_shortcut = QAction("Split", self)
-        self.split_shortcut.setShortcut(QKeySequence("Ctrl+\\"))
-        self.split_shortcut.triggered.connect(self._on_split_clicked)
-        self.addAction(self.split_shortcut)
-
     @safe_ui_callback("Tab Switch")
     def _on_tab_changed(self, file_path):
         """Sincroniza a UI quando o usuário muda de aba."""
@@ -927,9 +966,10 @@ class MainWindow(QMainWindow):
                 viewer = group.viewer_left
                 if hasattr(viewer, '_pages') and len(viewer._pages) == 0:
                     log_debug(f"MainWindow [EMERGENCY]: ViewerWidget vazio! Forçando reload...")
-                    # Construir metadata de emergência a partir do StateManager
-                    if self.state_manager and self.state_manager.doc:
-                        page_count = self.state_manager.doc.page_count
+                    # Construir metadata de emergência a partir do StateManager se possível
+                    if self.state_manager and self.state_manager.pages:
+                        doc = self.state_manager.pages[0].source_doc
+                        page_count = len(self.state_manager.pages)
                         rescue_metadata = {
                             "page_count": page_count,
                             "pages": [{"width_mm": 210, "height_mm": 297, "format": "A4"} for _ in range(page_count)],
@@ -951,7 +991,15 @@ class MainWindow(QMainWindow):
             
             if self.thumbnails:
                 try:
-                    self.thumbnails.load_thumbnails(str(file_path), metadata.get("page_count", 0))
+                    # Preferencialmente usar identidades se o state_manager estiver pronto
+                    if self.state_manager:
+                        # USAR .name (Path completo no fitz) para evitar desvio no RenderEngine
+                        identities = [(str(p.source_doc.name), p.source_page_index) for p in self.state_manager.pages]
+                        self.thumbnails.load_thumbnails(identities)
+                    else:
+                        # Fallback seguro
+                        ids = [(str(file_path), i) for i in range(metadata.get("page_count", 0))]
+                        self.thumbnails.load_thumbnails(ids)
                 except Exception as e:
                     log_exception(f"MainWindow: Falha ao atualizar Thumbnails: {e}")
             log_debug("MainWindow [TAB_CHANGED]: [2/5] Thumbnails OK.")
@@ -1614,60 +1662,59 @@ class MainWindow(QMainWindow):
         else:
             log_warning("MainWindow: annotations_panel não disponível para draft.")
 
-    def _on_highlight_requested(self, page_idx, rect, color):
-        """Handler para criação de Highlights via menu de contexto."""
-        log_debug(f"MainWindow: Highlight solicitado na pg {page_idx}")
+    def _on_highlight_requested(self, page_idx: int, rect: tuple, color: tuple):
+        """Handler para criação de Highlights via menu de contexto. Resolve pg virtual para física."""
+        log_debug(f"MainWindow: Highlight solicitado na pg visual {page_idx}")
         
-        if not self.current_file: return
+        if not self.current_file or not self.state_manager: return
 
-        # Guardar estado visual (scroll) para restaurar
-        scroll_pos = 0
-        if self.viewer:
-            scroll_pos = self.viewer.verticalScrollBar().value()
+        # 1. Resolver a página virtual para a origem física real
+        virtual_page = self.state_manager.get_page(page_idx)
+        if not virtual_page:
+            log_error(f"MainWindow: Falha ao resolver pg virtual {page_idx}")
+            return
+            
+        source_path = Path(virtual_page.source_doc.name)
+        source_idx = virtual_page.source_page_index
+        
+        log_debug(f"MainWindow: Resolvido highlight para física: {source_path.name} [pg {source_idx}]")
+
+        # Guardar estado visual (scroll) para restaurar após reload
+        scroll_v = self.viewer.verticalScrollBar().value() if self.viewer else 0
 
         try:
             from src.application.use_cases.add_annotation import AddAnnotationUseCase
-            # color vem como (r, g, b) 0-1 float ou 0-255 int?
-            # O sinal emite QColor geralmente? Não, emite tuple.
-            # PyMuPDF aceita tuple floats (0..1).
-            # Vamos assumir que o viewer manda tuple (0..1).
-            
             uc = AddAnnotationUseCase(self._adapter)
             
-            # Executar UseCase (Gera novo arquivo)
-            new_path = uc.execute(self.current_file, page_idx, rect, color=color)
+            # Adicionar anotação no arquivo físico
+            new_path = uc.execute(source_path, source_idx, rect, color=color)
             
             if new_path and new_path.exists():
-                log_debug(f"MainWindow: Anotação salva em {new_path.name}")
+                self.statusBar().showMessage(f"Realce aplicado em {new_path.name}", 3000)
                 
-                # Undo/Redo Integration
-                if self.tabs and self.tabs.current_editor():
-                    group = self.tabs.current_editor()
-                    group.action_stack.push(new_path)
-                    
-                    # Reload in place (preserve history)
-                    # We pass preserve_history=True so load_document doesn't wipe the stack
-                    # Note: We need to update tab title too
-                    group.load_document(new_path, group.metadata, preserve_history=True)
-                    
-                    # Update window title/state
-                    self.current_file = new_path
-                    self.setWindowTitle(f"fotonPDF - {new_path.name}")
-                    idx = self.tabs.currentIndex()
-                    if idx >= 0:
-                        self.tabs.setTabText(idx, new_path.name)
-                else:
-                    # Fallback
-                    self.open_file(new_path)
+                # Sincronizar UI (Abrir o novo arquivo resultante)
+                # O open_file cuidará de atualizar o TabContainer, StateManager e Viewers
+                self.open_file(new_path)
                 
-                # Restaurar scroll (Tentativa assíncrona pós-load)
-                QTimer.singleShot(800, lambda: self.viewer.verticalScrollBar().setValue(scroll_pos) if self.viewer else None)
-                    
-                self.bottom_panel.add_log(f"📝 Anotação salva: {new_path.name}")
-            
+                # Restaurar posição de leitura com ligeiro atraso para garantir render base
+                QTimer.singleShot(600, lambda: self.viewer.verticalScrollBar().setValue(scroll_v) if self.viewer else None)
+
         except Exception as e:
-            log_exception(f"Highlight Error: {e}")
-            self.statusBar().showMessage(f"Erro ao criar anotação: {e}")
+            log_exception(f"MainWindow: Falha ao aplicar highlight: {e}")
+            self.statusBar().showMessage(f"Erro ao salvar realce: {e}", 5000)
+
+    def _navigate_to_physical_page(self, source_path: str, original_idx: int, highlights: list = None):
+        """Converte um índice físico (do arquivo original) em índice visual (posição atual) e navega."""
+        if not self.state_manager or not self.viewer:
+            return
+            
+        visual_idx = self.state_manager.find_visual_index(source_path, original_idx)
+        if visual_idx != -1:
+            log_debug(f"Navegação: Físico {original_idx} -> Visual {visual_idx}")
+            self.viewer.scroll_to_page(visual_idx, highlights=highlights)
+        else:
+            log_error(f"Navegação: Não foi possível encontrar a página física {original_idx} de {source_path}")
+            self.statusBar().showMessage("Página não encontrada no documento atual.", 3000)
 
     def _undo_action(self):
         """Reverte para o estado anterior do documento atual."""

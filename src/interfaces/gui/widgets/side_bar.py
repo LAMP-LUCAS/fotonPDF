@@ -14,14 +14,14 @@ class SideBarHeader(QWidget):
 
 class SideBar(QFrame):
     """Container colapsável para os painéis de ferramentas estilo Obsidian."""
-    def __init__(self, parent=None, initial_width=300):
+    def __init__(self, parent=None, initial_width=260):
         super().__init__(parent)
         self.setObjectName("SideBar")
         
         # Persistência
         self.settings = GUISettingsAdapter()
         saved_width = self.settings.get("sidebar_width", initial_width)
-        saved_collapsed = self.settings.get("sidebar_collapsed", False)
+        saved_collapsed = self.settings.get("sidebar_collapsed", True)
         
         self._base_width = saved_width  # Largura "Padrão"
         self._last_width = saved_width  # Largura "Usuário"
@@ -79,7 +79,7 @@ class SideBar(QFrame):
         
         # Stacked Widget for Panels
         self.stack = QStackedWidget()
-        self.layout.addWidget(self.stack)
+        self.layout.addWidget(self.stack, 1) # Stretch 1 is CRITICAL for expansion
         
         # Pre-populate with 4 placeholder slots (indices 0, 1, 2, 3)
         # This ensures panel indices match ActivityBar button indices
@@ -100,24 +100,43 @@ class SideBar(QFrame):
 
     def add_panel(self, widget, title, idx=None):
         """Adds a panel at a specific index, replacing any placeholder."""
+        from src.infrastructure.services.logger import log_debug
+        log_debug(f"SideBar: Adicionando painel '{title}' no índice {idx}")
+        
         if idx is not None and 0 <= idx < self.stack.count():
             # Remove placeholder and insert real widget at same index
             old = self.stack.widget(idx)
             self.stack.removeWidget(old)
             old.deleteLater()
             self.stack.insertWidget(idx, widget)
+            log_debug(f"SideBar: Placeholder substituído no índice {idx} por {widget}")
+            
+            # Garantir que o stack reflita a mudança imediatamente se o índice for o ativo
+            if self.stack.currentIndex() == idx:
+                self.stack.setCurrentWidget(widget)
+                widget.show() # Safe here because it has a parent now
+                widget.update()
         else:
             # Fallback: append to end (legacy behavior)
             self.stack.addWidget(widget)
+            log_debug(f"SideBar: Painel anexado ao final (Índice {self.stack.count()-1})")
 
     @safe_ui_callback("Sidebar Panel Switch")
     def show_panel(self, idx, title):
+        from src.infrastructure.services.logger import log_debug
+        
         if self._is_collapsed:
+            log_debug("SideBar: Auto-expandindo para exibir painel")
             self.toggle_collapse()
         
         if idx < self.stack.count():
             self.stack.setCurrentIndex(idx)
+            current_w = self.stack.currentWidget()
+            log_debug(f"SideBar: Mostrando painel {idx} ({title}). Widget visível? {current_w.isVisible()}")
             self.title_label.setText(title.upper())
+            
+            # Forçar repaint
+            current_w.update()
 
     def _on_smart_resize(self):
         """
@@ -152,19 +171,25 @@ class SideBar(QFrame):
     @safe_ui_callback("Sidebar Animation")
     def toggle_collapse(self, checked=None):
         if not self._is_collapsed:
-            # Colapsando
+            self.collapse()
+        else:
+            self.expand()
+
+    def collapse(self):
+        """Força o fechamento da sidebar."""
+        if not self._is_collapsed:
             self._last_width = self.width()
             self._animate_to(0)
-        else:
-            # Expandindo
-            # Se a última largura for 0 (erro), usa base
+            self._is_collapsed = True
+            self.settings.set("sidebar_collapsed", True)
+
+    def expand(self):
+        """Força a abertura da sidebar."""
+        if self._is_collapsed:
             target = self._last_width if self._last_width > 50 else self._base_width
             self._animate_to(target)
-            
-            self._animate_to(target)
-            
-        self._is_collapsed = not self._is_collapsed
-        self.settings.set("sidebar_collapsed", self._is_collapsed)
+            self._is_collapsed = False
+            self.settings.set("sidebar_collapsed", False)
 
     def _on_animation_finished(self):
         """Libera o redimensionamento após expandir."""

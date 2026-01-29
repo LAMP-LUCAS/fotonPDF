@@ -28,7 +28,7 @@ pie title Cobertura da Documentação
 - [x] Extração Pro (Assíncrona) 📄
 - [x] Reordenação Espacial na Mesa de Luz 📐
 - [x] Viewport Dinâmica (Fix Rotação) 🔄
-- [ ] Build com PyInstaller 📦
+- [x] Resolução de Identidade Virtual (Fix de Reordenação) 🔗
 - [ ] Zoom por Área (RubberBand) 🔍
 - [ ] Renderização Assíncrona da Primeira Página ⚡
 - [ ] Testes E2E para Navegação 🧪

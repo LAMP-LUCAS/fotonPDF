@@ -92,10 +92,26 @@ class PDFStateManager:
         new_doc.close()
         log_debug("StateManager: Salvo com sucesso.")
 
-    def get_page(self, index: int) -> Optional[VirtualPage]:
-        if 0 <= index < len(self.pages):
-            return self.pages[index]
+    def get_page(self, visual_index: int) -> Optional[VirtualPage]:
+        """Retorna os dados da página na posição visual X."""
+        if 0 <= visual_index < len(self.pages):
+            return self.pages[visual_index]
         return None
+
+    def find_visual_index(self, source_doc_name: str, source_page_index: int) -> int:
+        """
+        Encontra a posição visual atual de uma página física específica.
+        Útil para sincronizar TOC e Busca.
+        """
+        # Normalizar o path para comparação robusta
+        from pathlib import Path
+        search_path = str(Path(source_doc_name).resolve())
+        
+        for i, p in enumerate(self.pages):
+            p_path = str(Path(p.source_doc.name).resolve())
+            if p_path == search_path and p.source_page_index == source_page_index:
+                return i
+        return -1
 
     def close_all(self):
         self.pages = []

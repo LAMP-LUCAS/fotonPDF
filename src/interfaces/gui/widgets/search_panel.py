@@ -43,7 +43,7 @@ class SearchWorker(QThread):
 
 class SearchPanel(QWidget):
     """Painel lateral de busca textual."""
-    result_clicked = pyqtSignal(int, list) # page_index, highlights
+    result_clicked = pyqtSignal(int, list, str) # page_index, highlights, pdf_path
     results_found = pyqtSignal(list) # list[SearchResult]
 
     def __init__(self, search_use_case):
@@ -128,4 +128,4 @@ class SearchPanel(QWidget):
     def _on_item_clicked(self, item):
         res = item.data(Qt.ItemDataRole.UserRole)
         if res:
-            self.result_clicked.emit(res.page_index, res.highlights)
+            self.result_clicked.emit(res.page_index, res.highlights, str(self._pdf_path))

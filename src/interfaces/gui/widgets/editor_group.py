@@ -11,9 +11,13 @@ class EditorGroup(ResilientWidget):
     """
     def __init__(self, parent=None):
         super().__init__(parent)
-        # ResilientWidget agora usa content_container_layout
-        self.layout = self.content_container_layout 
+        # EditorGroup gerencia seu próprio layout container
+        self._container = QWidget()
+        self.layout = QVBoxLayout(self._container)
+        self.layout.setContentsMargins(0, 0, 0, 0)
         
+        from src.interfaces.gui.state.pdf_state import PDFStateManager
+        self.state_manager = PDFStateManager()
         self.action_stack = ActionStack() # Undo/Redo History
         
         # Banner OCR (Modular)
@@ -49,6 +53,7 @@ class EditorGroup(ResilientWidget):
         self.metadata = None
         
         # Mostrar o conteúdo imediatamente (EditorGroup é sempre visível)
+        self.set_content_widget(self._container)
         self.show_placeholder(False)
 
     @safe_ui_callback("Load Document")
