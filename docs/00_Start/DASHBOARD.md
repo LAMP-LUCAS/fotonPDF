@@ -24,6 +24,10 @@ pie title Cobertura da Documentação
 
 ### Sprint 22 (Em Progresso) 🏗️
 
+- [x] Menu Lúdico v2 🎨
+- [x] Extração Pro (Assíncrona) 📄
+- [x] Reordenação Espacial na Mesa de Luz 📐
+- [x] Viewport Dinâmica (Fix Rotação) 🔄
 - [ ] Build com PyInstaller 📦
 - [ ] Zoom por Área (RubberBand) 🔍
 - [ ] Renderização Assíncrona da Primeira Página ⚡
@@ -79,7 +83,7 @@ gantt
 
 ---
 
-**Última atualização:** 2026-01-24  
+**Última atualização:** 2026-01-28  
 **Próxima revisão:** Início da Fase 4
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]

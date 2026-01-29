@@ -2,7 +2,16 @@
 
 ## 🏁 Sprint Atual: Sprint 22 - Consolidação e Lançamento 🚀
 
-**Objetivo:** Validar build, implementar Zoom por Área, e preparar merge para `develop`.
+### Progresso
+
+- [x] **Menu Lúdico v2**: Nova organização categórica com emojis e cores para máxima ergonomia.
+- [x] **Reordenação Espacial**: Manipulação de ordem de páginas via "drag-and-drop" na Mesa de Luz com sincronização debounced.
+- [x] **Extração Pro**: Ferramenta real de extração de subconjuntos de páginas selecionadas de forma assíncrona.
+- [x] **Viewport Dinâmica**: Ajuste automático de dimensões ao girar páginas no editor (fim do bug de viewport fixa).
+- [x] **Merge 2.0 incremental**: Correção de redundâncias no carregamento de múltiplos arquivos.
+- [ ] Build com PyInstaller 📦
+- [ ] Testes E2E para Navegação 🧪
+- [ ] Merge para `develop` 🚀
 
 ---
 
