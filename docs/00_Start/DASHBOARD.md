@@ -29,6 +29,7 @@ pie title Cobertura da Documentação
 - [x] Reordenação Espacial na Mesa de Luz 📐
 - [x] Viewport Dinâmica (Fix Rotação) 🔄
 - [x] Resolução de Identidade Virtual (Fix de Reordenação) 🔗
+- [x] Correção de Visibilidade da Sidebar e Batch Loading (Fix Crítico) 🛠️
 - [ ] Zoom por Área (RubberBand) 🔍
 - [ ] Renderização Assíncrona da Primeira Página ⚡
 - [ ] Testes E2E para Navegação 🧪
@@ -83,7 +84,7 @@ gantt
 
 ---
 
-**Última atualização:** 2026-01-28  
+**Última atualização:** 2026-01-29  
 **Próxima revisão:** Início da Fase 4
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]
