@@ -109,13 +109,14 @@ class SideBar(QFrame):
             self.stack.removeWidget(old)
             old.deleteLater()
             self.stack.insertWidget(idx, widget)
-            log_debug(f"SideBar: Placeholder substituído no índice {idx} por {widget}")
+            log_debug(f"SideBar: Placeholder substituído no índice {idx} por {widget} (Parent: {widget.parent()})")
             
             # Garantir que o stack reflita a mudança imediatamente se o índice for o ativo
             if self.stack.currentIndex() == idx:
-                self.stack.setCurrentWidget(widget)
-                widget.show() # Safe here because it has a parent now
+                self.stack.setCurrentIndex(idx)
+                widget.show()
                 widget.update()
+                log_debug(f"SideBar: Widget ativo [{idx}] atualizado. Visível: {widget.isVisible()}")
         else:
             # Fallback: append to end (legacy behavior)
             self.stack.addWidget(widget)
@@ -130,13 +131,25 @@ class SideBar(QFrame):
             self.toggle_collapse()
         
         if idx < self.stack.count():
-            self.stack.setCurrentIndex(idx)
+            # Forçar a mudança de índice mesmo que seja o mesmo, para disparar eventos de layout
+            if self.stack.currentIndex() == idx:
+                # Se já é o atual, apenas garante que está visível e atualizado
+                current_w = self.stack.currentWidget()
+                if current_w:
+                    current_w.show()
+                    current_w.raise_()
+                    current_w.update()
+            else:
+                self.stack.setCurrentIndex(idx)
+            
             current_w = self.stack.currentWidget()
-            log_debug(f"SideBar: Mostrando painel {idx} ({title}). Widget visível? {current_w.isVisible()}")
+            log_debug(f"SideBar: Mostrando painel {idx} ({title}). Widget: {current_w}. Visível? {current_w.isVisible()} Geometry: {current_w.geometry()}")
             self.title_label.setText(title.upper())
             
-            # Forçar repaint
-            current_w.update()
+            # Forçar repaint e processamento de eventos
+            if current_w:
+                current_w.show() # Forçar visibilidade
+                current_w.update()
 
     def _on_smart_resize(self):
         """
@@ -186,6 +199,8 @@ class SideBar(QFrame):
     def expand(self):
         """Força a abertura da sidebar."""
         if self._is_collapsed:
+            # Forçar um mínimo imediato para que o Splitter considere o widget
+            self.setMinimumWidth(50) 
             target = self._last_width if self._last_width > 50 else self._base_width
             self._animate_to(target)
             self._is_collapsed = False
@@ -196,12 +211,25 @@ class SideBar(QFrame):
         if not self._is_collapsed:
             self.setMaximumWidth(16777215)
             self.setMinimumWidth(150) 
+        else:
+            # Se terminou colapsado, garante largura zero
+            self.setFixedWidth(0)
 
     def set_title(self, text):
+        from src.infrastructure.services.logger import log_debug
+        log_debug(f"SideBar: Atualizando título para {text.upper()}")
         self.title_label.setText(text.upper())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
+        
+        # Sincronizar painel atual com novo tamanho
+        current_w = self.stack.currentWidget()
+        if current_w and not self._is_collapsed:
+            current_w.updateGeometry()
+            if hasattr(current_w, 'main_layout'):
+                 current_w.main_layout.activate()
+        
         # Só salva se não estiver colapsado e não estiver animando (aproximado)
         if not self._is_collapsed and self.width() > 50:
             self._base_width = self.width()

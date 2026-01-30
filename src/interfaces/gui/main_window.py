@@ -412,19 +412,16 @@ class MainWindow(QMainWindow):
         """Garante que um painel da sidebar esteja carregado (Lazy Loading)."""
         try:
             if name == "thumbnails" and not self.thumbnails:
-                self.thumbnails = ThumbnailPanel(self._adapter)
+                self.thumbnails = ThumbnailPanel(adapter=self._adapter, parent=self.side_bar)
                 self.thumbnails.pageSelected.connect(lambda idx: self.viewer.scroll_to_page(idx) if self.viewer else None)
                 self.thumbnails.orderChanged.connect(self._on_pages_reordered)
                 self.side_bar.add_panel(self.thumbnails, "Páginas", idx=0)
-                
-                # Sincronização Imediata se já houver documento
-                if self.state_manager and self.state_manager.pages:
-                    identities = [(str(p.source_doc.name), p.source_page_index) for p in self.state_manager.pages]
-                    self.thumbnails.load_thumbnails(identities)
+                # Nota: load_thumbnails não é chamado aqui, pois o _on_tab_changed ou
+                # o click na activity_bar cuidará da sincronização inicial.
 
             elif name == "search" and not self.search_panel:
                 from src.application.use_cases.search_text import SearchTextUseCase
-                self.search_panel = SearchPanel(SearchTextUseCase(self._adapter))
+                self.search_panel = SearchPanel(SearchTextUseCase(self._adapter), parent=self.side_bar)
                 # CRITICAL: Converter físico -> visual antes de scrollar
                 self.search_panel.result_clicked.connect(
                     lambda p_idx, highlights, p_path: self._navigate_to_physical_page(p_path, p_idx, highlights)
@@ -437,7 +434,7 @@ class MainWindow(QMainWindow):
 
             elif name == "toc" and not self.toc_panel:
                 from src.application.use_cases.get_toc import GetTOCUseCase
-                self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter))
+                self.toc_panel = TOCPanel(GetTOCUseCase(self._adapter), parent=self.side_bar)
                 self.toc_panel.bookmark_clicked.connect(
                     lambda p_idx, p_path: self._navigate_to_physical_page(p_path, p_idx)
                 )
@@ -455,7 +452,7 @@ class MainWindow(QMainWindow):
                 repo = AnnotationRepository()
                 use_case = ManageAnnotationsUseCase(repo)
                 
-                self.annotations_panel = AnnotationsPanel(use_case)
+                self.annotations_panel = AnnotationsPanel(use_case, parent=self.side_bar)
                 self.annotations_panel.annotationClicked.connect(
                     lambda p_idx, aid, p_path: self._navigate_to_physical_page(p_path, p_idx)
                 )
@@ -947,7 +944,13 @@ class MainWindow(QMainWindow):
     def _on_tab_changed(self, file_path):
         """Sincroniza a UI quando o usuário muda de aba."""
         try:
-            if not file_path: return
+            if not file_path:
+                # Se não há arquivo (todas as abas fechadas), limpar painéis
+                log_debug("MainWindow [TAB_CHANGED]: Nenhum arquivo ativo. Limpando painéis.")
+                self.setWindowTitle("fotonPDF")
+                if self.thumbnails: self.thumbnails.load_thumbnails([])
+                # Adicionar limpeza de outros painéis se necessário (TOC, etc)
+                return
             log_debug("MainWindow [TAB_CHANGED]: Iniciando sincronização...")
             
             self.current_file = file_path
@@ -1116,8 +1119,11 @@ class MainWindow(QMainWindow):
 
         target_idx = idx
         
-        # Se clicar no ícone que já está ativo, colapsa/expande a sidebar
-        if self.side_bar.stack.currentIndex() == target_idx and not self.side_bar._is_collapsed:
+        # Se clicar no ícone que já está ativo e a sidebar estiver aberta, colapsa.
+        # Caso contrário (estiver fechada ou for outro ícone), garante a abertura e atualização.
+        is_already_active = self.side_bar.stack.currentIndex() == target_idx
+        
+        if is_already_active and not self.side_bar._is_collapsed:
             self.side_bar.toggle_collapse()
         else:
             self.side_bar.show_panel(target_idx, titles.get(target_idx, "SIDEBAR"))

@@ -46,8 +46,8 @@ class SearchPanel(QWidget):
     result_clicked = pyqtSignal(int, list, str) # page_index, highlights, pdf_path
     results_found = pyqtSignal(list) # list[SearchResult]
 
-    def __init__(self, search_use_case):
-        super().__init__()
+    def __init__(self, search_use_case, parent=None):
+        super().__init__(parent)
         self._search_use_case = search_use_case
         self._pdf_path = None
         self._worker = None

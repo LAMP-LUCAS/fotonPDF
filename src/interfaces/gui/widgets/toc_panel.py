@@ -27,8 +27,8 @@ class TOCPanel(ResilientWidget):
     """Painel lateral resiliente para Sumário (Bookmarks)."""
     bookmark_clicked = pyqtSignal(int, str) # page_index, pdf_path
 
-    def __init__(self, get_toc_use_case):
-        super().__init__()
+    def __init__(self, get_toc_use_case, parent=None):
+        super().__init__(parent)
         self._get_toc_use_case = get_toc_use_case
         self._pdf_path = None
         self._worker = None

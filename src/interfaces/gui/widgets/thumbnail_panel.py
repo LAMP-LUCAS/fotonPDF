@@ -16,15 +16,17 @@ class ThumbnailItemWidget(QWidget):
         
         # 1. Container da Imagem (Centralizado)
         self.img_label = QLabel()
-        # Tamanho um pouco menor para caber em sidebars estreitas
-        self.img_label.setFixedSize(110, 150)
+        # Permitir que encolha se a sidebar for muito estreita, mas manter proporção
+        self.img_label.setMinimumSize(40, 60)
+        self.img_label.setMaximumSize(120, 160)
         self.img_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.img_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         self.img_label.setStyleSheet("""
             background-color: #27272A;
             border: 1px solid #3F3F46;
             border-radius: 4px;
             color: #71717A;
-            font-size: 20px;
+            font-size: 16px;
         """)
         self.img_label.setText("⌛") 
         
@@ -50,6 +52,10 @@ class ThumbnailItemWidget(QWidget):
         
         # Suporte para cliques passarem para o QListWidget
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, True)
+    
+    def showEvent(self, event):
+        super().showEvent(event)
+        # log_debug(f"ThumbnailItemWidget P{self.num_label.text()} shown.")
 
     def set_pixmap(self, pixmap):
         if not pixmap or pixmap.isNull():
@@ -75,16 +81,21 @@ class ThumbnailPanel(ResilientWidget):
     pageSelected = pyqtSignal(int)
     orderChanged = pyqtSignal(list)
 
-    def __init__(self, adapter=None):
-        super().__init__()
+    def __init__(self, adapter=None, parent=None):
+        super().__init__(parent)
         self._adapter = adapter
         self._current_session = 0
         
         self.list = QListWidget()
-        # Fluxo Vertical é melhor para Sidebars
-        self.list.setFlow(QListWidget.Flow.TopToBottom)
-        self.list.setWrapping(False)
+        
+        # PIVOT FINAL: ListMode é o único que suporta largura variável sem esconder itens
+        self.list.setViewMode(QListWidget.ViewMode.ListMode)
+        self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.list.setSpacing(4)
+        self.list.setWordWrap(True)
+        # Permite que os itens sejam menores que o ideal sem sumir
+        self.list.setUniformItemSizes(False) 
+        
         try:
             self.list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         except AttributeError:
@@ -92,82 +103,113 @@ class ThumbnailPanel(ResilientWidget):
         
         self.list.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         self.list.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.list.setMovement(QListWidget.Movement.Static)
         
         # Estilo premium alinhado ao tema AEC-Dark
         self.list.setStyleSheet("""
             QListWidget {
-                background-color: #18181B;
+                background-color: #111113;
                 border: none;
                 outline: none;
-                padding-top: 10px;
+                padding: 0px;
+                min-width: 150px;
             }
             QListWidget::item {
                 background-color: #1F1F23;
-                border: 1px solid #27272A;
+                border: 1px solid #3F3F46;
                 border-radius: 8px;
-                margin: 6px 12px;
+                margin: 4px 8px;
             }
             QListWidget::item:selected {
                 background-color: #27272A;
                 border: 1px solid #FFD600;
             }
-            QListWidget::item:hover {
-                border: 1px solid #3F3F46;
-            }
         """)
         self.list.itemClicked.connect(self._on_item_clicked)
         
-        self.set_content_widget(self.list)
-        self.show_placeholder(True, "Aguardando documento...")
+        # [ARCH] Direct Layout Bypass
+        # O ThumbnailPanel bypassa a arquitetura de QStackedWidget do ResilientWidget (Pai)
+        # pois o aninhamento triplo de stacks (SideBar -> Resilient -> Stack) causa
+        # problemas siliciosos de visibilidade/geometria.
+        
+        # 1. Limpar layout base (remover stack padrão)
+        while self.main_layout.count():
+            child = self.main_layout.takeAt(0)
+            if child.widget():
+                child.widget().hide()
+                child.widget().deleteLater()
+                
+        # 2. Adicionar lista diretamente ao layout raiz
+        self.main_layout.addWidget(self.list)
+        self.list.show()
+
+    def show_placeholder(self, visible=True, message=None, is_error=False):
+        # Override: Placeholder desativado devido ao bypass de layout.
+        pass
 
     def set_adapter(self, adapter):
         self._adapter = adapter
 
     def load_thumbnails(self, identities: list):
+        """
+        Popula a lista com miniaturas baseadas nas identidades das páginas.
+        Deduplica para evitar processamento pesado e flickering.
+        """
+        # Evitar recarga se as identidades forem as mesmas (Deduplicação rápida)
+        # BUGFIX: Se a largura for muito pequena, permitimos recarregar quando a barra expandir
+        is_narrow = self.width() < 100
+        if hasattr(self, "_last_identities") and self._last_identities == identities and not is_narrow:
+            from src.infrastructure.services.logger import log_debug
+            log_debug("ThumbnailPanel: Ignorando carga redundante")
+            return
+            
+        self._last_identities = identities
         self._current_session += 1
-        log_debug(f"ThumbnailPanel [S{self._current_session}]: Carga de {len(identities)} páginas.")
         
         # Limpeza segura
         self.list.clear() 
         
         if not identities:
-            self.show_placeholder(True, "Documento vazio.")
+            # Sem stack, não podemos mostrar placeholder, mas limpamos a lista
             return
 
-        # CRITICAL FIX: Garantir que o widget de lista seja o ativo na stack
-        self.show_placeholder(False)
+        # Indicar que o conteúdo está vindo
+        self.list.update()
         
-        # Iniciar carga assíncrona com atraso maior para deixar a UI respirar
-        QTimer.singleShot(100, lambda: self._append_batch(identities, self._current_session, 0))
+        # RESTAURANDO LOGICA REAL
+        from PyQt6.QtCore import QTimer
+        QTimer.singleShot(200, lambda: self._append_batch(identities, self._current_session, 0))
 
     def _append_batch(self, identities, session_id, start_idx):
-        if session_id != self._current_session: return
+        if session_id != self._current_session: 
+            log_debug(f"ThumbnailPanel: Ignorando batch de sessão antiga (S{session_id} != S{self._current_session})")
+            return
         
-        batch_size = 5 # Reduzido de 15 para 5 para evitar GUI Freeze
+        batch_size = 8 # Equilíbrio entre velocidade e responsividade
         total = len(identities)
         end_idx = min(start_idx + batch_size, total)
+        
+        log_debug(f"ThumbnailPanel [S{session_id}]: Processando batch {start_idx} até {end_idx} de {total}")
         
         from src.interfaces.gui.state.render_engine import RenderEngine
         engine = RenderEngine.instance()
         
+        # Desativar updates temporariamente melhora a performance de inserção
         self.list.setUpdatesEnabled(False)
         
         for i in range(start_idx, end_idx):
             path, original_idx = identities[i]
             
-            # Criar Item (NÃO passar a lista no construtor para evitar inserção duplicada)
             item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, original_idx)
-            
-            # Widget Customizado
-            widget = ThumbnailItemWidget(i + 1)
-            # Definir tamanho fixo para o item para ajudar o QListWidget no cálculo de scroll
             item.setSizeHint(QSize(130, 220))
             
+            widget = ThumbnailItemWidget(i + 1)
             self.list.addItem(item)
             self.list.setItemWidget(item, widget)
+            widget.show() # Essencial para que apareça dentro do QListWidget em alguns sistemas
             
-            # Renderização (Async)
+            # Renderização Background
             try:
                 engine.request_render(
                     path, original_idx, 0.2, 0, 
@@ -175,22 +217,25 @@ class ThumbnailPanel(ResilientWidget):
                 )
             except: pass
             
-            # Texto (Async)
+            # Texto Background
             if self._adapter:
-                QTimer.singleShot(10 * (i - start_idx), lambda p=path, idx=original_idx, w=widget, sid=session_id: 
+                QTimer.singleShot(5, lambda p=path, idx=original_idx, w=widget, sid=session_id: 
                                   self._fetch_text_snippet(p, idx, w, sid))
 
         self.list.setUpdatesEnabled(True)
-        # Forçar processamento de eventos da UI para evitar travamento visual
-        from PyQt6.QtWidgets import QApplication
-        QApplication.processEvents()
+        self.list.update() # Forçar repaint
         
         if end_idx < total:
-            # Intervalo aumentado para 150ms para dar chance à UI de responder
+            # Manter intervalo de 150ms para garantir fluidicidade da UI
             QTimer.singleShot(150, lambda: self._append_batch(identities, session_id, end_idx))
+        else:
+            log_debug(f"ThumbnailPanel [S{session_id}]: Carga de {total} itens completa e visível.")
+            self.list.doItemsLayout() # FORCE FEED
+            self.list.viewport().update()
 
     def _on_thumb_ready(self, widget, pixmap, session_id):
         if session_id == self._current_session:
+            log_debug(f"ThumbnailPanel: Miniatura pronta ({pixmap.width()}x{pixmap.height()}) para S{session_id}")
             widget.set_pixmap(pixmap)
 
     def _fetch_text_snippet(self, path, page_idx, widget, session_id):

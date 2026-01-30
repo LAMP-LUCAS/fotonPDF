@@ -72,6 +72,9 @@ class TabContainer(QTabWidget):
         if index >= 0:
             group = self.widget(index)
             self.fileChanged.emit(group.current_file)
+        else:
+            # Emitir None para sinalizar que não há documentos abertos
+            self.fileChanged.emit(None)
 
     def current_editor(self) -> EditorGroup:
         """Retorna o EditorGroup da aba atual."""

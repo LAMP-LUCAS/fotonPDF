@@ -8,8 +8,8 @@ class AnnotationsPanel(ResilientWidget):
     """Painel lateral resiliente para anotações do usuário."""
     annotationClicked = pyqtSignal(int, str, str)  # page_index, annotation_id, pdf_path
 
-    def __init__(self, use_case):
-        super().__init__()
+    def __init__(self, use_case, parent=None):
+        super().__init__(parent)
         self._use_case = use_case
         self._pdf_path = None
         self._annotations = []  # list[{id, page_index, text, ...}]
