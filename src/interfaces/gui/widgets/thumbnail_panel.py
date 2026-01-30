@@ -137,7 +137,7 @@ class ThumbnailPanel(ResilientWidget):
             child = self.main_layout.takeAt(0)
             if child.widget():
                 child.widget().hide()
-                child.widget().deleteLater()
+                child.widget().setParent(None) # Orphan instead of delete
                 
         # 2. Adicionar lista diretamente ao layout raiz
         self.main_layout.addWidget(self.list)
