@@ -97,9 +97,18 @@ class LightTableView(QGraphicsView):
         self._quality_timer.setSingleShot(True)
         self._quality_timer.timeout.connect(self._refresh_quality)
 
+    def clear(self):
+        """Limpa a cena e o estado interno."""
+        self.scene.clear()
+        self._zoom = 1.0
+        self.resetTransform() # Opcional: voltar ao centro/escala 1
+
     def load_document(self, path, metadata):
         """Carrega os itens da cena de forma progressiva para evitar travamento da GUI."""
-        self.scene.clear()
+        self.clear()
+        if not path or not metadata: 
+            return
+            
         page_count = metadata.get("page_count", 0)
         page_info = metadata.get("pages", [])
         

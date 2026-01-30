@@ -69,15 +69,7 @@ class WorkspaceController:
                     self.main_window.statusBar().showMessage("⚠️ Erro de Renderização", 5000)
                 except: pass
             
-            # 5. Carregar na Mesa de Luz (Componente Auxiliar - Falha Graciosa)
-            if self.main_window.light_table:
-                log_debug("WController [STEP 4]: Iniciando LightTable.load")
-                try:
-                    self.main_window.light_table.load_document(file_path, metadata)
-                except Exception as e:
-                    log_exception(f"WController: Falha na Mesa de Luz (Ignorado): {e}")
-            
-            # 6. Sincronizar UI (Toolbar, Sidebar, etc) via método existente da MainWindow
+            # 6. Sincronizar UI (Toolbar, Sidebar, Mesa de Luz, etc) via método existente da MainWindow
                 # Nota: Mantemos o _on_tab_changed na MainWindow por enquanto pois ele acopla muitos widgets,
             # mas o invocamos aqui para garantir a sequência correta.
             log_debug("WController [STEP 5]: Iniciando MainWindow._on_tab_changed")

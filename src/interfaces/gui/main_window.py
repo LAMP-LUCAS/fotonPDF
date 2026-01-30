@@ -948,8 +948,14 @@ class MainWindow(QMainWindow):
                 # Se não há arquivo (todas as abas fechadas), limpar painéis
                 log_debug("MainWindow [TAB_CHANGED]: Nenhum arquivo ativo. Limpando painéis.")
                 self.setWindowTitle("fotonPDF")
+                self.current_file = None
+                
                 if self.thumbnails: self.thumbnails.load_thumbnails([])
-                # Adicionar limpeza de outros painéis se necessário (TOC, etc)
+                if self.toc_panel: self.toc_panel.set_pdf(None)
+                if self.search_panel: self.search_panel.set_pdf(None)
+                if self.inspector: self.inspector.update_metadata(None)
+                if hasattr(self, 'light_table') and self.light_table: 
+                    self.light_table.clear()
                 return
             log_debug("MainWindow [TAB_CHANGED]: Iniciando sincronização...")
             
@@ -1030,6 +1036,14 @@ class MainWindow(QMainWindow):
                 except Exception as e:
                     log_exception(f"MainWindow: Falha ao atualizar Inspector: {e}")
             log_debug("MainWindow [TAB_CHANGED]: [4/5] Inspector OK.")
+            
+            # Sincronizar Mesa de Luz (LightTable)
+            if hasattr(self, 'light_table') and self.light_table:
+                try:
+                    self.light_table.load_document(file_path, metadata)
+                except Exception as e:
+                    log_exception(f"MainWindow: Falha ao atualizar Mesa de Luz: {e}")
+            log_debug("MainWindow [TAB_CHANGED]: [4.5/5] LightTable OK.")
             
             # Sincronizar conexões do visualizador ativo
             if self.viewer:
