@@ -9,7 +9,7 @@ from src.infrastructure.services.telemetry_service import TelemetryService
 class PageWidget(QLabel):
     """Widget de página que conhece sua própria origem (Source Path/Index)."""
 
-    def __init__(self, source_path: str, source_index: int, width_pt=0, height_pt=0, parent=None):
+    def __init__(self, source_path: str, source_index: int, width_pt=0, height_pt=0, parent=None, viewer=None):
         super().__init__(parent)
         self.source_path = source_path
         self.source_index = source_index
@@ -18,6 +18,7 @@ class PageWidget(QLabel):
         self.zoom = 1.0
         self.rotation = 0
         self.mode = "default"
+        self._viewer = viewer
         
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setStyleSheet("background-color: white; border: 1px solid #111;")
@@ -81,10 +82,8 @@ class PageWidget(QLabel):
 
             # Layer Config Access (Viewer -> MainWindow -> Config)
             layer_config = None
-            if self.parent() and self.parent().parent():
-                viewer = self.parent().parent() # Container -> Viewer
-                if hasattr(viewer, '_layer_config'):
-                    layer_config = viewer._layer_config
+            if self._viewer and hasattr(self._viewer, '_layer_config'):
+                layer_config = self._viewer._layer_config
 
             # O RenderEngine gerencia a fila
             RenderEngine.instance().request_render(

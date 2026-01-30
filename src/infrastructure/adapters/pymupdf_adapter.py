@@ -266,21 +266,69 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
     def set_layer_visibility(self, pdf_path: Path, layer_id: int, visible: bool) -> None:
         """Altera a visibilidade de uma camada diretamente no documento (Persistente)."""
         with fitz.open(str(pdf_path)) as doc:
-            doc.set_ocg(layer_id, on=visible)
+            # Requires PyMuPDF 1.18.14+
+            if hasattr(doc, "set_layer"):
+                # Get current state
+                current_ocgs = doc.get_ocgs()
+                final_on = []
+                final_off = []
+                for xref, config in current_ocgs.items():
+                    is_on = config['on']
+                    if xref == layer_id:
+                        is_on = visible
+                    
+                    if is_on: final_on.append(xref)
+                    else: final_off.append(xref)
+                
+                # Apply
+                doc.set_layer(-1, on=final_on, off=final_off)
             doc.saveIncremental()
 
     def apply_layer_config_to_handle(self, doc_handle, layers: dict) -> None:
         """
-        Aplica configuração de camadas em um handle aberto (Em Memória).
-        layers: dict {layer_id: visible}
+        Aplica configuração de camadas para visualização (In-Memory).
+        Usa o mecanismo set_layer_ui_config do PyMuPDF para atualizar o estado do rendering.
+        layers: dict {layer_id (xref): visible (bool)}
         """
         if not doc_handle or not layers: return
         
-        for layer_id, visible in layers.items():
-            try:
-                doc_handle.set_ocg(layer_id, on=bool(visible))
-            except Exception as e:
-                log_error(f"PyMuPDFAdapter: Erro ao setar OCG {layer_id}: {e}")
+        try:
+            if not hasattr(doc_handle, "set_layer_ui_config"):
+                log_error("PyMuPDFAdapter: set_layer_ui_config não encontrado.")
+                return
+
+            # O PyMuPDF 1.24+ exige set_layer_ui_config para afetar o get_pixmap em memória.
+            # O parâmetro 'number' é o índice na lista de layer_ui_configs().
+            
+            # 1. Mapear Xref -> Nome (via get_ocgs)
+            ocgs = doc_handle.get_ocgs()
+            xref_to_name = {xref: cfg["name"] for xref, cfg in ocgs.items()}
+            
+            # 2. Mapear Nome -> Índice UI (via layer_ui_configs)
+            ui_configs = doc_handle.layer_ui_configs()
+            name_to_ui_index = {cfg["text"]: i for i, cfg in enumerate(ui_configs)}
+
+            # 3. Aplicar cada override
+            for xref, visible in layers.items():
+                name = xref_to_name.get(int(xref))
+                if name is None:
+                    log_error(f"PyMuPDFAdapter: OCG Xref {xref} não encontrado no documento.")
+                    continue
+                
+                ui_index = name_to_ui_index.get(name)
+                if ui_index is None:
+                    log_error(f"PyMuPDFAdapter: OCG '{name}' não encontrado na lista UI.")
+                    continue
+                
+                # Action: 0=ON, 1=OFF (segundo padrão MuPDF)
+                action = 0 if visible else 1
+                doc_handle.set_layer_ui_config(ui_index, action)
+                log_debug(f"PyMuPDFAdapter: set_layer_ui_config(index={ui_index}, action={action}) - Layer '{name}'")
+            
+            # Nota: O PyMuPDF Document mantém esse estado até ser fechado ou resetado.
+                 
+        except Exception as e:
+            log_error(f"PyMuPDFAdapter: Erro ao aplicar camadas (UI): {e}")
 
     def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int, clip: tuple | None = None, doc_handle=None) -> tuple:
         """
@@ -288,19 +336,39 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
         Suporta 'clip' (x0, y0, x1, y1) para renderização parcial (Tiling).
         Otimizado: Suporta reutilização de handle (Single-Open).
         """
-        doc = doc_handle if doc_handle else fitz.open(str(pdf_path))
         try:
+            # Se handle fornecido (Single-Open Architecture), usar ele
+            if doc_handle:
+                doc = doc_handle
+                should_close = False
+            else:
+                doc = fitz.open(str(pdf_path))
+                should_close = True
+            
             page = doc.load_page(page_index)
             mat = fitz.Matrix(zoom, zoom)
             if rotation != 0:
                 mat.prerotate(rotation)
             
             fitz_clip = fitz.Rect(clip) if clip else None
+            
+            # alpha=False é o padrão para performance e compatibilidade com RGB888
+            # As camadas (OCG) são respeitadas pelo motor de renderização interno.
             pix = page.get_pixmap(matrix=mat, alpha=False, clip=fitz_clip)
-            return (pix.samples, pix.width, pix.height, pix.stride)
-        finally:
-            if not doc_handle:
+            
+            samples = pix.samples
+            width = pix.width
+            height = pix.height
+            stride = pix.stride
+            
+            if should_close:
                 doc.close()
+                
+            return (samples, width, height, stride)
+
+        except Exception as e:
+            log_error(f"PyMuPDFAdapter: Erro ao renderizar página {page_index}: {e}")
+            raise
 
     def has_text_layer(self, pdf_path: Path, doc_handle=None) -> bool:
         """

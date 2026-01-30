@@ -203,7 +203,8 @@ class PDFViewerWidget(QScrollArea):
                         else:
                             self._page_sizes.append({"width_pt": 595, "height_pt": 842})
                             
-                        page_widget = PageWidget(str(path), i, width_pt=w_pt, height_pt=h_pt)
+                            
+                        page_widget = PageWidget(str(path), i, width_pt=w_pt, height_pt=h_pt, viewer=self)
                         self.layout.addWidget(page_widget)
                         self._pages.append(page_widget)
                     except Exception as e:

@@ -294,7 +294,7 @@ class MainWindow(QMainWindow):
             should_load_sidebar = SettingsService.instance().get_bool("startup_load_sidebar", True)
             
             if should_load_sidebar:
-                self.side_bar = SideBar(self, initial_width=250)
+                self.side_bar = SideBar(self, initial_width=250, settings_prefix="sidebar_left")
                 StartupLogger.log("SideBar_left")
             else:
                 self.side_bar = QWidget()
@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
             should_load_sidebar = SettingsService.instance().get_bool("startup_load_sidebar", True)
 
             if should_load_sidebar:
-                self.side_bar_right = SideBar(self, initial_width=300)
+                self.side_bar_right = SideBar(self, initial_width=300, settings_prefix="sidebar_right")
                 self.side_bar_right.set_title("AEC INSPECTOR")
                 StartupLogger.log("SideBar_right")
             else:
@@ -356,8 +356,15 @@ class MainWindow(QMainWindow):
         # Sidebars setup
         try:
             if hasattr(self.side_bar_right, 'add_panel'):
-                self.side_bar_right.add_panel(self.inspector, "AEC Inspector")
-                self.side_bar_right.collapse()
+                # Adicionar explicitamente no índice 0
+                self.side_bar_right.add_panel(self.inspector, "AEC Inspector", idx=0)
+                # Garantir que o painel 0 seja o exibido
+                self.side_bar_right.show_panel(0, "AEC Inspector")
+                # Iniciar expandido para visualização imediata do teste
+                if SettingsService.instance().get_bool("startup_open_inspector", True):
+                    self.side_bar_right.expand()
+                else: 
+                     self.side_bar_right.collapse()
             StartupLogger.log("sidebar_right_setup")
         except Exception as e:
             StartupLogger.log("sidebar_right_setup", e)
@@ -1269,11 +1276,6 @@ class MainWindow(QMainWindow):
             dims["center_x_mm"], dims["center_y_mm"]
         )
 
-    def _on_layer_toggle(self, path: Path, layer_id: int, visible: bool):
-        """Aplica visibilidade de camada no PDF."""
-        self._adapter.set_layer_visibility(path, layer_id, visible)
-        self.bottom_panel.add_log(f"Layer {layer_id} set to {visible}")
-        if self.viewer: self.viewer.refresh_current_view()
 
     def _enable_actions(self, enabled: bool):
         self.save_action.setEnabled(enabled)

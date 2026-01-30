@@ -14,14 +14,16 @@ class SideBarHeader(QWidget):
 
 class SideBar(QFrame):
     """Container colapsável para os painéis de ferramentas estilo Obsidian."""
-    def __init__(self, parent=None, initial_width=260):
+    def __init__(self, parent=None, initial_width=260, settings_prefix="sidebar"):
         super().__init__(parent)
         self.setObjectName("SideBar")
         
+        self.settings_prefix = settings_prefix
+        
         # Persistência
         self.settings = GUISettingsAdapter()
-        saved_width = self.settings.get("sidebar_width", initial_width)
-        saved_collapsed = self.settings.get("sidebar_collapsed", True)
+        saved_width = self.settings.get(f"{self.settings_prefix}_width", initial_width)
+        saved_collapsed = self.settings.get(f"{self.settings_prefix}_collapsed", True)
         
         self._base_width = saved_width  # Largura "Padrão"
         self._last_width = saved_width  # Largura "Usuário"
@@ -194,7 +196,7 @@ class SideBar(QFrame):
             self._last_width = self.width()
             self._animate_to(0)
             self._is_collapsed = True
-            self.settings.set("sidebar_collapsed", True)
+            self.settings.set(f"{self.settings_prefix}_collapsed", True)
 
     def expand(self):
         """Força a abertura da sidebar."""
@@ -204,7 +206,7 @@ class SideBar(QFrame):
             target = self._last_width if self._last_width > 50 else self._base_width
             self._animate_to(target)
             self._is_collapsed = False
-            self.settings.set("sidebar_collapsed", False)
+            self.settings.set(f"{self.settings_prefix}_collapsed", False)
 
     def _on_animation_finished(self):
         """Libera o redimensionamento após expandir."""
@@ -238,4 +240,4 @@ class SideBar(QFrame):
     def _save_width_state(self):
         """Persiste a largura atual."""
         if self.width() > 50:
-            self.settings.set("sidebar_width", self.width())
+            self.settings.set(f"{self.settings_prefix}_width", self.width())
