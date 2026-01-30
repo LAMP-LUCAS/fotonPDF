@@ -30,6 +30,7 @@ pie title Cobertura da Documentação
 - [x] Viewport Dinâmica (Fix Rotação) 🔄
 - [x] Resolução de Identidade Virtual (Fix de Reordenação) 🔗
 - [x] Correção de Visibilidade da Sidebar e Batch Loading (Fix Crítico) 🛠️
+- [x] Lógica de Limpeza de Estado UI (Fix TabContainer) 🧹
 - [ ] Zoom por Área (RubberBand) 🔍
 - [ ] Renderização Assíncrona da Primeira Página ⚡
 - [ ] Testes E2E para Navegação 🧪
