@@ -54,6 +54,14 @@ class MainWindow(QMainWindow):
             return editor.get_viewer() if editor else None
         return None
 
+    def _on_layer_toggle(self, file_path, layer_id, visible):
+        """Callback from Inspector to toggle PDF layers (OCG)."""
+        if str(file_path) != str(self.current_file): return
+        
+        log_debug(f"MainWindow: Layer Toggle -> ID={layer_id} Visible={visible}")
+        if self.viewer:
+             self.viewer.update_render_config({layer_id: visible})
+
     @property
     def current_editor_group(self):
         """Retorna o EditorGroup ativo."""

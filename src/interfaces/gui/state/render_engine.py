@@ -12,7 +12,7 @@ class RenderTask(QRunnable):
         # Usamos QImage pois é thread-safe para transporte; QPixmap é apenas UI.
         finished = pyqtSignal(int, QImage, float, int, str, object) # index, image, zoom, rotation, mode, clip
 
-    def __init__(self, adapter: PDFOperationsPort, acquire_handle_cb, release_handle_cb, page_num, zoom, rotation, session_id, mode="default", clip=None):
+    def __init__(self, adapter: PDFOperationsPort, acquire_handle_cb, release_handle_cb, page_num, zoom, rotation, session_id, mode="default", clip=None, layer_config=None):
         super().__init__()
         self._adapter = adapter
         self.acquire_handle = acquire_handle_cb
@@ -23,6 +23,7 @@ class RenderTask(QRunnable):
         self.session_id = session_id
         self.mode = mode
         self.clip = clip # (x0, y0, x1, y1)
+        self.layer_config = layer_config
         self.signals = self.Signals()
 
     @pyqtSlot()
@@ -41,6 +42,10 @@ class RenderTask(QRunnable):
                 
             if doc_handle.is_closed:
                 raise ValueError("document closed")
+
+            # APLICAR CONFIGURAÇÃO DE CAMADAS (OCG)
+            if self.layer_config and hasattr(self._adapter, 'apply_layer_config_to_handle'):
+                self._adapter.apply_layer_config_to_handle(doc_handle, self.layer_config)
 
             # Renderização via Adaptador REUSANDO O HANDLE
             samples, width, height, stride = self._adapter.render_page(
@@ -255,7 +260,7 @@ class RenderEngine(QObject):
             with QMutexLocker(self._creation_mutex):
                 self._created_handles_count = max(0, self._created_handles_count - 1)
 
-    def request_render(self, doc_path, page_num, zoom, rotation, callback, mode="default", clip=None, priority=0):
+    def request_render(self, doc_path, page_num, zoom, rotation, callback, mode="default", clip=None, priority=0, layer_config=None):
         """Adiciona uma solicitação de renderização."""
         if isinstance(doc_path, str):
             doc_path = Path(doc_path)
@@ -277,8 +282,11 @@ class RenderEngine(QObject):
         if is_new:
             log_debug(f"RenderEngine: Request para novo doc {doc_path.name}. Resetando.")
             self.set_document(doc_path)
+            
+        # Layer Config Key (Frozen Set for hashability)
+        layer_key = frozenset(layer_config.items()) if layer_config else None
 
-        cache_key = (doc_path, page_num, round(zoom, 3), rotation, mode, clip)
+        cache_key = (doc_path, page_num, round(zoom, 3), rotation, mode, clip, layer_key)
         
         if cache_key in self._cache:
             # Move to end (MRU)
@@ -297,7 +305,8 @@ class RenderEngine(QObject):
             self._release_handle, 
             page_num, zoom, rotation,
             self._current_session_id,
-            mode, clip
+            mode, clip, 
+            layer_config=layer_config
         )
         
         def on_finished(p_idx, img, z, r, m, c):

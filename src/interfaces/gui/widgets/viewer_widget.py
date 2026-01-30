@@ -139,6 +139,12 @@ class PDFViewerWidget(QScrollArea):
         self._page_sizes.clear()
         self._hints = {}
         self._last_emitted_page = -1
+        self._layer_config = {}
+
+    def update_render_config(self, config: dict):
+        """Atualiza a configuração de renderização (ex: visibilidade de layers) e redesenha."""
+        self._layer_config.update(config)
+        self.refresh_current_view()
 
     def setPlaceholder(self, widget: QWidget):
         self.clear()

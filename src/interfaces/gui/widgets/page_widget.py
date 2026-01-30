@@ -79,6 +79,13 @@ class PageWidget(QLabel):
             if not self._rendered and self._base_pixmap is None:
                 self.setStyleSheet("background-color: #2D2D2D; border: 1px solid #444;")
 
+            # Layer Config Access (Viewer -> MainWindow -> Config)
+            layer_config = None
+            if self.parent() and self.parent().parent():
+                viewer = self.parent().parent() # Container -> Viewer
+                if hasattr(viewer, '_layer_config'):
+                    layer_config = viewer._layer_config
+
             # O RenderEngine gerencia a fila
             RenderEngine.instance().request_render(
                 self.source_path, 
@@ -88,7 +95,8 @@ class PageWidget(QLabel):
                 self.on_render_finished,
                 mode=self.mode,
                 clip=clip,
-                priority=priority
+                priority=priority,
+                layer_config=layer_config
             )
         except Exception as e:
             log_exception(f"PageWidget: Erro ao solicitar render: {e}")

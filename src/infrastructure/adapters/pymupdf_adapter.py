@@ -264,10 +264,23 @@ class PyMuPDFAdapter(PDFOperationsPort, OCRPort):
                 doc.close()
 
     def set_layer_visibility(self, pdf_path: Path, layer_id: int, visible: bool) -> None:
-        """Altera a visibilidade de uma camada diretamente no documento."""
+        """Altera a visibilidade de uma camada diretamente no documento (Persistente)."""
         with fitz.open(str(pdf_path)) as doc:
             doc.set_ocg(layer_id, on=visible)
             doc.saveIncremental()
+
+    def apply_layer_config_to_handle(self, doc_handle, layers: dict) -> None:
+        """
+        Aplica configuração de camadas em um handle aberto (Em Memória).
+        layers: dict {layer_id: visible}
+        """
+        if not doc_handle or not layers: return
+        
+        for layer_id, visible in layers.items():
+            try:
+                doc_handle.set_ocg(layer_id, on=bool(visible))
+            except Exception as e:
+                log_error(f"PyMuPDFAdapter: Erro ao setar OCG {layer_id}: {e}")
 
     def render_page(self, pdf_path: Path, page_index: int, zoom: float, rotation: int, clip: tuple | None = None, doc_handle=None) -> tuple:
         """
