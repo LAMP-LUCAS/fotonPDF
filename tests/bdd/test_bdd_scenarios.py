@@ -24,12 +24,12 @@ class TestBDDFeatures:
         def check_loaded():
             if main_window.viewer is None:
                 raise AssertionError("Viewer not ready yet")
-            assert main_window.viewer.current_doc is not None
-            assert main_window.viewer.current_doc.page_count >= 1
+            # In V4, viewer stores pages as _pages/_page_sizes directly
+            assert len(main_window.viewer._pages) >= 1
         qtbot.waitUntil(check_loaded, timeout=10000)
         
         # Check Inspector dimensions
-        inspector = main_window.side_bar_right.get_panel("inspector")
+        inspector = getattr(main_window, "inspector", None)
         assert inspector is not None
         
         def check_dimensions():
@@ -47,18 +47,23 @@ class TestBDDFeatures:
         """
         # Given
         pdf_path = stress_pdfs["multi_page_text"]
+        main_window.show()
+        qtbot.wait(100)
         main_window.open_file(pdf_path)
         
         def check_ready():
             if main_window.viewer is None: raise AssertionError("Viewer None")
-            assert main_window.viewer.current_doc is not None
+            # Must wait for lazy widget batching to append page 49 before scrolling to it
+            assert len(main_window.viewer._pages) >= 50
         qtbot.waitUntil(check_ready, timeout=5000)
         
         # When (Simulate Navigation)
         main_window.viewer.scroll_to_page(49) # 0-indexed
         
         # Then
-        assert main_window.viewer.get_current_page_index() == 49
+        def check_page():
+            assert main_window.viewer.get_current_page_index() == 49
+        qtbot.waitUntil(check_page, timeout=5000)
         
     def test_scenario_open_complex_vectors(self, qtbot, main_window, stress_pdfs):
         """
@@ -75,5 +80,5 @@ class TestBDDFeatures:
         # Then
         def check_loaded():
             if main_window.viewer is None: raise AssertionError("Viewer None")
-            assert main_window.viewer.current_doc is not None
+            assert len(main_window.viewer._pages) >= 1
         qtbot.waitUntil(check_loaded, timeout=10000) # Give more time for complex allocs

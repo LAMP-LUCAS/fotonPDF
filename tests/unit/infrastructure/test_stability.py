@@ -21,6 +21,11 @@ class MockQTimer:
     @staticmethod
     def singleShot(ms, callback): callback()
 
+class MockMutexLocker:
+    def __init__(self, *args, **kwargs): pass
+    def __enter__(self): return self
+    def __exit__(self, exc_type, exc_val, exc_tb): pass
+
 class MockQtCore:
     Qt = MagicMock()
     QObject = MockQObject
@@ -30,7 +35,7 @@ class MockQtCore:
     pyqtSlot = lambda *args: lambda x: x
     QTimer = MockQTimer
     QMutex = MagicMock
-    QMutexLocker = MagicMock
+    QMutexLocker = MockMutexLocker
     @staticmethod
     def singleShot(ms, callback): callback()
     def __getattr__(self, name): return MagicMock()
@@ -73,8 +78,8 @@ class TestPerformance(unittest.TestCase):
             # Actually set_document sets self._current_doc_path and clears cache.
             # So we MUST update cache AFTER set_document.
             
-            # Key now includes 'clip' (None)
-            key = (Path("dummy.pdf"), 0, 1.0, 0, "default", None)
+            # Key now includes 'clip' and 'layer_config' and uses Path object filename
+            key = (Path("dummy.pdf"), 0, 1.0, 0, "default", None, None)
             
             # Setup initial cache
             engine._update_cache(key, mock_pixmap)

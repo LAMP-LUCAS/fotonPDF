@@ -25,14 +25,18 @@ class PageItem(QGraphicsPixmapItem):
 
     def _on_render_finished(self, pix):
         """Aplica o pixmap e ajusta a escala local para manter as dimensões em pontos."""
-        if pix.isNull(): return
-        self.setPixmap(pix)
-        
-        # Ajustar escala interna para que o pixmap caiba exatamente no retângulo de pontos (PT)
-        # Isso garante que a posição na cena não mude e o item seja estável
-        sx = self.width_pt / pix.width()
-        sy = self.height_pt / pix.height()
-        self.setTransform(QTransform().scale(sx, sy))
+        # Fix memory leaks by checking C++ lifetime (since this is async from RenderEngine)
+        try:
+            if pix.isNull(): return
+            self.setPixmap(pix)
+            
+            # Ajustar escala interna para que o pixmap caiba exatamente no retângulo de pontos (PT)
+            # Isso garante que a posição na cena não mude e o item seja estável
+            sx = self.width_pt / pix.width()
+            sy = self.height_pt / pix.height()
+            self.setTransform(QTransform().scale(sx, sy))
+        except RuntimeError:
+            pass # Object was deleted before callback returned
 
     def update_render(self, zoom):
         """Solicita uma renderização condizente com o zoom atual."""
@@ -97,6 +101,12 @@ class LightTableView(QGraphicsView):
         self._quality_timer.setSingleShot(True)
         self._quality_timer.timeout.connect(self._refresh_quality)
 
+    def closeEvent(self, event):
+        """Cleanup pending timers before destruction."""
+        if hasattr(self, '_quality_timer') and self._quality_timer.isActive():
+            self._quality_timer.stop()
+        super().closeEvent(event)
+
     def clear(self):
         """Limpa a cena e o estado interno."""
         self.scene.clear()
@@ -120,24 +130,27 @@ class LightTableView(QGraphicsView):
             if current_start >= page_count:
                 return
                 
-            self.viewport().setUpdatesEnabled(False)
-            end_idx = min(current_start + batch_size, page_count)
-            
-            for i in range(current_start, end_idx):
-                w_pt, h_pt = 595, 842
-                if i < len(page_info):
-                    w_pt = page_info[i].get("width_pt", 595)
-                    h_pt = page_info[i].get("height_pt", 842)
-                    
-                item = PageItem(i, str(path), width_pt=w_pt, height_pt=h_pt)
-                row, col = i // cols, i % cols
-                item.setPos(col * spacing, row * spacing)
-                self.scene.addItem(item)
-            
-            self.viewport().setUpdatesEnabled(True)
-            
-            if end_idx < page_count:
-                QTimer.singleShot(30, lambda: process_batch(end_idx))
+            try:
+                self.viewport().setUpdatesEnabled(False)
+                end_idx = min(current_start + batch_size, page_count)
+                
+                for i in range(current_start, end_idx):
+                    w_pt, h_pt = 595, 842
+                    if i < len(page_info):
+                        w_pt = page_info[i].get("width_pt", 595)
+                        h_pt = page_info[i].get("height_pt", 842)
+                        
+                    item = PageItem(i, str(path), width_pt=w_pt, height_pt=h_pt)
+                    row, col = i // cols, i % cols
+                    item.setPos(col * spacing, row * spacing)
+                    self.scene.addItem(item)
+                
+                self.viewport().setUpdatesEnabled(True)
+                
+                if end_idx < page_count:
+                    QTimer.singleShot(30, lambda: process_batch(end_idx))
+            except RuntimeError:
+                pass # The C++ LightTableView widget was destroyed
 
         process_batch(0)
 

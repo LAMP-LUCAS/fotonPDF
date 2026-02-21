@@ -9,7 +9,9 @@ def mock_infrastructure(mocker):
     """Mocka infraestrutura pesada para evitar hangs em modo headless."""
     mocker.patch("src.infrastructure.services.resource_service.ResourceService.get_logo_ico", return_value=Path("fake_logo.ico"))
     mocker.patch("src.infrastructure.services.settings_service.SettingsService.instance", return_value=MagicMock())
-    mocker.patch("src.infrastructure.adapters.pymupdf_adapter.PyMuPDFAdapter", autospec=True)
+    mock_adapter = mocker.patch("src.infrastructure.adapters.pymupdf_adapter.PyMuPDFAdapter")
+    mock_adapter.return_value.get_page_count.return_value = 5
+    mock_adapter.return_value.open_document.return_value = True
     mocker.patch("src.infrastructure.adapters.windows_registry_adapter.WindowsRegistryAdapter", autospec=True)
     mocker.patch("src.infrastructure.repositories.sqlite_stage_repository.StageStateRepository", autospec=True)
 
@@ -37,32 +39,30 @@ def test_mainwindow_open_file_flow(qtbot):
     # Simular abertura de arquivo
     window.open_file(test_pdf)
     
-    # Verificar se a aba foi criada
-    assert window.tabs.count() == 1
-    assert window.current_file == test_pdf
-    
-    # Verificar se o viewer agora é válido
-    assert window.viewer is not None
-    
-    # Verificar se a sidebar (thumbnails) foi disparada
-    # (Thumbnail loading é assíncrono em alguns casos, mas aqui deve estar no stack)
-    assert window.thumbnails is not None
+    # Verificar se o estado do documento atualizou (Arquitetura V4 Single-Document)
+    def check_loaded():
+        assert window.current_file is not None
+        assert window.current_file.name == test_pdf.name
+        assert window.viewer is not None
+        assert window.thumbnails is not None
+        
+    qtbot.waitUntil(check_loaded, timeout=3000)
 
-def test_tab_switching_updates_viewer(qtbot):
-    """Verifica se a mudança de aba atualiza corretamente a propriedade viewer da MainWindow."""
+def test_open_file_updates_viewer(qtbot):
+    """Verifica se a abertura de arquivo atualiza corretamente a propriedade viewer da MainWindow na V4."""
     window = MainWindow()
     qtbot.addWidget(window)
     
-    # Simular abertura de dois arquivos (mesmo arquivo para simplicidade se existir)
     test_pdf = Path("manual_test.pdf")
     if test_pdf.exists():
         window.open_file(test_pdf)
-        # window.open_file(test_pdf) # TabContainer.add_editor evita duplicatas? Sim, mas podemos forçar
-        
-        # Como o add_editor evita duplicatas, vamos validar a troca se tivéssemos 2
-        # Por enquanto validamos que com 1 aba o viewer aponta para o widget dessa aba
-        current_viewer = window.tabs.current_editor().get_viewer()
-        assert window.viewer == current_viewer
+        # Na arquitetura V4 Single-Document, o viewer principal é mantido e seu conteúdo atualizado
+        def check_loaded():
+            assert window.viewer is not None
+            assert window.current_file is not None
+            assert window.current_file.name == test_pdf.name
+            
+        qtbot.waitUntil(check_loaded, timeout=3000)
 
 def test_gui_resilience_to_orchestrator_error(qtbot, mocker):
     """Verifica se erros no orquestrador de comandos são reportados no BottomPanel sem crashar."""

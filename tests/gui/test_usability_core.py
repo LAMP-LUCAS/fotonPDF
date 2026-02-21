@@ -15,12 +15,18 @@ from PyQt6.QtGui import QPixmap
 
 @pytest.fixture(autouse=True)
 def mock_render_engine():
-    """Fixture para mockar o RenderEngine globalmente."""
-    with patch('src.interfaces.gui.state.render_engine.RenderEngine') as mock:
+    """Fixture para mockar o RenderEngine globalmente e em escopos vazios."""
+    with patch('src.interfaces.gui.state.render_engine.RenderEngine') as mock_base:
         engine = MagicMock()
-        engine.instance.return_value = engine
-        mock.instance.return_value = engine
-        yield engine
+        mock_base.instance.return_value = engine
+        
+        # Patch especificamente em page_widget pois ele importa no topo
+        try:
+            with patch('src.interfaces.gui.widgets.page_widget.RenderEngine') as mock_pw:
+                mock_pw.instance.return_value = engine
+                yield engine
+        except AttributeError:
+            yield engine
 
 
 @pytest.fixture
@@ -159,7 +165,7 @@ class TestAnnotationsPersistence:
         """Verifica que AnnotationsPanel pode ser instanciado."""
         from src.interfaces.gui.widgets.annotations_panel import AnnotationsPanel
         
-        panel = AnnotationsPanel()
+        panel = AnnotationsPanel(use_case=MagicMock())
         qtbot.addWidget(panel)
         
         assert panel is not None

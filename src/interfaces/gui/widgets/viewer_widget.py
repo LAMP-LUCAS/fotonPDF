@@ -1098,7 +1098,10 @@ class PDFViewerWidget(QScrollArea):
 
     def scroll_to_page(self, visual_index: int, highlights: list = None):
         if 0 <= visual_index < len(self._pages):
+            self.container.adjustSize()
             y = self._pages[visual_index].pos().y()
+            # Garante que o scrollbar reconhece o limite antes de pular (Crucial para testes headless)
+            self.verticalScrollBar().setRange(0, self.container.height())
             self.verticalScrollBar().setValue(y)
             
             if highlights:

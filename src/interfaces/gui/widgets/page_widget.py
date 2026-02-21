@@ -136,9 +136,7 @@ class PageWidget(QLabel):
             self._rendered = True
             self.setStyleSheet("background-color: white; border: 1px solid #111;")
             self.setMinimumHeight(0)
-        except Exception as e:
-            log_exception(f"PageWidget: Erro ao atualizar UI: {e}")
-
-            self.setMinimumHeight(0)
+        except RuntimeError:
+            pass # Object destroyed
         except Exception as e:
             log_exception(f"PageWidget: Erro ao atualizar UI: {e}")

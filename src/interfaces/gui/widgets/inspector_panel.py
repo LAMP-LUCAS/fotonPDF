@@ -168,6 +168,8 @@ class InspectorPanel(ResilientWidget):
                 
             self.layers_container.setUpdatesEnabled(True)
             log_debug("Inspector: Deferred update concluído.")
+        except RuntimeError:
+            log_debug("Inspector: Widget destruído durante deferred update.")
         except Exception as e:
             log_error(f"Inspector: Erro no deferred update: {e}")
 

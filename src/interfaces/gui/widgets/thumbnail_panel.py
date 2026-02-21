@@ -85,6 +85,7 @@ class ThumbnailPanel(ResilientWidget):
         super().__init__(parent)
         self._adapter = adapter
         self._current_session = 0
+        self._is_shutting_down = False
         
         self.list = QListWidget()
         
@@ -143,6 +144,16 @@ class ThumbnailPanel(ResilientWidget):
         self.main_layout.addWidget(self.list)
         self.list.show()
 
+    def hideEvent(self, event):
+        """Marca para parar processamento secundário se o componente sumir."""
+        super().hideEvent(event)
+        
+    def closeEvent(self, event):
+        """Abort all pending timer operations on deletion."""
+        self._is_shutting_down = True
+        self._current_session += 1 # Invalida batches atuais
+        super().closeEvent(event)
+
     def show_placeholder(self, visible=True, message=None, is_error=False):
         # Override: Placeholder desativado devido ao bypass de layout.
         pass
@@ -167,22 +178,27 @@ class ThumbnailPanel(ResilientWidget):
         self._current_session += 1
         
         # Limpeza segura
-        self.list.clear() 
-        
-        if not identities:
-            # Sem stack, não podemos mostrar placeholder, mas limpamos a lista
-            return
+        try:
+            self.list.clear() 
+            
+            if not identities:
+                # Sem stack, não podemos mostrar placeholder, mas limpamos a lista
+                return
 
-        # Indicar que o conteúdo está vindo
-        self.list.update()
+            # Indicar que o conteúdo está vindo
+            self.list.update()
+        except RuntimeError:
+            from src.infrastructure.services.logger import log_debug
+            log_debug("ThumbnailPanel: Widget C++ já deletado durante load_thumbnails")
+            return
         
         # RESTAURANDO LOGICA REAL
         from PyQt6.QtCore import QTimer
         QTimer.singleShot(200, lambda: self._append_batch(identities, self._current_session, 0))
 
     def _append_batch(self, identities, session_id, start_idx):
-        if session_id != self._current_session: 
-            log_debug(f"ThumbnailPanel: Ignorando batch de sessão antiga (S{session_id} != S{self._current_session})")
+        if getattr(self, '_is_shutting_down', False) or session_id != self._current_session: 
+            log_debug(f"ThumbnailPanel: Ignorando batch de sessão antiga ou teardown")
             return
         
         batch_size = 8 # Equilíbrio entre velocidade e responsividade
@@ -195,56 +211,70 @@ class ThumbnailPanel(ResilientWidget):
         engine = RenderEngine.instance()
         
         # Desativar updates temporariamente melhora a performance de inserção
-        self.list.setUpdatesEnabled(False)
-        
-        for i in range(start_idx, end_idx):
-            path, original_idx = identities[i]
+        # Desativar updates temporariamente melhora a performance de inserção
+        try:
+            self.list.setUpdatesEnabled(False)
             
-            item = QListWidgetItem()
-            item.setData(Qt.ItemDataRole.UserRole, original_idx)
-            item.setSizeHint(QSize(130, 220))
+            for i in range(start_idx, end_idx):
+                path, original_idx = identities[i]
+                
+                # Em testes, o ciclo de C++ e Python_QTimer pode dar conflito
+                item = QListWidgetItem()
+                item.setData(Qt.ItemDataRole.UserRole, original_idx)
+                item.setSizeHint(QSize(130, 220))
+                
+                widget = ThumbnailItemWidget(i + 1)
+                self.list.addItem(item)
+                self.list.setItemWidget(item, widget)
+                widget.show() # Essencial para que apareça dentro do QListWidget em alguns sistemas
+                
+                # Renderização Background
+                try:
+                    engine.request_render(
+                        path, original_idx, 0.2, 0, 
+                        lambda p_idx, pix, z, r, m, c, w=widget, sid=session_id: self._on_thumb_ready(w, pix, sid)
+                    )
+                except: pass
+                
+                # Texto Background
+                if self._adapter:
+                    QTimer.singleShot(5, lambda p=path, idx=original_idx, w=widget, sid=session_id: 
+                                      self._fetch_text_snippet(p, idx, w, sid))
+    
+            self.list.setUpdatesEnabled(True)
+            self.list.update() # Forçar repaint
             
-            widget = ThumbnailItemWidget(i + 1)
-            self.list.addItem(item)
-            self.list.setItemWidget(item, widget)
-            widget.show() # Essencial para que apareça dentro do QListWidget em alguns sistemas
-            
-            # Renderização Background
-            try:
-                engine.request_render(
-                    path, original_idx, 0.2, 0, 
-                    lambda p_idx, pix, z, r, m, c, w=widget, sid=session_id: self._on_thumb_ready(w, pix, sid)
-                )
-            except: pass
-            
-            # Texto Background
-            if self._adapter:
-                QTimer.singleShot(5, lambda p=path, idx=original_idx, w=widget, sid=session_id: 
-                                  self._fetch_text_snippet(p, idx, w, sid))
-
-        self.list.setUpdatesEnabled(True)
-        self.list.update() # Forçar repaint
-        
-        if end_idx < total:
-            # Manter intervalo de 150ms para garantir fluidicidade da UI
-            QTimer.singleShot(150, lambda: self._append_batch(identities, session_id, end_idx))
-        else:
-            log_debug(f"ThumbnailPanel [S{session_id}]: Carga de {total} itens completa e visível.")
-            self.list.doItemsLayout() # FORCE FEED
-            self.list.viewport().update()
+            if end_idx < total:
+                # Manter intervalo de 150ms para garantir fluidicidade da UI
+                if not getattr(self, '_is_shutting_down', False):
+                    QTimer.singleShot(150, lambda: self._append_batch(identities, session_id, end_idx))
+            else:
+                log_debug(f"ThumbnailPanel [S{session_id}]: Carga de {total} itens completa e visível.")
+                self.list.doItemsLayout() # FORCE FEED
+                self.list.viewport().update()
+        except RuntimeError:
+            log_debug(f"ThumbnailPanel: C++ widget deleted during append_batch")
+            return # Stop processing this batch
 
     def _on_thumb_ready(self, widget, pixmap, session_id):
-        if session_id == self._current_session:
-            log_debug(f"ThumbnailPanel: Miniatura pronta ({pixmap.width()}x{pixmap.height()}) para S{session_id}")
-            widget.set_pixmap(pixmap)
+        if session_id == self._current_session and not getattr(self, '_is_shutting_down', False):
+            # Safe checking via sip if possible, but the flag suffices for most GUI loops
+            try:
+                log_debug(f"ThumbnailPanel: Miniatura pronta ({pixmap.width()}x{pixmap.height()}) para S{session_id}")
+                widget.set_pixmap(pixmap)
+            except RuntimeError:
+                pass # C++ object destroyed
 
     def _fetch_text_snippet(self, path, page_idx, widget, session_id):
-        if session_id != self._current_session: return
+        if session_id != self._current_session or getattr(self, '_is_shutting_down', False): return
         try:
             text = self._adapter.get_text(path, page_idx)
             widget.set_text(text)
+        except RuntimeError:
+            pass # Widget went away
         except:
-            widget.set_text("(Erro ao ler texto)")
+            try: widget.set_text("(Erro ao ler texto)")
+            except: pass
 
     def _on_item_clicked(self, item):
         row = self.list.row(item)
