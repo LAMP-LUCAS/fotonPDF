@@ -32,7 +32,7 @@ O **fotonPDF** utiliza uma abordagem híbrida que une a **Arquitetura Hexagonal 
 - Pontos de entrada para o usuário.
 - **Monolito de Orquestração:** a `MainWindow` atua como o ponto de entrada principal, coordenando a comunicação entre os módulos via sinais.
 - **Componentes Modulares (`src/interfaces/gui/widgets`):**
-  - `TabContainer`: Gerencia o estado de múltiplos documentos abertos.
+  - `DocumentViewport`: Gerencia o estado do documento único aberto (Arquitetura V4 Single-Document) mantendo resiliência.
   - `SideBar`: Painéis laterais reutilizáveis (Esquerda/Direita).
   - `BottomPanel`: Gerencia notificações e logs de forma independente.
   - `EditorGroup`: Encapsula a lógica de visualização e "Async Split".
