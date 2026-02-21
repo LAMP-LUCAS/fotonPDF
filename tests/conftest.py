@@ -45,18 +45,23 @@ def mock_ai_provider():
     return provider
 
 @pytest.fixture(autouse=True)
-def qt_teardown(qapp):
+def qt_teardown():
     """
     Global Teardown Fixture to resolve 'RuntimeError: wrapped C/C++ object has been deleted'.
     Forces event loop processing and threadpool cleanup after every test to ensure 
     dangling async tasks (QTimer.singleShot, QRunnable) complete or abort safely.
+    Checks dynamically if a QApplication instance exists to avoid crashing non-UI unit tests.
     """
     yield
     from PyQt6.QtCore import QThreadPool
+    from PyQt6.QtWidgets import QApplication
     from src.interfaces.gui.state.render_engine import RenderEngine
     
-    # Process pending UI events
-    qapp.processEvents()
+    app = QApplication.instance()
+    
+    # Process pending UI events if app exists
+    if app:
+        app.processEvents()
     
     # Safely clear the global ThreadPool
     QThreadPool.globalInstance().clear()
@@ -70,4 +75,5 @@ def qt_teardown(qapp):
             pass
 
     # A final pass for any timers that fired due to the shutdown
-    qapp.processEvents()
+    if app:
+        app.processEvents()
