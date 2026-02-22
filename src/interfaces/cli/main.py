@@ -1,3 +1,16 @@
+import sys
+import os
+
+# ─── Safe I/O Guard ───────────────────────────────────────────────────────
+# Quando empacotado com PyInstaller em modo GUI (console=False), sys.stdout
+# e sys.stderr são None. Isso faz click.echo e print crasharem silenciosamente.
+# Redirecionamos para devnull nesses casos para evitar OSError.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
+# ──────────────────────────────────────────────────────────────────────────
+
 import click
 from pathlib import Path
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter

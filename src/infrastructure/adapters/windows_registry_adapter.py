@@ -15,8 +15,18 @@ class WindowsRegistryAdapter(OSIntegrationPort):
 
     def __init__(self, registry=None):
         self._winreg = registry or winreg
-        self._app_path = sys.executable if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"}"'
         self._ext = ".pdf"
+        
+        if getattr(sys, 'frozen', False):
+            # Modo empacotado: foton.exe (GUI) e foton-cli.exe (Console) na mesma pasta
+            exe_dir = Path(sys.executable).parent
+            self._gui_path = str(exe_dir / 'foton.exe')
+            self._cli_path = str(exe_dir / 'foton-cli.exe')
+        else:
+            # Modo desenvolvimento: ambos apontam para o mesmo script Python
+            cli_path = Path(__file__).parents[2] / 'interfaces' / 'cli' / 'main.py'
+            self._gui_path = f'python "{cli_path}"'
+            self._cli_path = f'python "{cli_path}"'
 
     def register_context_menu(self, label: str, command: str) -> bool:
         """
@@ -153,22 +163,21 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         Usa prefixo 'fotonPDF' para agrupamento visual.
         """
         try:
-            # Detectar caminho do executável
-            if getattr(sys, 'frozen', False):
-                app_path = sys.executable
-            else:
-                # Modo desenvolvimento
-                cli_path = Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"
-                app_path = f'python "{cli_path}"'
+            gui_path = self._gui_path
+            cli_path = self._cli_path
             
             # Menus organizados com prefixo para agrupamento visual
+            # Nota: Usar %V (sem aspas nativas do Windows) em vez de %1 (que já vem entre aspas)
+            # para evitar double-quoting que quebra o parser Click em caminhos com espaços.
             menus = [
-                ("foton_01_Abrir", "fotonPDF ▸ Abrir", f'"{app_path}" view "%1"'),
-                ("foton_02_Girar90", "fotonPDF ▸ Girar 90°", f'"{app_path}" rotate "%1" -d 90'),
-                ("foton_03_Girar180", "fotonPDF ▸ Girar 180°", f'"{app_path}" rotate "%1" -d 180'),
-                ("foton_04_Girar270", "fotonPDF ▸ Girar 270°", f'"{app_path}" rotate "%1" -d 270'),
-                ("foton_05_ExportMD", "fotonPDF ▸ Exportar Markdown", f'"{app_path}" export-md "%1"'),
-                ("foton_06_ExportPNG", "fotonPDF ▸ Exportar Imagens (Todas)", f'"{app_path}" export-img "%1" -f png'),
+                # 'Abrir' usa GUI (foton.exe) — sem console
+                ("foton_01_Abrir", "fotonPDF ▸ Abrir", f'"{gui_path}" view "%V"'),
+                # Operações usam CLI (foton-cli.exe) — com console para feedback
+                ("foton_02_Girar90", "fotonPDF ▸ Girar 90°", f'"{cli_path}" rotate "%V" -d 90'),
+                ("foton_03_Girar180", "fotonPDF ▸ Girar 180°", f'"{cli_path}" rotate "%V" -d 180'),
+                ("foton_04_Girar270", "fotonPDF ▸ Girar 270°", f'"{cli_path}" rotate "%V" -d 270'),
+                ("foton_05_ExportMD", "fotonPDF ▸ Exportar Markdown", f'"{cli_path}" export-md "%V"'),
+                ("foton_06_ExportPNG", "fotonPDF ▸ Exportar Imagens (Todas)", f'"{cli_path}" export-img "%V" -f png'),
             ]
             
             # Caminho do ícone oficial
@@ -201,17 +210,10 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             # 2. Verificar se o comando apontado é o mesmo que o executável atual
             registered_cmd = self.get_registered_command()
             
-            # Montar comando esperado para comparação
-            if getattr(sys, 'frozen', False):
-                current_exe = sys.executable
-            else:
-                cli_path = Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"
-                current_exe = f'python "{cli_path}"'
-                
-            expected_part = f'"{current_exe}"'
+            expected_part = f'"{self._cli_path}"'
             
             if registered_cmd and expected_part not in registered_cmd:
-                log_warning(f"Caminho no registro desatualizado. Atualizando para: {current_exe}")
+                log_info(f"Caminho no registro desatualizado. Atualizando para: {self._cli_path}")
                 return self.register_all_context_menus()
             
             log_info("Instalação está íntegra e atualizada.")
@@ -223,11 +225,7 @@ class WindowsRegistryAdapter(OSIntegrationPort):
     def create_shortcut(self, location: str) -> bool:
         """Cria um atalho para o fotonPDF usando PowerShell."""
         try:
-            if getattr(sys, 'frozen', False):
-                target_path = sys.executable
-            else:
-                # No modo dev não faz muito sentido criar atalhos, mas vamos apontar para o main.py
-                target_path = str(Path(__file__).parents[2] / "interfaces" / "cli" / "main.py")
+            target_path = self._gui_path
 
             if location == "desktop":
                 shortcut_path = "$([Environment]::GetFolderPath('Desktop'))"
@@ -278,10 +276,7 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         Isso registra a capacidade; o Windows 10/11 pode pedir confirmação.
         """
         try:
-            if getattr(sys, 'frozen', False):
-                app_path = sys.executable
-            else:
-                app_path = f'python "{Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"}"'
+            gui_path = self._gui_path
 
             prog_id = "fotonPDF.AssocFile.pdf"
             icon_path = str(ResourceService.get_logo_ico())
@@ -292,7 +287,7 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                 with self._winreg.CreateKey(key, "DefaultIcon") as icon_key:
                     self._winreg.SetValue(icon_key, "", self._winreg.REG_SZ, icon_path)
                 with self._winreg.CreateKey(key, r"shell\open\command") as cmd_key:
-                    self._winreg.SetValue(cmd_key, "", self._winreg.REG_SZ, f'"{app_path}" view "%1"')
+                    self._winreg.SetValue(cmd_key, "", self._winreg.REG_SZ, f'"{gui_path}" view "%1"')
 
             # 2. Registrar a capacidade
             app_reg_path = r"Software\fotonPDF\Capabilities"
