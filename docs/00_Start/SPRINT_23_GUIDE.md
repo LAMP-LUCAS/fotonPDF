@@ -71,10 +71,11 @@ Continue usando mocks para a `RenderEngine` em testes de UI pura, mas use o `str
 
 ## 📝 3. Checklist de Definição de Pronto (DoP)
 
-- [ ] Implementar `tests/gui/test_interactive_physics.py`.
-* [ ] Implementar `tests/bdd/test_command_workflow.py`.
+* [x] Implementar `tests/gui/test_interactive_physics.py`.
+
+* [x] Implementar `tests/bdd/test_command_workflow.py`.
 * [ ] Garantir 100% de cobertura nos métodos de `InfiniteCanvasView` e `LightTableView`.
-* [ ] Validar que nenhum novo `RuntimeError` de C++ foi introduzido pelas simulações de mouse.
+* [x] Validar que nenhum novo `RuntimeError` de C++ foi introduzido pelas simulações de mouse.
 
 ---
 
