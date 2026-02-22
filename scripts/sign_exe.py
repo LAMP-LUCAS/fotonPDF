@@ -63,9 +63,21 @@ def sign_executable(file_path: Path):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
+        # Se for passado um arquivo ou pasta especifico
         target = Path(sys.argv[1])
+        if target.is_dir():
+            for exe_file in target.glob("*.exe"):
+                sign_executable(exe_file)
+        else:
+            sign_executable(target)
     else:
-        # Default para o caminho padrão de build
-        target = Path(__file__).parent.parent / "dist" / "foton" / "foton.exe"
-    
-    sign_executable(target)
+        # Padrão: iterar sobre todos os EXEs no diretório de dist do PyInstaller
+        dist_dir = Path(__file__).parent.parent / "dist" / "foton"
+        if dist_dir.exists():
+            exes = list(dist_dir.glob("*.exe"))
+            if not exes:
+                print(f"⚠️ Nenhum executável encontrado em {dist_dir}.")
+            for exe_file in exes:
+                sign_executable(exe_file)
+        else:
+            print(f"❌ Diretório de dist não encontrado: {dist_dir}")
