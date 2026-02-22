@@ -31,3 +31,11 @@ jobs:
     - name: Executar Testes de Integração
       run: |
         pytest tests/integration
+
+    - name: Executar Testes de Interface (GUI)
+      run: |
+        pytest tests/gui
+
+    - name: Executar Testes BDD
+      run: |
+        pytest tests/bdd

@@ -42,6 +42,7 @@ Este documento define a visão de **macro-gerenciamento** do projeto, dividida e
 - **Sprint 20: Estabilização de Testes** [x] 100%
 - **Sprint 21: Navegação Universal Premium** [x] 100%
 - **Sprint 22: Consolidação e Lançamento** [x] 100%
+- **Sprint 23: Certificação Premium UX** [x] 100%
 
 ---
 [[MAP|← Voltar ao Mapa]]
