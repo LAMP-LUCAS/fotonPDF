@@ -23,18 +23,24 @@ class PDFStateManager:
         self.pages: List[VirtualPage] = []
         self._docs_keep_alive: List[fitz.Document] = [] # Evitar garbage collection
 
-    def load_base_document(self, path: str):
-        """Carrega o documento inicial, resetando o estado."""
+    def load_from_document(self, doc: fitz.Document, path: str):
+        """Inicializa o estado a partir de um documento já aberto (Thread-safe injection)."""
         self.close_all()
-        log_debug(f"StateManager: Carregando base {path}")
-        doc = fitz.open(path)
+        log_debug(f"StateManager: Injetando base {path}")
         self._docs_keep_alive.append(doc)
         
         self.pages = [
             VirtualPage(source_doc=doc, source_page_index=i) 
             for i in range(len(doc))
         ]
-        log_debug(f"StateManager: Base carregada com {len(self.pages)} páginas.")
+        log_debug(f"StateManager: Base injetada com {len(self.pages)} páginas.")
+
+    def load_base_document(self, path: str):
+        """Carrega o documento inicial a partir do caminho (Síncrono/Fallback)."""
+        self.close_all()
+        log_debug(f"StateManager: Carregando base {path}")
+        doc = fitz.open(path)
+        self.load_from_document(doc, path)
 
     def append_document(self, path: str):
         """Adiciona páginas de outro documento ao final."""
@@ -86,13 +92,34 @@ class PDFStateManager:
         new_doc.close()
         log_debug("StateManager: Salvo com sucesso.")
 
-    def get_page(self, index: int) -> Optional[VirtualPage]:
-        if 0 <= index < len(self.pages):
-            return self.pages[index]
+    def get_page(self, visual_index: int) -> Optional[VirtualPage]:
+        """Retorna os dados da página na posição visual X."""
+        if 0 <= visual_index < len(self.pages):
+            return self.pages[visual_index]
         return None
+
+    def find_visual_index(self, source_doc_name: str, source_page_index: int) -> int:
+        """
+        Encontra a posição visual atual de uma página física específica.
+        Útil para sincronizar TOC e Busca.
+        """
+        # Normalizar o path para comparação robusta
+        from pathlib import Path
+        search_path = str(Path(source_doc_name).resolve())
+        
+        for i, p in enumerate(self.pages):
+            p_path = str(Path(p.source_doc.name).resolve())
+            if p_path == search_path and p.source_page_index == source_page_index:
+                return i
+        return -1
 
     def close_all(self):
         self.pages = []
         for doc in self._docs_keep_alive:
-            doc.close()
+            try:
+                doc.close()
+            except ValueError:
+                pass # Documento já fechado, ignorar
+            except Exception as e:
+                log_error(f"StateManager: Falha ao fechar doc auxiliar: {e}")
         self._docs_keep_alive = []

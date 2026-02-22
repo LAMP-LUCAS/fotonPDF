@@ -23,7 +23,7 @@ def notify_error(msg: str):
 
 @click.group()
 def cli():
-    """fotonPDF - O toolkit de PDFs mais rápido do mundo! 🚀"""
+    """fotonPDF - O toolkit de PDFs mais rápido do mundo!"""
     pass
 
 @cli.command()
@@ -160,7 +160,7 @@ def view(path: Path | None):
     try:
         from src.interfaces.gui.app import main
         
-        click.echo("🚀 Abrindo Visualizador Fóton...")
+        click.echo("  [OK] Abrindo Visualizador...")
         main(file_path=str(path) if path else None)
         
     except Exception as e:
@@ -228,9 +228,26 @@ def update():
 
 if __name__ == '__main__':
     import sys
-    # Se executado sem argumentos (clique duplo), abrir menu interativo
+    import os
+    
+    # Verifica se há console/stdin válido (importante para build windowed)
+    has_console = sys.stdin is not None and sys.stdin.isatty()
+    
+    # Se executado sem argumentos (clique duplo)
     if len(sys.argv) == 1:
-        from src.interfaces.cli.interactive_menu import run_interactive_menu
-        run_interactive_menu()
+        if not has_console:
+            # Em modo windowed (sem terminal), prioridade total à GUI
+            from src.interfaces.gui.app import main
+            main()
+        else:
+            # Em um terminal real, abrir menu interativo (UX Legada)
+            try:
+                from src.interfaces.cli.interactive_menu import run_interactive_menu
+                run_interactive_menu()
+            except RuntimeError:
+                # Fallback de segurança: se o menu CLI falhar por I/O, abre a GUI
+                from src.interfaces.gui.app import main
+                main()
     else:
+        # Com argumentos, segue para o CLI normal (click handles everything)
         cli()

@@ -13,7 +13,8 @@ PDF_SHELL_PATH = r"Software\Classes\SystemFileAssociations\.pdf\shell"
 class WindowsRegistryAdapter(OSIntegrationPort):
     """Adaptador para manipular o Registro do Windows e adicionar o Menu de Contexto."""
 
-    def __init__(self):
+    def __init__(self, registry=None):
+        self._winreg = registry or winreg
         self._app_path = sys.executable if getattr(sys, 'frozen', False) else f'"{sys.executable}" "{Path(__file__).parents[2] / "interfaces" / "cli" / "main.py"}"'
         self._ext = ".pdf"
 
@@ -64,12 +65,12 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         """Remove entradas foton_ de um caminho de shell específico."""
         removed = 0
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, shell_path, 0, winreg.KEY_ALL_ACCESS) as key:
+            with self._winreg.OpenKey(self._winreg.HKEY_CURRENT_USER, shell_path, 0, self._winreg.KEY_ALL_ACCESS) as key:
                 i = 0
                 keys_to_delete = []
                 while True:
                     try:
-                        subkey_name = winreg.EnumKey(key, i)
+                        subkey_name = self._winreg.EnumKey(key, i)
                         if subkey_name.startswith("foton_"):
                             keys_to_delete.append(subkey_name)
                         i += 1
@@ -79,11 +80,11 @@ class WindowsRegistryAdapter(OSIntegrationPort):
                 for k in keys_to_delete:
                     cmd_path = fr"{shell_path}\{k}\command"
                     try:
-                        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, cmd_path)
+                        self._winreg.DeleteKey(self._winreg.HKEY_CURRENT_USER, cmd_path)
                     except OSError:
                         pass
                     try:
-                        winreg.DeleteKey(winreg.HKEY_CURRENT_USER, fr"{shell_path}\{k}")
+                        self._winreg.DeleteKey(self._winreg.HKEY_CURRENT_USER, fr"{shell_path}\{k}")
                         removed += 1
                         log_debug(f"Removido: {k}")
                     except OSError:
@@ -96,11 +97,11 @@ class WindowsRegistryAdapter(OSIntegrationPort):
         """Verifica se o fotonPDF está registrado no menu de contexto."""
         try:
             # Verificar no caminho moderno
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, winreg.KEY_READ) as key:
+            with self._winreg.OpenKey(self._winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, self._winreg.KEY_READ) as key:
                 i = 0
                 while True:
                     try:
-                        subkey_name = winreg.EnumKey(key, i)
+                        subkey_name = self._winreg.EnumKey(key, i)
                         if subkey_name.startswith("foton_"):
                             return True
                         i += 1
@@ -113,15 +114,15 @@ class WindowsRegistryAdapter(OSIntegrationPort):
     def get_registered_command(self) -> str | None:
         """Retorna o comando registrado, se houver."""
         try:
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, winreg.KEY_READ) as key:
+            with self._winreg.OpenKey(self._winreg.HKEY_CURRENT_USER, PDF_SHELL_PATH, 0, self._winreg.KEY_READ) as key:
                 i = 0
                 while True:
                     try:
-                        subkey_name = winreg.EnumKey(key, i)
+                        subkey_name = self._winreg.EnumKey(key, i)
                         if subkey_name.startswith("foton_"):
                             cmd_path = fr"{PDF_SHELL_PATH}\{subkey_name}\command"
-                            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, cmd_path) as cmd_key:
-                                return winreg.QueryValue(cmd_key, None)
+                            with self._winreg.OpenKey(self._winreg.HKEY_CURRENT_USER, cmd_path) as cmd_key:
+                                return self._winreg.QueryValue(cmd_key, None)
                         i += 1
                     except OSError:
                         break
@@ -131,20 +132,20 @@ class WindowsRegistryAdapter(OSIntegrationPort):
 
     def _get_prog_id(self, extension: str) -> str | None:
         try:
-            with winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, extension) as key:
-                value = winreg.QueryValue(key, None)
+            with self._winreg.OpenKey(self._winreg.HKEY_CLASSES_ROOT, extension) as key:
+                value = self._winreg.QueryValue(key, None)
                 return value if value else None
         except WindowsError:
             return None
 
     def _create_menu_entry(self, parent_key_path: str, name: str, label: str, command: str, icon_path: str = None):
         key_path = fr"{parent_key_path}\{name}"
-        with winreg.CreateKey(winreg.HKEY_CURRENT_USER, key_path) as key:
-            winreg.SetValue(key, "", winreg.REG_SZ, label)
+        with self._winreg.CreateKey(self._winreg.HKEY_CURRENT_USER, key_path) as key:
+            self._winreg.SetValue(key, "", self._winreg.REG_SZ, label)
             if icon_path:
-                winreg.SetValueEx(key, "Icon", 0, winreg.REG_SZ, icon_path)
-            with winreg.CreateKey(key, "command") as cmd_key:
-                winreg.SetValue(cmd_key, "", winreg.REG_SZ, command)
+                self._winreg.SetValueEx(key, "Icon", 0, self._winreg.REG_SZ, icon_path)
+            with self._winreg.CreateKey(key, "command") as cmd_key:
+                self._winreg.SetValue(cmd_key, "", self._winreg.REG_SZ, command)
 
     def register_all_context_menus(self) -> bool:
         """
@@ -286,25 +287,25 @@ class WindowsRegistryAdapter(OSIntegrationPort):
             icon_path = str(ResourceService.get_logo_ico())
 
             # 1. Registrar o ProgID
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, fr"Software\Classes\{prog_id}") as key:
-                winreg.SetValue(key, "", winreg.REG_SZ, "fotonPDF Document")
-                with winreg.CreateKey(key, "DefaultIcon") as icon_key:
-                    winreg.SetValue(icon_key, "", winreg.REG_SZ, icon_path)
-                with winreg.CreateKey(key, r"shell\open\command") as cmd_key:
-                    winreg.SetValue(cmd_key, "", winreg.REG_SZ, f'"{app_path}" view "%1"')
+            with self._winreg.CreateKey(self._winreg.HKEY_CURRENT_USER, fr"Software\Classes\{prog_id}") as key:
+                self._winreg.SetValue(key, "", self._winreg.REG_SZ, "fotonPDF Document")
+                with self._winreg.CreateKey(key, "DefaultIcon") as icon_key:
+                    self._winreg.SetValue(icon_key, "", self._winreg.REG_SZ, icon_path)
+                with self._winreg.CreateKey(key, r"shell\open\command") as cmd_key:
+                    self._winreg.SetValue(cmd_key, "", self._winreg.REG_SZ, f'"{app_path}" view "%1"')
 
             # 2. Registrar a capacidade
             app_reg_path = r"Software\fotonPDF\Capabilities"
-            with winreg.CreateKey(winreg.HKEY_CURRENT_USER, app_reg_path) as key:
-                winreg.SetValue(key, "ApplicationDescription", winreg.REG_SZ, "Visualizador de PDFs ultra-rápido.")
-                winreg.SetValue(key, "ApplicationName", winreg.REG_SZ, "fotonPDF")
-                with winreg.CreateKey(key, "FileAssociations") as assoc_key:
-                    winreg.SetValueEx(assoc_key, ".pdf", 0, winreg.REG_SZ, prog_id)
+            with self._winreg.CreateKey(self._winreg.HKEY_CURRENT_USER, app_reg_path) as key:
+                self._winreg.SetValue(key, "ApplicationDescription", self._winreg.REG_SZ, "Visualizador de PDFs ultra-rápido.")
+                self._winreg.SetValue(key, "ApplicationName", self._winreg.REG_SZ, "fotonPDF")
+                with self._winreg.CreateKey(key, "FileAssociations") as assoc_key:
+                    self._winreg.SetValueEx(assoc_key, ".pdf", 0, self._winreg.REG_SZ, prog_id)
 
             # 3. Registrar o app para que apareça em "Abrir com" e "Programas Padrão"
             reg_apps_path = r"Software\RegisteredApplications"
-            with winreg.OpenKey(winreg.HKEY_CURRENT_USER, reg_apps_path, 0, winreg.KEY_SET_VALUE) as key:
-                winreg.SetValueEx(key, "fotonPDF", 0, winreg.REG_SZ, app_reg_path)
+            with self._winreg.OpenKey(self._winreg.HKEY_CURRENT_USER, reg_apps_path, 0, self._winreg.KEY_SET_VALUE) as key:
+                self._winreg.SetValueEx(key, "fotonPDF", 0, self._winreg.REG_SZ, app_reg_path)
 
             # 4. Notificar o sistema sobre a mudança de associação (via PowerShell para SHChangeNotify)
             ps_notify = "[Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.MethodInvoker]{ [void]([System.Runtime.InteropServices.Marshal]::GetComInterfaceForObject([New-Object -ComObject Shell.Application], [System.Runtime.InteropServices.Marshal]::GetType('System.Runtime.InteropServices.Marshal+ComInterface')).SHChangeNotify(0x08000000, 0, [IntPtr]::Zero, [IntPtr]::Zero)) }"

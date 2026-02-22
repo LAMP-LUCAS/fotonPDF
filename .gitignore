@@ -1,72 +1,64 @@
-# Python
+# --- Python & Environment ---
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# Virtual Environments
-.env
 .venv
-env/
 venv/
+env/
 ENV/
-env.bak/
-venv.bak/
+*.bak/
+.env
 
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
+# --- Build & Distribution ---
+build/
+dist/
+out/
+foton.spec
+foton_v1.0.0.spec
+*.egg-info/
+.eggs/
+*.egg
 
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.py,cover
-.hypothesis/
-.pytest_cache/
-cover/
-
-# IDEs and Editors
-.obsidian/
-.idea/
+# --- IDEs & Editors ---
 .vscode/
+.idea/
+.obsidian/
 *.swp
 *.swo
 *~
 .directory
-
-# Operating System
 Thumbs.db
 Desktop.ini
 .DS_Store
-.AppleDouble
-.LSOverride
-._*
 
-# Project specific
+# --- Logs & Test Artifacts ---
 *.log
-tmp/
-.obsidian/workspace.json
+logs/
+build_log.txt
+.coverage
+.coverage.*
+coverage.xml
+coverage_report.txt
+htmlcov/
+.pytest_cache/
+pytest_*.txt
+test_results.*
+tests_failed*.txt
+output.log
+pytest_output.txt
+pytest_full_output.txt
+pytest_final_output.txt
+
+# --- Project Specific Artifacts ---
+stage_state.db
+# Manter PDFs de teste manuais fora do repo para evitar volume desnecessário
+manual_test*.pdf
+test_complex.pdf
+test_layers.pdf
+test_multi_page.pdf
+
+# --- Documentation ---
+# Permitir docs mas ignorar capturas pesadas se necessário
+docs/visuals/captures/

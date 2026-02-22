@@ -11,7 +11,7 @@ def build():
         
     os.environ['PYINSTALLER_BUILD'] = '1'
     from src import __version__
-    print(f"🚀 Iniciando build do fotonPDF v{__version__}...")
+    print(f"[BUILD] Iniciando build do fotonPDF v{__version__}...")
     
     # IMPORTANTE: src/__init__.py é o ÚNICO Centro de Verdade para a versão.
     # O pipeline de CD no GitHub Actions validará se esta versão coincide com a Tag.
@@ -19,16 +19,16 @@ def build():
     # Caminhos
     scripts_path = Path(__file__).parent
     project_root = scripts_path.parent
-    entry_point = project_root / "src" / "interfaces" / "cli" / "main.py"
+    entry_point = project_root / "src" / "interfaces" / "gui" / "app.py"
     
     # Configurações do PyInstaller
     params = [
         str(entry_point),
-        "--name=foton_v1.0.0",
+        "--name=foton",
         f"--icon={project_root / 'docs' / 'brand' / 'logo.ico'}",
         "--onedir",          # Modo diretório para estabilidade e velocidade
         "--noconfirm",       # Não pedir confirmação para sobrescrever
-        "--console",         # Mantemos console para os wizards de sistema
+        "--windowed",        # GUI pura (sem console) conforme requisitos de UX
         "--clean",
         f"--distpath={project_root / 'dist'}",
         f"--workpath={project_root / 'build'}",
@@ -39,14 +39,17 @@ def build():
         "--hidden-import=plyer.platforms.win.notification",
         # PyQt6 - Modo Diretório é muito mais seguro com collect-all
         "--collect-all=PyQt6",
+        "--collect-all=litellm",
+        "--collect-all=instructor",
         "--hidden-import=PyQt6",
         "--hidden-import=PyQt6.QtCore",
         "--hidden-import=PyQt6.QtGui", 
         "--hidden-import=PyQt6.QtWidgets",
         "--hidden-import=PyQt6.sip",
+        "--hidden-import=litellm",
+        "--hidden-import=instructor",
         # PDF e outras dependências
         "--hidden-import=fitz",
-        "--hidden-import=fitz.fitz",
         "--hidden-import=requests",
         "--hidden-import=plyer",
         "--hidden-import=click",
@@ -61,7 +64,7 @@ def build():
     
     # Executar build
     PyInstaller.__main__.run(params)
-    print("✅ Build concluído! O executável está na pasta /dist")
+    print("[OK] Build concluido! O executavel esta na pasta /dist")
 
 if __name__ == "__main__":
     build()
