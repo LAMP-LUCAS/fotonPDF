@@ -5,3 +5,4 @@ plyer>=2.1.0
 PyQt6>=6.5.0
 litellm>=1.0.0
 instructor>=1.0.0
+psutil>=5.9.0
