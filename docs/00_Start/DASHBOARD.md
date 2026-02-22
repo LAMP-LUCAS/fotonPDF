@@ -94,7 +94,7 @@ gantt
 
 ---
 
-**Última atualização:** 2026-02-21  
+**Última atualização:** 2026-02-22  
 **Próxima revisão:** Início da Fase 4
 
 [[MAP|← Voltar ao Mapa]] | [[REPORT|📊 Ver Relatório Completo]]

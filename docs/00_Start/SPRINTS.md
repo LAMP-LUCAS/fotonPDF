@@ -1,8 +1,65 @@
 # 🏃 Gerenciamento de Sprints
 
-## 🏁 Sprint Atual: Sprint 22 - Consolidação e Lançamento 🚀
+## 🏁 Sprint Atual: Sprint 23 - Certificação Premium UX 💎 (Concluída)
+
+### Objetivo
+
+Implementar uma suíte de testes de **Usabilidade e Interatividade** que valide os diferenciais "IDE-like" e "AEC-focused" definidos no Roadmap, garantindo que a fluidez prometida no mockup seja uma realidade técnica estável.
 
 ### Progresso
+
+- [x] **Testes de Física Interativa (25 testes)**: Drag-and-Drop, RubberBand Selection, Zoom Cirúrgico, Recuperação de Qualidade Pós-Zoom e Navegação por Teclado na `LightTableView` e `InfiniteCanvasView`.
+- [x] **Testes de Command Palette (15 testes)**: Estrutura frameless/popup, filtragem case-insensitive, seleção automática, e validação de descoberta de comandos (Girar, Mesclar, Buscar).
+- [x] **CI/CD Atualizado**: Inclusão dos passos `tests/gui` e `tests/bdd` no workflow do GitHub Actions.
+- [x] **Dependências Corrigidas**: Adição de `psutil`, `requests` e `pydantic` ao `requirements.txt` para compatibilidade com o runner de CI.
+- [x] **0 RuntimeError de C++**: Nenhum erro de C++ introduzido pelas simulações de mouse.
+
+### Cenários BDD Validados
+
+#### Manipulação Espacial na Mesa de Luz
+
+- **Cenário:** Reordenação Tangível.
+  - **Given:** Um documento de 3 páginas aberto na Mesa de Luz.
+  - **When:** O usuário arrasta a Página 3 para a posição entre a 1 e a 2.
+  - **Then:** O `PDFDocument` virtual deve atualizar sua lista de índices para `[0, 2, 1]` e a renderização deve refletir a nova ordem visual.
+
+- **Cenário:** Seleção em Lote (RubberBand).
+  - **Given:** 10 páginas em grid.
+  - **When:** O usuário desenha um retângulo capturando 5 páginas.
+  - **Then:** O sinal `selectionChanged` deve reportar exatamente 5 IDs de página e as bordas devem ficar em Ciano Neon (#00E5FF).
+
+#### Precisão de Engenharia no Infinite Canvas
+
+- **Cenário:** Zoom Cirúrgico (Anchor-under-Mouse).
+  - **Given:** Uma planta A0 carregada.
+  - **When:** O mouse está posicionado na coordenada (500, 500) e o scroll de zoom é disparado.
+  - **Then:** O ponto central do viewport deve ser movido proporcionalmente para manter a coordenada (500, 500) sob o cursor.
+
+- **Cenário:** Recuperação de Qualidade Pós-Zoom.
+  - **When:** O nível de zoom é alterado para 4.0x.
+  - **Then:** Um `QTimer` de 300ms deve ser disparado, seguido por uma nova chamada à `RenderEngine` solicitando pixmaps de alta resolução para as páginas visíveis.
+
+#### Produtividade via Command Palette
+
+- **Cenário:** Execução Operacional sem Mouse.
+  - **Given:** Documento aberto e Paleta de Comandos ativa.
+  - **When:** Usuário digita "Girar 90" e pressiona `Enter`.
+  - **Then:** O comando deve ser roteado para o `RotatePDFUseCase` e a UI deve notificar o sucesso no `BottomPanel`.
+
+### Arquivos Criados/Modificados
+
+| Arquivo | Tipo | Testes |
+| ------- | ---- | ------ |
+| `tests/gui/test_interactive_physics.py` | GUI Physics | 25 |
+| `tests/bdd/test_command_workflow.py` | BDD Workflow | 15 |
+| `.github/workflows/ci.yml` | CI Config | — |
+| `requirements.txt` | Deps | — |
+
+---
+
+## 📅 Histórico de Sprints Concluídas
+
+### Sprint 22: Consolidação e Lançamento ✅
 
 - [x] **Menu Lúdico v2**: Nova organização categórica com emojis e cores para máxima ergonomia.
 - [x] **Reordenação Espacial**: Manipulação de ordem de páginas via "drag-and-drop" na Mesa de Luz com sincronização debounced.
@@ -12,13 +69,13 @@
 - [x] **Resolução de Identidade Virtual**: Fim da confusão entre índices físicos e visuais em TOC, Busca e Notas.
 - [x] **Bug Fix de Anotações**: Sincronização garantida de highlights mesmo após reordenação.
 - [x] **Diagnóstico 100+**: Novo arquivo `test_complex.pdf` e otimização para documentos longos.
-- [ ] Build com PyInstaller 📦
-- [ ] Testes E2E para Navegação 🧪
-- [ ] Merge para `develop` 🚀
-
----
-
-## 📅 Histórico de Sprints Concluídas
+- [x] **Correção de Visibilidade da Sidebar e Batch Loading** (Fix Crítico).
+- [x] **Lógica de Limpeza de Estado UI** (Fix TabContainer / Single-Document V4).
+- [x] **Zoom por Área (RubberBand)**: Seleção retangular para zoom preciso.
+- [x] **Renderização Assíncrona da Primeira Página**: Carregamento instantâneo.
+- [x] **Testes E2E e Robustez para Navegação**.
+- [x] **Build com PyInstaller**: Empacotamento `onedir` funcional.
+- [x] **Estabilidade 100% e Merge para `develop`**.
 
 ### Fase 3.5: Navegação Premium e UX Avançada
 
