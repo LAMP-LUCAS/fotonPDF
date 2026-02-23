@@ -16,50 +16,19 @@ def build():
     # IMPORTANTE: src/__init__.py é o ÚNICO Centro de Verdade para a versão.
     # O pipeline de CD no GitHub Actions validará se esta versão coincide com a Tag.
     
-    # Caminhos
-    scripts_path = Path(__file__).parent
-    project_root = scripts_path.parent
-    entry_point = project_root / "src" / "interfaces" / "gui" / "app.py"
+    # Configurações do PyInstaller via foton.spec oficial
+    spec_file = project_root / "foton.spec"
     
-    # Configurações do PyInstaller
+    if not spec_file.exists():
+        print(f"[ERRO CRÍTICO] O arquivo spec '{spec_file}' não foi encontrado.")
+        sys.exit(1)
+        
     params = [
-        str(entry_point),
-        "--name=foton",
-        f"--icon={project_root / 'docs' / 'brand' / 'logo.ico'}",
-        "--onedir",          # Modo diretório para estabilidade e velocidade
+        str(spec_file),
         "--noconfirm",       # Não pedir confirmação para sobrescrever
-        "--windowed",        # GUI pura (sem console) conforme requisitos de UX
         "--clean",
         f"--distpath={project_root / 'dist'}",
-        f"--workpath={project_root / 'build'}",
-        f"--specpath={project_root}",
-        f"--add-data={project_root / 'src'};src",
-        f"--add-data={project_root / 'docs' / 'brand'};docs/brand",
-        # Notificações
-        "--hidden-import=plyer.platforms.win.notification",
-        # PyQt6 - Modo Diretório é muito mais seguro com collect-all
-        "--collect-all=PyQt6",
-        "--collect-all=litellm",
-        "--collect-all=instructor",
-        "--hidden-import=PyQt6",
-        "--hidden-import=PyQt6.QtCore",
-        "--hidden-import=PyQt6.QtGui", 
-        "--hidden-import=PyQt6.QtWidgets",
-        "--hidden-import=PyQt6.sip",
-        "--hidden-import=litellm",
-        "--hidden-import=instructor",
-        # PDF e outras dependências
-        "--hidden-import=fitz",
-        "--hidden-import=requests",
-        "--hidden-import=plyer",
-        "--hidden-import=click",
-        # Excluir pacotes gigantescos
-        "--exclude-module=torch",
-        "--exclude-module=matplotlib",
-        "--exclude-module=pandas",
-        "--exclude-module=numpy",
-        "--exclude-module=PIL",
-        "--exclude-module=tkinter",
+        f"--workpath={project_root / 'build'}"
     ]
     
     # Executar build

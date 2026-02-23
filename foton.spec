@@ -12,8 +12,9 @@ tmp_ret = collect_all('instructor')
 datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 
+# ─── Analysis (compartilhada entre os dois executáveis) ───────────────────
 a = Analysis(
-    ['C:\\LABORATORIO\\fotonPDF\\src\\interfaces\\gui\\app.py'],
+    ['C:\\LABORATORIO\\fotonPDF\\src\\interfaces\\cli\\main.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,
@@ -27,7 +28,8 @@ a = Analysis(
 )
 pyz = PYZ(a.pure)
 
-exe = EXE(
+# ─── EXE 1: foton.exe (GUI — sem console, para double-click) ─────────────
+exe_gui = EXE(
     pyz,
     a.scripts,
     [],
@@ -45,8 +47,31 @@ exe = EXE(
     entitlements_file=None,
     icon=['C:\\LABORATORIO\\fotonPDF\\docs\\brand\\logo.ico'],
 )
+
+# ─── EXE 2: foton-cli.exe (Console — para terminal e menu de contexto) ───
+exe_cli = EXE(
+    pyz,
+    a.scripts,
+    [],
+    exclude_binaries=True,
+    name='foton-cli',
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=True,
+    console=True,
+    disable_windowed_traceback=False,
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
+    icon=['C:\\LABORATORIO\\fotonPDF\\docs\\brand\\logo.ico'],
+)
+
+# ─── COLLECT: ambos os executáveis na mesma pasta dist/foton ──────────────
 coll = COLLECT(
-    exe,
+    exe_gui,
+    exe_cli,
     a.binaries,
     a.datas,
     strip=False,
@@ -54,3 +79,4 @@ coll = COLLECT(
     upx_exclude=[],
     name='foton',
 )
+

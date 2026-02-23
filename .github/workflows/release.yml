@@ -63,7 +63,7 @@ jobs:
       with:
         files: |
           fotonPDF_Setup_v*.exe
-          dist/foton/foton.exe
+          dist/foton/*.exe
         generate_release_notes: true
         draft: false
         prerelease: false

@@ -1,3 +1,16 @@
+import sys
+import os
+
+# ─── Safe I/O Guard ───────────────────────────────────────────────────────
+# Quando empacotado com PyInstaller em modo GUI (console=False), sys.stdout
+# e sys.stderr são None. Isso faz click.echo e print crasharem silenciosamente.
+# Redirecionamos para devnull nesses casos para evitar OSError.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
+# ──────────────────────────────────────────────────────────────────────────
+
 import click
 from pathlib import Path
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
@@ -168,10 +181,12 @@ def view(path: Path | None):
         notify_error(str(e))
 
 @cli.command()
-def setup():
+@click.option('--quiet', '-q', is_flag=True, help='Executa em modo silencioso (para instaladores)')
+@click.option('--set-default', is_flag=True, help='Define o fotonPDF como visualizador de PDF padrão')
+def setup(quiet: bool, set_default: bool):
     """🚀 Configura o fotonPDF no seu sistema (Menu de Contexto)."""
     from src.interfaces.cli.setup_wizard import run_setup
-    run_setup()
+    run_setup(quiet=quiet, set_default=set_default)
 
 
 @cli.command()

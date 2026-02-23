@@ -7,6 +7,7 @@
 #endif
 
 [Setup]
+AppId={{8BBE839D-E93C-43D1-903D-3B5CB2BF0442}
 AppName=fotonPDF
 AppVersion={#MyAppVersion}
 DefaultDirName={localappdata}\fotonPDF
@@ -15,7 +16,7 @@ SetupIconFile=docs\brand\logo.ico
 UninstallDisplayIcon={app}\foton.exe
 Compression=lzma2
 SolidCompression=yes
-OutputDir=..
+OutputDir=dist
 OutputBaseFilename=fotonPDF_Setup_v{#MyAppVersion}
 ArchitecturesAllowed=x64
 ArchitecturesInstallIn64BitMode=x64
@@ -25,18 +26,48 @@ DisableWelcomePage=yes
 DisableDirPage=yes
 DisableProgramGroupPage=yes
 DisableFinishedPage=no
+; Registra a mudança de PATH para que o terminal reconheça 'foton' imediatamente
+ChangesEnvironment=yes
+
+[Languages]
+Name: "brazilianportuguese"; MessagesFile: "compiler:Languages\BrazilianPortuguese.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "addtopath"; Description: "Adicionar fotonPDF ao PATH do sistema (permite usar 'foton' no terminal)"
+Name: "setdefault"; Description: "Tornar o fotonPDF o visualizador padrão de arquivos PDF"; Flags: unchecked
 
 [Files]
 ; Inclui todos os arquivos da pasta dist/foton
-Source: "dist\foton\*"; DestDir: "{app}"; Flags: igonreversion recursesubdirs createallsubdirs
+Source: "dist\foton\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\fotonPDF"; Filename: "{app}\foton.exe"
 Name: "{autodesktop}\fotonPDF"; Filename: "{app}\foton.exe"; Tasks: desktopicon
 
+[Registry]
+; Adiciona o diretório de instalação ao PATH do usuário (HKCU) para acesso via terminal
+Root: HKCU; Subkey: "Environment"; ValueType: expandsz; ValueName: "Path"; ValueData: "{olddata};{app}"; Tasks: addtopath; Check: NeedsAddPath(ExpandConstant('{app}'))
+
 [Run]
 ; Executa o setup do fotonPDF ao finalizar a instalação para registrar o menu de contexto
-Filename: "{app}\foton.exe"; Parameters: "setup"; StatusMsg: "Configurando integracao com o Windows..."; Flags: runhidden
+Filename: "{app}\foton-cli.exe"; Parameters: "setup -q"; StatusMsg: "Configurando integracao com o Windows..."; Flags: runhidden; Tasks: not setdefault
+Filename: "{app}\foton-cli.exe"; Parameters: "setup -q --set-default"; StatusMsg: "Configurando integracao com o Windows..."; Flags: runhidden; Tasks: setdefault
+
+[UninstallRun]
+; Remove as entradas do menu de contexto ao desinstalar
+Filename: "{app}\foton-cli.exe"; Parameters: "uninstall -y"; Flags: runhidden; RunOnceId: "DelContextMenu"
+
+[Code]
+// Verifica se o caminho já está no PATH do usuário para evitar duplicação
+function NeedsAddPath(Param: string): boolean;
+var
+  OrigPath: string;
+begin
+  if not RegQueryStringValue(HKEY_CURRENT_USER, 'Environment', 'Path', OrigPath) then
+  begin
+    Result := True;
+    exit;
+  end;
+  Result := Pos(';' + Uppercase(Param) + ';', ';' + Uppercase(OrigPath) + ';') = 0;
+end;
