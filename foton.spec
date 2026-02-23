@@ -1,7 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 from PyInstaller.utils.hooks import collect_all
 
-datas = [('C:\\LABORATORIO\\fotonPDF\\src', 'src'), ('C:\\LABORATORIO\\fotonPDF\\docs\\brand', 'docs/brand')]
+datas = [('src', 'src'), ('docs/brand', 'docs/brand')]
 binaries = []
 hiddenimports = ['plyer.platforms.win.notification', 'PyQt6', 'PyQt6.QtCore', 'PyQt6.QtGui', 'PyQt6.QtWidgets', 'PyQt6.sip', 'litellm', 'instructor', 'fitz', 'requests', 'plyer', 'click']
 tmp_ret = collect_all('PyQt6')
@@ -14,7 +14,7 @@ datas += tmp_ret[0]; binaries += tmp_ret[1]; hiddenimports += tmp_ret[2]
 
 # ─── Analysis (compartilhada entre os dois executáveis) ───────────────────
 a = Analysis(
-    ['C:\\LABORATORIO\\fotonPDF\\src\\interfaces\\cli\\main.py'],
+    ['src\\interfaces\\cli\\main.py'],
     pathex=[],
     binaries=binaries,
     datas=datas,
@@ -45,7 +45,7 @@ exe_gui = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\LABORATORIO\\fotonPDF\\docs\\brand\\logo.ico'],
+    icon=['docs\\brand\\logo.ico'],
 )
 
 # ─── EXE 2: foton-cli.exe (Console — para terminal e menu de contexto) ───
@@ -65,7 +65,7 @@ exe_cli = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=['C:\\LABORATORIO\\fotonPDF\\docs\\brand\\logo.ico'],
+    icon=['docs\\brand\\logo.ico'],
 )
 
 # ─── COLLECT: ambos os executáveis na mesma pasta dist/foton ──────────────
