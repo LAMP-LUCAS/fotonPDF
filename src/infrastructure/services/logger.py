@@ -4,8 +4,31 @@ Registra todas as operações em arquivo para diagnóstico.
 """
 import logging
 import sys
+import uuid
 from pathlib import Path
 from datetime import datetime
+
+
+# Session ID global para correlação de logs entre operações
+_current_session_id: str = ""
+
+
+def set_session_id() -> str:
+    """Gera um novo session_id para a sessão atual de carregamento."""
+    global _current_session_id
+    _current_session_id = uuid.uuid4().hex[:8]
+    return _current_session_id
+
+
+def get_session_id() -> str:
+    """Retorna o session_id atual."""
+    return _current_session_id
+
+
+def clear_session_id():
+    """Limpa o session_id atual."""
+    global _current_session_id
+    _current_session_id = ""
 
 
 def get_log_path() -> Path | None:
@@ -57,10 +80,19 @@ def setup_logger() -> logging.Logger:
             # Se não conseguir criar o arquivo de log, continuamos apenas com console
             pass
     
-    # Handler para console (apenas erros)
+    # Handler para console
+    import os
+    is_debug = os.environ.get("FOTON_DEBUG") == "1"
+    
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.ERROR)
-    console_format = logging.Formatter('%(levelname)s: %(message)s')
+    console_handler.setLevel(logging.DEBUG if is_debug else logging.ERROR)
+    
+    if is_debug:
+        # Formato mais rico para console em modo debug
+        console_format = logging.Formatter('\033[36m%(levelname)-8s\033[0m | %(message)s')
+    else:
+        console_format = logging.Formatter('%(levelname)s: %(message)s')
+        
     console_handler.setFormatter(console_format)
     logger.addHandler(console_handler)
     
@@ -71,26 +103,32 @@ def setup_logger() -> logging.Logger:
 logger = setup_logger()
 
 
+def _prefix() -> str:
+    """Retorna o prefixo de sessão para o log."""
+    return f"[{_current_session_id}] " if _current_session_id else ""
+
+
 def log_info(message: str):
     """Registra mensagem informativa."""
-    logger.info(message)
+    logger.info(f"{_prefix()}{message}")
 
 
 def log_warning(message: str):
     """Registra aviso."""
-    logger.warning(message)
+    logger.warning(f"{_prefix()}{message}")
 
 
 def log_error(message: str):
     """Registra erro."""
-    logger.error(message)
+    logger.error(f"{_prefix()}{message}")
 
 
 def log_debug(message: str):
     """Registra mensagem de debug."""
-    logger.debug(message)
+    logger.debug(f"{_prefix()}{message}")
 
 
 def log_exception(message: str):
     """Registra exceção com traceback."""
-    logger.exception(message)
+    logger.exception(f"{_prefix()}{message}")
+

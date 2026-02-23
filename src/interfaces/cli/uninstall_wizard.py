@@ -122,7 +122,7 @@ def run_uninstall(skip_confirmation: bool = False) -> bool:
         else:
             print_error("Houve uma falha parcial na remoção (verifique permissões)")
             print_footer_error()
-            wait_for_keypress()
+            if not skip_confirmation: wait_for_keypress()
             return False
 
         # Etapa 3: Verificar Remoção
@@ -133,7 +133,7 @@ def run_uninstall(skip_confirmation: bool = False) -> bool:
             print_warning("Pode ser necessário reiniciar o Windows Explorer")
         
         print_footer_success()
-        wait_for_keypress()
+        if not skip_confirmation: wait_for_keypress()
         return True
         
     except Exception as e:
@@ -141,5 +141,5 @@ def run_uninstall(skip_confirmation: bool = False) -> bool:
         log_exception(f"Erro inesperado no uninstall: {e}")
         print_error(f"Erro inesperado: {e}")
         print_footer_error()
-        wait_for_keypress()
+        if not skip_confirmation: wait_for_keypress()
         return False

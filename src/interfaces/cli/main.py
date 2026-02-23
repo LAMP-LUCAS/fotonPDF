@@ -1,3 +1,16 @@
+import sys
+import os
+
+# ─── Safe I/O Guard ───────────────────────────────────────────────────────
+# Quando empacotado com PyInstaller em modo GUI (console=False), sys.stdout
+# e sys.stderr são None. Isso faz click.echo e print crasharem silenciosamente.
+# Redirecionamos para devnull nesses casos para evitar OSError.
+if sys.stdout is None:
+    sys.stdout = open(os.devnull, 'w')
+if sys.stderr is None:
+    sys.stderr = open(os.devnull, 'w')
+# ──────────────────────────────────────────────────────────────────────────
+
 import click
 from pathlib import Path
 from src.infrastructure.adapters.pymupdf_adapter import PyMuPDFAdapter
@@ -23,7 +36,7 @@ def notify_error(msg: str):
 
 @click.group()
 def cli():
-    """fotonPDF - O toolkit de PDFs mais rápido do mundo! 🚀"""
+    """fotonPDF - O toolkit de PDFs mais rápido do mundo!"""
     pass
 
 @cli.command()
@@ -160,7 +173,7 @@ def view(path: Path | None):
     try:
         from src.interfaces.gui.app import main
         
-        click.echo("🚀 Abrindo Visualizador Fóton...")
+        click.echo("  [OK] Abrindo Visualizador...")
         main(file_path=str(path) if path else None)
         
     except Exception as e:
@@ -168,10 +181,12 @@ def view(path: Path | None):
         notify_error(str(e))
 
 @cli.command()
-def setup():
+@click.option('--quiet', '-q', is_flag=True, help='Executa em modo silencioso (para instaladores)')
+@click.option('--set-default', is_flag=True, help='Define o fotonPDF como visualizador de PDF padrão')
+def setup(quiet: bool, set_default: bool):
     """🚀 Configura o fotonPDF no seu sistema (Menu de Contexto)."""
     from src.interfaces.cli.setup_wizard import run_setup
-    run_setup()
+    run_setup(quiet=quiet, set_default=set_default)
 
 
 @cli.command()
@@ -228,9 +243,26 @@ def update():
 
 if __name__ == '__main__':
     import sys
-    # Se executado sem argumentos (clique duplo), abrir menu interativo
+    import os
+    
+    # Verifica se há console/stdin válido (importante para build windowed)
+    has_console = sys.stdin is not None and sys.stdin.isatty()
+    
+    # Se executado sem argumentos (clique duplo)
     if len(sys.argv) == 1:
-        from src.interfaces.cli.interactive_menu import run_interactive_menu
-        run_interactive_menu()
+        if not has_console:
+            # Em modo windowed (sem terminal), prioridade total à GUI
+            from src.interfaces.gui.app import main
+            main()
+        else:
+            # Em um terminal real, abrir menu interativo (UX Legada)
+            try:
+                from src.interfaces.cli.interactive_menu import run_interactive_menu
+                run_interactive_menu()
+            except RuntimeError:
+                # Fallback de segurança: se o menu CLI falhar por I/O, abre a GUI
+                from src.interfaces.gui.app import main
+                main()
     else:
+        # Com argumentos, segue para o CLI normal (click handles everything)
         cli()
