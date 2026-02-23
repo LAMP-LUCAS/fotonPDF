@@ -9,7 +9,7 @@ def sign_executable(file_path: Path):
     Se o certificado não existir, tenta criar um via PowerShell.
     """
     if not file_path.exists():
-        print(f"❌ Arquivo não encontrado: {file_path}")
+        print(f"[ERRO] Arquivo nao encontrado: {file_path}")
         return False
 
     cert_name = "fotonPDF_Dev_Cert"
@@ -18,7 +18,7 @@ def sign_executable(file_path: Path):
 
     # 1. Verificar/Criar Certificado
     if not pfx_path.exists():
-        print("🛠️ Gerando certificado auto-assinado para desenvolvimento...")
+        print("[INFO] Gerando certificado auto-assinado para desenvolvimento...")
         try:
             # Comando PowerShell para gerar certificado e exportar para PFX
             ps_cmd = f"""
@@ -27,13 +27,13 @@ def sign_executable(file_path: Path):
             Export-PfxCertificate -Cert $cert -FilePath "{pfx_path}" -Password $pwd
             """
             subprocess.run(["powershell", "-Command", ps_cmd], check=True)
-            print(f"✅ Certificado gerado: {pfx_path}")
+            print(f"[OK] Certificado gerado: {pfx_path}")
         except Exception as e:
-            print(f"❌ Erro ao gerar certificado: {e}")
+            print(f"[ERRO] Erro ao gerar certificado: {e}")
             return False
 
     # 2. Assinar artefato
-    print(f"🔏 Assinando {file_path.name}...")
+    print(f"[INFO] Assinando {file_path.name}...")
     try:
         # Tenta usar o SignTool do Windows SDK se estiver no PATH
         # Caso contrário, informa o usuário
@@ -50,15 +50,15 @@ def sign_executable(file_path: Path):
         # Signtool costuma estar em "C:\Program Files (x86)\Windows Kits\10\bin\<version>\x64\signtool.exe"
         # Mas vamos assumir que pode estar no PATH ou falhar graciosamente
         subprocess.run(sign_cmd, check=True)
-        print("✨ Assinatura aplicada com sucesso!")
+        print("[OK] Assinatura aplicada com sucesso!")
         return True
     except FileNotFoundError:
-        print("⚠️ 'signtool' não encontrado no PATH.")
+        print("[AVISO] 'signtool' nao encontrado no PATH.")
         print("   Para assinar oficialmente, instale o Windows SDK e adicione o SignTool ao seu PATH.")
         print("   A infraestrutura de certificado (.pfx) foi preparada.")
         return False
     except Exception as e:
-        print(f"❌ Erro ao assinar: {e}")
+        print(f"[ERRO] Erro ao assinar: {e}")
         return False
 
 if __name__ == "__main__":
@@ -76,8 +76,8 @@ if __name__ == "__main__":
         if dist_dir.exists():
             exes = list(dist_dir.glob("*.exe"))
             if not exes:
-                print(f"⚠️ Nenhum executável encontrado em {dist_dir}.")
+                print(f"[AVISO] Nenhum executavel encontrado em {dist_dir}.")
             for exe_file in exes:
                 sign_executable(exe_file)
         else:
-            print(f"❌ Diretório de dist não encontrado: {dist_dir}")
+            print(f"[ERRO] Diretorio de dist nao encontrado: {dist_dir}")
