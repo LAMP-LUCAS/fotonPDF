@@ -15,8 +15,7 @@ ENV/
 build/
 dist/
 out/
-foton.spec
-foton_v1.0.0.spec
+*.exe
 *.egg-info/
 .eggs/
 *.egg

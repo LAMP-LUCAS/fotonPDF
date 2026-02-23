@@ -181,10 +181,12 @@ def view(path: Path | None):
         notify_error(str(e))
 
 @cli.command()
-def setup():
+@click.option('--quiet', '-q', is_flag=True, help='Executa em modo silencioso (para instaladores)')
+@click.option('--set-default', is_flag=True, help='Define o fotonPDF como visualizador de PDF padrão')
+def setup(quiet: bool, set_default: bool):
     """🚀 Configura o fotonPDF no seu sistema (Menu de Contexto)."""
     from src.interfaces.cli.setup_wizard import run_setup
-    run_setup()
+    run_setup(quiet=quiet, set_default=set_default)
 
 
 @cli.command()
