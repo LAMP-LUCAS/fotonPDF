@@ -116,7 +116,7 @@ def verify_installation() -> bool:
     return adapter.check_installation_status()
 
 
-def run_setup() -> bool:
+def run_setup(quiet: bool = False, set_default: bool = False) -> bool:
     """Executa o wizard de setup completo."""
     try:
         print_header()
@@ -134,7 +134,7 @@ def run_setup() -> bool:
             print_error("Sem permissão de escrita no registro")
             print_warning("Tente executar como Administrador")
             print_footer_error()
-            wait_for_keypress()
+            if not quiet: wait_for_keypress()
             return False
         
         # Etapa 2: Registrar Menus de Contexto
@@ -144,25 +144,25 @@ def run_setup() -> bool:
         else:
             print_error("Falha ao registrar no Menu de Contexto")
             print_footer_error()
-            wait_for_keypress()
+            if not quiet: wait_for_keypress()
             return False
         
         # Etapa 3: Atalhos
         print_step(3, total_steps, "Configurando atalhos...")
-        if click.confirm("  > Deseja criar um atalho na Área de Trabalho?", default=True):
+        if quiet or click.confirm("  > Deseja criar um atalho na Área de Trabalho?", default=True):
             if use_case.create_shortcut("desktop"):
                 print_success("Atalho criado na Área de Trabalho")
         
-        if click.confirm("  > Deseja criar um atalho no Menu Iniciar?", default=True):
+        if quiet or click.confirm("  > Deseja criar um atalho no Menu Iniciar?", default=True):
             if use_case.create_shortcut("start_menu"):
                 print_success("Atalho criado no Menu Iniciar")
 
         # Etapa 4: Programa Padrão
         print_step(4, total_steps, "Configurando programa padrão...")
-        if click.confirm("  > Deseja definir o fotonPDF como visualizador padrão para .pdf?", default=False):
+        if set_default or (not quiet and click.confirm("  > Deseja definir o fotonPDF como visualizador padrão para .pdf?", default=False)):
             if use_case.set_as_default():
                 print_success("Associação de arquivo registrada")
-                print_warning("O Windows pode solicitar confirmação ao abrir o próximo PDF")
+                if not quiet: print_warning("O Windows pode solicitar confirmação ao abrir o próximo PDF")
 
         # Etapa 5: Verificar Integridade
         print_step(5, total_steps, "Verificando integridade da instalação...")
@@ -172,7 +172,7 @@ def run_setup() -> bool:
             print_warning("Não foi possível confirmar a instalação")
         
         print_footer_success()
-        wait_for_keypress()
+        if not quiet: wait_for_keypress()
         return True
         
     except Exception as e:
@@ -180,5 +180,5 @@ def run_setup() -> bool:
         log_exception(f"Erro inesperado no setup: {e}")
         print_error(f"Erro inesperado: {e}")
         print_footer_error()
-        wait_for_keypress()
+        if not quiet: wait_for_keypress()
         return False

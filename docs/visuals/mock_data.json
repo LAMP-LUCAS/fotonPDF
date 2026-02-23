@@ -1,0 +1,88 @@
+{
+    "documents": [
+        {
+            "path": "C:/AEC/Projetos/Planta_Baixa_A0.pdf",
+            "name": "Planta_Baixa_A0.pdf",
+            "pages": 1,
+            "type": "drawing"
+        },
+        {
+            "path": "C:/AEC/Projetos/Memorial_Descritivo.pdf",
+            "name": "Memorial_Descritivo.pdf",
+            "pages": 45,
+            "type": "text"
+        },
+        {
+            "path": "C:/AEC/Projetos/Corte_Arquitetonico.pdf",
+            "name": "Corte_Arquitetonico.pdf",
+            "pages": 3,
+            "type": "drawing"
+        },
+        {
+            "path": "C:/AEC/Contratos/Acordo_Nivel_Servico.pdf",
+            "name": "Acordo_Nivel_Servico.pdf",
+            "pages": 12,
+            "type": "text"
+        }
+    ],
+    "toc": [
+        {
+            "title": "1. Introdução",
+            "page": 1,
+            "level": 0
+        },
+        {
+            "title": "2. Especificações Técnicas",
+            "page": 5,
+            "level": 0
+        },
+        {
+            "title": "2.1 Elétrica",
+            "page": 10,
+            "level": 1
+        },
+        {
+            "title": "2.2 Hidráulica",
+            "page": 15,
+            "level": 1
+        },
+        {
+            "title": "3. Cronograma",
+            "page": 40,
+            "level": 0
+        }
+    ],
+    "search": [
+        {
+            "text": "...conforme a planta de **fundação** na página 4...",
+            "page": 4
+        },
+        {
+            "text": "...o reforço na **fundação** deve seguir a norma...",
+            "page": 10
+        },
+        {
+            "text": "...verificar profundidade da **fundação**...",
+            "page": 42
+        }
+    ],
+    "annotations": [
+        {
+            "type": "highlight",
+            "page": 2,
+            "text": "Revisar este cálculo",
+            "color": "#FFFF00"
+        },
+        {
+            "type": "text",
+            "page": 5,
+            "text": "Confirmar com o engenheiro",
+            "color": "#FFC0CB"
+        }
+    ],
+    "system_status": {
+        "engine": "PyMuPDF 1.23.0",
+        "aec_mode": "Focused",
+        "memory": "156MB"
+    }
+}

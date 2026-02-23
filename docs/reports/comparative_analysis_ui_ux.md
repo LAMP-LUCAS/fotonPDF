@@ -58,3 +58,5 @@ Este relatório analisa o estado atual do **fotonPDF** frente às especificaçõ
 ---
 > [!TIP]
 > A base arquitetural em `src/interfaces/gui` é muito limpa e facilita a inserção desses novos componentes. O uso de `ResilientWidget` e `safe_ui_callback` garante que essas novas funcionalidades experimentais não comprometam a estabilidade do sistema.
+
+[[../MAP|← Voltar ao Mapa]]
