@@ -31,11 +31,18 @@ Toda vez que você abrir um PR para `main` ou `develop`:
 
 Para lançar uma nova versão oficial do sistema:
 
-1. **Tag**: Crie uma tag Git seguindo o padrão semântico (ex: `git tag v1.1.0` e `git push --tags`).
-2. **Build Automático**: O GitHub detecta a tag e inicia o build.
+1. **Tag**: Crie uma tag Git seguindo o padrão semântico (ex: `git tag v1.2.0` e `git push origin v1.2.0`).
+2. **Build Automático**: O GitHub detecta a tag e inicia o build no runner `windows-latest`.
 3. **Validação do Centro de Verdade**: O sistema verifica se a versão definida em `src/__init__.py` coincide exatamente com a Tag criada. Se houver divergência, o build é cancelado para evitar erros.
-4. **Build, Assinatura & Setup**: O servidor compila o código, gera o instalador (injetando a versão dinamicamente) e aplica a assinatura digital.
-5. **Entrega**: Uma página de **Release** é criada automaticamente com o arquivo `.exe` pronto para download.
+4. **Build, Assinatura & Setup**: O servidor compila o código via PyInstaller, assina os executáveis, e compila o instalador Inno Setup injetando a versão dinamicamente.
+5. **ZIP Portátil**: A pasta `dist/foton/` é compactada em `fotonPDF-portable-v{version}.zip` para distribuição leve.
+6. **Release Notes**: Um template profissional (`.github/RELEASE_TEMPLATE.md`) é preenchido automaticamente com a versão e usado como corpo da Release.
+7. **Entrega**: Uma página de **Release** é criada automaticamente com dois artefatos:
+   * `fotonPDF_Setup_v{version}.exe` — Instalador profissional (recomendado)
+   * `fotonPDF-portable-v{version}.zip` — Versão portátil (descompactar e usar)
+
+> [!NOTE]
+> O workflow define `PYTHONIOENCODING=utf-8` globalmente para garantir compatibilidade de encoding com o runner Windows.
 
 ---
 
