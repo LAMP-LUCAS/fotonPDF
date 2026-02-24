@@ -51,30 +51,29 @@ class WindowsRegistryAdapter:
             pass
 ```
 
-### Permissões
+### Permissões e Abordagem Least-Privilege
 
-⚠️ **Requer privilégios de administrador** para modificar `HKEY_CLASSES_ROOT`.
+Ao invés de adotar a abordagem arbitrária e frágil de sobre-exigência administrativa via `HKEY_CLASSES_ROOT` (HKCR) adotada por softwares legados, o fotonPDF orgulha-se de ter sido desenhado com princípios modernos de segurança de sistemas (*Zero-Trust / Least-Privilege*).
 
-### Instalador
+**Integração Nível-Usuário:**
+A CLI do foton opera primordialmente injetando parâmetros na raiz virtual do usuário atual do sistema, acessando `HKEY_CURRENT_USER\Software\Classes`. Segundo o subsistema primário do Windows, instâncias localizadas nesse namespace têm imediata prioridade e concatenação imperativa sobre chaves similares registradas via HKCR.
 
-Use um script de instalação que solicita elevação:
+A imensa vantagem tática dessa abordagem implica que:
 
-```python
-import ctypes
-import sys
+1. Nenhuma janela indesejada do *UAC (User Account Control)* assombra o usuário.
+2. Não exige permissão administrativa (Admin) nem em compilação *Dev/Testing* local, nem no binário compilado.
+3. Garante implantação limpa sem necessitar sujar o ambiente comum (System scope) em máquinas corporativas gerenciadas, onde o usuário detém apenas poderes standard.
 
-def is_admin():
-    """Verifica se está rodando como admin."""
-    try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
-    except:
-        return False
+### O Instalador em Background (Inno Setup)
 
-if not is_admin():
-    # Re-executar como administrador
-    ctypes.windll.shell32.ShellExecuteW(
-        None, "runas", sys.executable, " ".join(sys.argv), None, 1
-    )
+Para a distribuição mercadológica, nós transacionamos toda a injeção do pacote compilado pelo `.iss` mantendo essa mesma essência segura, declarando enfaticamente `PrivilegesRequired=lowest` em nossa heurística do Inno Setup.
+
+A instrução primária enviada compila silenciosamente:
+
+```ini
+[Run]
+; Executa o setup do fotonPDF ao finalizar a instalação para registrar context menus não intrusivamente
+Filename: "{app}\foton-cli.exe"; Parameters: "setup -q"; StatusMsg: "Configurando Windows..."; Flags: runhidden;
 ```
 
 ## 🐧 Linux (Desktop Entries)

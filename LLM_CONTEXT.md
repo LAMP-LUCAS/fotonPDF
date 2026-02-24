@@ -68,11 +68,17 @@ Arquivos alterados:
 
 ## 🚀 Como Executar e Validar (Para LLMs)
 
-Para testar mudanças na interface ou lógica, use sempre o hot-reload:
+Para testar mudanças na interface ou lógica, use sempre o hot-reload, e para validar entregas use o simulador de Pipeline:
 
 1. **Validar Design/UI:** `python scripts/hot_reload.py --mode mock`
 2. **Validar Fluxo Real:** `python scripts/hot_reload.py --mode app`
 3. **Capturar Referência Visual (Mockup):** `python scripts/capture_concept.py`
+4. **Validar Pipeline CI/CD (Obrigatório antes de PRs):** `.\scripts\test_release_pipeline.ps1`
+
+> [!CAUTION]
+> **É estritamente proibido criar Pull Requests para `develop` ou `main` sem antes rodar o script `test_release_pipeline.ps1` e confirmar que não houve erros de `PyInstaller` ou `Inno Setup`.** Novos imports e caminhos afetam a distribuição. Verifique os artefatos `dist/fotonPDF_Setup_v*.exe` e o `zip` gerados para confirmar o sucesso.
+
+<!-- -->
 
 > [!IMPORTANT]
 > O hot-reload abre a interface imediatamente e reinicia ao detectar mudanças. Sempre use esta ferramenta para comprovar que suas alterações não quebraram a renderização ou o comportamento da MainWindow.

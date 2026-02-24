@@ -11,6 +11,9 @@ jobs:
     permissions:
       contents: write
 
+    env:
+      PYTHONIOENCODING: utf-8
+
     steps:
     - name: Checkout Código
       uses: actions/checkout@v3
@@ -58,13 +61,29 @@ jobs:
       env:
         APP_VERSION: ${{ env.APP_VERSION }}
 
+    - name: Gerar ZIP Portátil
+      shell: pwsh
+      run: |
+        $version = $env:APP_VERSION
+        Compress-Archive -Path "dist\foton\*" -DestinationPath "dist\fotonPDF-portable-v${version}.zip" -Force
+        echo "ZIP portátil gerado: dist\fotonPDF-portable-v${version}.zip"
+
+    - name: Preparar Release Notes
+      shell: pwsh
+      run: |
+        $version = $env:APP_VERSION
+        $template = Get-Content ".github/RELEASE_TEMPLATE.md" -Raw
+        $notes = $template -replace '\{\{VERSION\}\}', $version
+        $notes | Out-File -Encoding utf8 "release_notes.md"
+        echo "Release notes geradas com sucesso."
+
     - name: Criar Release e Upload de Assets
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          fotonPDF_Setup_v*.exe
-          dist/foton/*.exe
-        generate_release_notes: true
+          dist/fotonPDF_Setup_v*.exe
+          dist/fotonPDF-portable-v*.zip
+        body_path: release_notes.md
         draft: false
         prerelease: false
       env:

@@ -37,7 +37,7 @@ python scripts/build_exe.py
 ```
 
 > [!IMPORTANT]
-> O executável será gerado em `dist/foton_v1.0.0/foton_v1.0.0.exe`. Ele utiliza o modo `--onedir` para maior estabilidade.
+> O executável gerado se abrigará temporariamente em `dist/foton/foton.exe`. Ele utiliza o modo `--onedir` para maior estabilidade gráfica e isolamento de rotina.
 
 ### 3. Assinatura Digital (Opcional/Dev)
 
